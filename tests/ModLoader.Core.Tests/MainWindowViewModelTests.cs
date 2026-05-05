@@ -1,4 +1,5 @@
 using System.Linq;
+using Avalonia.Platform.Storage;
 using ModLoader.App;
 using ModLoader.Core;
 
@@ -289,6 +290,57 @@ public sealed class MainWindowViewModelTests
         Assert.Equal([Path.GetFullPath(mod)], viewModel.SelectedModPaths);
         Assert.True(viewModel.CanLaunch);
         Assert.True(viewModel.IsFileLibraryPaneCollapsed);
+    }
+
+    [Fact]
+    public void DropZoneDragState_DefaultsToInactive()
+    {
+        var viewModel = new MainWindowViewModel(new RecordingPersistence());
+
+        Assert.False(viewModel.IsSourcePortDropZoneDragActive);
+        Assert.False(viewModel.IsIwadDropZoneDragActive);
+        Assert.False(viewModel.IsModDropZoneDragActive);
+    }
+
+    [Fact]
+    public void SetDropZoneDragActive_TogglesRequestedZoneOnly()
+    {
+        var viewModel = new MainWindowViewModel(new RecordingPersistence());
+
+        viewModel.SetDropZoneDragActive(DropZoneKind.Iwad, true);
+
+        Assert.False(viewModel.IsSourcePortDropZoneDragActive);
+        Assert.True(viewModel.IsIwadDropZoneDragActive);
+        Assert.False(viewModel.IsModDropZoneDragActive);
+
+        viewModel.SetDropZoneDragActive(DropZoneKind.Iwad, false);
+
+        Assert.False(viewModel.IsIwadDropZoneDragActive);
+    }
+
+    [Fact]
+    public void ProcessDrop_ResetsDropZoneDragState()
+    {
+        using var temp = new TempDirectory();
+        var source = temp.CreateFile("gzdoom.exe");
+        var iwad = temp.CreateFile("doom2.wad");
+        var mod = temp.CreateFile("mod-a.zip");
+        var viewModel = new MainWindowViewModel(new RecordingPersistence());
+
+        viewModel.SetDropZoneDragActive(DropZoneKind.SourcePort, true);
+        viewModel.SetDropZoneDragActive(DropZoneKind.Iwad, true);
+        viewModel.SetDropZoneDragActive(DropZoneKind.Mod, true);
+
+        viewModel.ProcessSourcePortDrop([source]);
+        Assert.False(viewModel.IsSourcePortDropZoneDragActive);
+
+        viewModel.SetDropZoneDragActive(DropZoneKind.Iwad, true);
+        viewModel.ProcessIwadDrop([iwad]);
+        Assert.False(viewModel.IsIwadDropZoneDragActive);
+
+        viewModel.SetDropZoneDragActive(DropZoneKind.Mod, true);
+        viewModel.ProcessModDrop([mod]);
+        Assert.False(viewModel.IsModDropZoneDragActive);
     }
 
     [Fact]
@@ -1293,6 +1345,26 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
+    public void DropZonePickerOptions_UseZoneSpecificAllowlists()
+    {
+        var sourcePortOptions = DropZonePickerOptionsFactory.Create(DropZoneKind.SourcePort);
+        var iwadOptions = DropZonePickerOptionsFactory.Create(DropZoneKind.Iwad);
+        var modOptions = DropZonePickerOptionsFactory.Create(DropZoneKind.Mod);
+
+        Assert.True(sourcePortOptions.AllowMultiple);
+        Assert.Equal("Select Source Port Files", sourcePortOptions.Title);
+        Assert.Equal(["*.exe"], GetPatterns(sourcePortOptions));
+
+        Assert.True(iwadOptions.AllowMultiple);
+        Assert.Equal("Select IWAD Files", iwadOptions.Title);
+        Assert.Equal(["*.wad", "*.pk3", "*.iwad", "*.ipk3", "*.ipk7", "*.pk7"], GetPatterns(iwadOptions));
+
+        Assert.True(modOptions.AllowMultiple);
+        Assert.Equal("Select Mod Files", modOptions.Title);
+        Assert.Equal(["*.wad", "*.pwad", "*.pk3", "*.pk7", "*.ipk3", "*.ipk7", "*.pkz", "*.zip"], GetPatterns(modOptions));
+    }
+
+    [Fact]
     public void MainWindowXaml_PlacesProfileActionsAndSharedStatusBadgeInCorrectSections()
     {
         var xamlPath = GetRepoFilePath("src", "ModLoader.App", "MainWindow.axaml");
@@ -1321,6 +1393,18 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("Text=\"{Binding ProfileDragGhostText}\"", xaml, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding IsProfileDropIndicatorVisible}\"", xaml, StringComparison.Ordinal);
         Assert.Contains("Width=\"{Binding ProfileDropIndicatorWidth}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("Text=\"Drag and drop here\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("Text=\"Drag files here or click to upload\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("PointerPressed=\"OnDropZonePointerPressed\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("KeyDown=\"OnDropZoneKeyDown\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("DragDrop.DragEnter=\"OnDropZoneDragEnter\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("DragDrop.DragLeave=\"OnDropZoneDragLeave\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("Classes.dragover=\"{Binding IsSourcePortDropZoneDragActive}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("Classes.dragover=\"{Binding IsIwadDropZoneDragActive}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("Classes.dragover=\"{Binding IsModDropZoneDragActive}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("automation:AutomationProperties.Name=\"Source Port drop zone. Drag files here or click to upload.\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("automation:AutomationProperties.Name=\"IWAD drop zone. Drag files here or click to upload.\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("automation:AutomationProperties.Name=\"Mod drop zone. Drag files here or click to upload.\"", xaml, StringComparison.Ordinal);
 
         var profilesHeaderIndex = xaml.IndexOf("Text=\"Profiles\"", StringComparison.Ordinal);
         var newProfileIndex = xaml.IndexOf("Content=\"New Profile\"", StringComparison.Ordinal);
@@ -1344,11 +1428,21 @@ public sealed class MainWindowViewModelTests
     [Fact]
     public void FeatureSpecs_ReflectProfileOrderingAndDragReorderSpecs()
     {
+        var spec = File.ReadAllText(GetRepoFilePath("SPEC.md"));
+        var feature002 = File.ReadAllText(GetRepoFilePath("Features", "002-border-drop-and-row-selection.md"));
         var feature008 = File.ReadAllText(GetRepoFilePath("Features", "008-profile-management.md"));
         var feature009 = File.ReadAllText(GetRepoFilePath("Features", "009-file-library-pane-collapse.md"));
         var feature010 = File.ReadAllText(GetRepoFilePath("Features", "010-profile-drag-reorder.md"));
 
+        Assert.Contains("always-visible instructional card styling", spec, StringComparison.Ordinal);
+        Assert.Contains("clickable keyboard-accessible file-picker fallback", spec, StringComparison.Ordinal);
+        Assert.Contains("click / keyboard fallback to multi-select file pickers", spec, StringComparison.Ordinal);
+        Assert.Contains("Each drop zone renders a visible default target treatment before any drag begins", feature002, StringComparison.Ordinal);
+        Assert.Contains("clicking the zone opens a multi-select file picker for that zone", feature002, StringComparison.Ordinal);
+        Assert.Contains("`Enter` and `Space` trigger the same picker flow as click", feature002, StringComparison.Ordinal);
         Assert.Contains("file-library `Expand` / `Collapse` action to the right of `New Profile`", feature008, StringComparison.Ordinal);
+        Assert.Contains("the Source Port, IWAD, and Mod drop zones inside that pane use the shared visible drop-zone affordance defined by Feature 002", feature008, StringComparison.Ordinal);
+        Assert.Contains("File-picker fallback does not add folder selection support", feature008, StringComparison.Ordinal);
         Assert.Contains("valid rows show a `VALID` badge in that same slot", feature008, StringComparison.Ordinal);
         Assert.Contains("Feature 010 becomes authoritative for how profile row ordering is changed by drag reordering", feature008, StringComparison.Ordinal);
         Assert.Contains("does not render a separate inline valid text line", feature008, StringComparison.Ordinal);
@@ -1429,6 +1523,11 @@ public sealed class MainWindowViewModelTests
             IwadPath = iwadPath,
             SelectedModPaths = [.. selectedModPaths]
         };
+    }
+
+    private static IReadOnlyList<string> GetPatterns(FilePickerOpenOptions options)
+    {
+        return options.FileTypeFilter?.Single().Patterns?.ToArray() ?? [];
     }
 }
 

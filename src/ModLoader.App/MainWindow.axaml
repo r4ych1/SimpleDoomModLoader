@@ -1,5 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:automation="clr-namespace:Avalonia.Automation;assembly=Avalonia.Controls"
         x:Class="ModLoader.App.MainWindow"
         Width="1180"
         Height="820"
@@ -8,6 +9,16 @@
     <ResourceDictionary>
       <ResourceDictionary.ThemeDictionaries>
         <ResourceDictionary x:Key="Light">
+          <SolidColorBrush x:Key="DropZoneBackgroundBrush" Color="#f8fafc" />
+          <SolidColorBrush x:Key="DropZoneBorderBrush" Color="#94a3b8" />
+          <SolidColorBrush x:Key="DropZoneDragOverBackgroundBrush" Color="#e0f2fe" />
+          <SolidColorBrush x:Key="DropZoneDragOverBorderBrush" Color="#2563eb" />
+          <SolidColorBrush x:Key="DropZoneFocusBorderBrush" Color="#1d4ed8" />
+          <SolidColorBrush x:Key="DropZoneTitleForegroundBrush" Color="#0f172a" />
+          <SolidColorBrush x:Key="DropZoneHelperForegroundBrush" Color="#334155" />
+          <SolidColorBrush x:Key="DropZoneIconBackgroundBrush" Color="#dbeafe" />
+          <SolidColorBrush x:Key="DropZoneIconBorderBrush" Color="#60a5fa" />
+          <SolidColorBrush x:Key="DropZoneIconForegroundBrush" Color="#1d4ed8" />
           <SolidColorBrush x:Key="InputRowHoverBackgroundBrush" Color="#12000000" />
           <SolidColorBrush x:Key="InputRowHoverBorderBrush" Color="#40000000" />
           <SolidColorBrush x:Key="InputRowSelectedBackgroundBrush" Color="#2a3b82f6" />
@@ -16,6 +27,16 @@
           <SolidColorBrush x:Key="InputRowSelectedHoverBorderBrush" Color="#1d4ed8" />
         </ResourceDictionary>
         <ResourceDictionary x:Key="Dark">
+          <SolidColorBrush x:Key="DropZoneBackgroundBrush" Color="#172033" />
+          <SolidColorBrush x:Key="DropZoneBorderBrush" Color="#64748b" />
+          <SolidColorBrush x:Key="DropZoneDragOverBackgroundBrush" Color="#1d3152" />
+          <SolidColorBrush x:Key="DropZoneDragOverBorderBrush" Color="#60a5fa" />
+          <SolidColorBrush x:Key="DropZoneFocusBorderBrush" Color="#93c5fd" />
+          <SolidColorBrush x:Key="DropZoneTitleForegroundBrush" Color="#e5e7eb" />
+          <SolidColorBrush x:Key="DropZoneHelperForegroundBrush" Color="#cbd5e1" />
+          <SolidColorBrush x:Key="DropZoneIconBackgroundBrush" Color="#10233f" />
+          <SolidColorBrush x:Key="DropZoneIconBorderBrush" Color="#3b82f6" />
+          <SolidColorBrush x:Key="DropZoneIconForegroundBrush" Color="#93c5fd" />
           <SolidColorBrush x:Key="InputRowHoverBackgroundBrush" Color="#1f93c5fd" />
           <SolidColorBrush x:Key="InputRowHoverBorderBrush" Color="#4b93c5fd" />
           <SolidColorBrush x:Key="InputRowSelectedBackgroundBrush" Color="#334f8df5" />
@@ -29,11 +50,20 @@
   <Window.Styles>
     <Style Selector="Border.DropZone">
       <Setter Property="BorderThickness" Value="2" />
-      <Setter Property="CornerRadius" Value="8" />
-      <Setter Property="BorderBrush" Value="#6b7280" />
-      <Setter Property="Background" Value="Transparent" />
-      <Setter Property="Padding" Value="12" />
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="BorderBrush" Value="{DynamicResource DropZoneBorderBrush}" />
+      <Setter Property="Background" Value="{DynamicResource DropZoneBackgroundBrush}" />
+      <Setter Property="Padding" Value="14" />
       <Setter Property="Margin" Value="0,0,0,10" />
+    </Style>
+    <Style Selector="Border.DropZone:focus">
+      <Setter Property="BorderThickness" Value="3" />
+      <Setter Property="BorderBrush" Value="{DynamicResource DropZoneFocusBorderBrush}" />
+    </Style>
+    <Style Selector="Border.DropZone.dragover">
+      <Setter Property="BorderThickness" Value="3" />
+      <Setter Property="BorderBrush" Value="{DynamicResource DropZoneDragOverBorderBrush}" />
+      <Setter Property="Background" Value="{DynamicResource DropZoneDragOverBackgroundBrush}" />
     </Style>
     <Style Selector="Border.InputRow">
       <Setter Property="Background" Value="Transparent" />
@@ -299,16 +329,51 @@
                           Click="OnToggleSourcePortSectionCollapsedClicked" />
                 </Grid>
                 <Border Classes="DropZone"
+                        Classes.dragover="{Binding IsSourcePortDropZoneDragActive}"
                         IsVisible="{Binding AreSourcePortRowsVisible}"
+                        Tag="SourcePort"
+                        Focusable="True"
+                        IsTabStop="True"
+                        PointerPressed="OnDropZonePointerPressed"
+                        KeyDown="OnDropZoneKeyDown"
                         DragDrop.AllowDrop="True"
+                        DragDrop.DragEnter="OnDropZoneDragEnter"
+                        DragDrop.DragLeave="OnDropZoneDragLeave"
                         DragDrop.DragOver="OnDropZoneDragOver"
+                        automation:AutomationProperties.Name="Source Port drop zone. Drag files here or click to upload."
+                        automation:AutomationProperties.HelpText="Allowed: .exe. Drop one or more files. Directories are ignored."
                         DragDrop.Drop="OnSourcePortDrop">
                   <Grid Grid.IsSharedSizeScope="True" RowDefinitions="Auto,Auto">
-                    <TextBlock Grid.Row="0"
-                               Text="Allowed: .exe. Drop one or more files. Directories are ignored."
-                               VerticalAlignment="Center" />
+                    <Grid Grid.Row="0" ColumnDefinitions="Auto,*">
+                      <Border Width="36"
+                              Height="36"
+                              Margin="0,0,12,0"
+                              CornerRadius="18"
+                              Background="{DynamicResource DropZoneIconBackgroundBrush}"
+                              BorderBrush="{DynamicResource DropZoneIconBorderBrush}"
+                              BorderThickness="1">
+                        <TextBlock HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   Foreground="{DynamicResource DropZoneIconForegroundBrush}"
+                                   FontSize="20"
+                                   FontWeight="Bold"
+                                   Text="+" />
+                      </Border>
+                      <StackPanel Grid.Column="1" Spacing="2">
+                        <TextBlock Foreground="{DynamicResource DropZoneTitleForegroundBrush}"
+                                   FontSize="16"
+                                   FontWeight="SemiBold"
+                                   Text="Drag and drop here" />
+                        <TextBlock Foreground="{DynamicResource DropZoneHelperForegroundBrush}"
+                                   TextWrapping="Wrap"
+                                   Text="Drag files here or click to upload" />
+                        <TextBlock Foreground="{DynamicResource DropZoneHelperForegroundBrush}"
+                                   TextWrapping="Wrap"
+                                   Text="Allowed: .exe. Drop one or more files. Directories are ignored." />
+                      </StackPanel>
+                    </Grid>
                     <ItemsControl Grid.Row="1"
-                                  Margin="0,8,0,0"
+                                  Margin="0,12,0,0"
                                   ItemsSource="{Binding SourcePortRows}">
                       <ItemsControl.ItemTemplate>
                         <DataTemplate>
@@ -352,16 +417,51 @@
                           Click="OnToggleIwadSectionCollapsedClicked" />
                 </Grid>
                 <Border Classes="DropZone"
+                        Classes.dragover="{Binding IsIwadDropZoneDragActive}"
                         IsVisible="{Binding AreIwadRowsVisible}"
+                        Tag="Iwad"
+                        Focusable="True"
+                        IsTabStop="True"
+                        PointerPressed="OnDropZonePointerPressed"
+                        KeyDown="OnDropZoneKeyDown"
                         DragDrop.AllowDrop="True"
+                        DragDrop.DragEnter="OnDropZoneDragEnter"
+                        DragDrop.DragLeave="OnDropZoneDragLeave"
                         DragDrop.DragOver="OnDropZoneDragOver"
+                        automation:AutomationProperties.Name="IWAD drop zone. Drag files here or click to upload."
+                        automation:AutomationProperties.HelpText="Allowed: .wad, .pk3, .iwad, .ipk3, .ipk7, .pk7. Directories scan top-level files only."
                         DragDrop.Drop="OnIwadDrop">
                   <Grid Grid.IsSharedSizeScope="True" RowDefinitions="Auto,Auto">
-                    <TextBlock Grid.Row="0"
-                               Text="Allowed: .wad, .pk3, .iwad, .ipk3, .ipk7, .pk7. Directories scan top-level files only."
-                               VerticalAlignment="Center" />
+                    <Grid Grid.Row="0" ColumnDefinitions="Auto,*">
+                      <Border Width="36"
+                              Height="36"
+                              Margin="0,0,12,0"
+                              CornerRadius="18"
+                              Background="{DynamicResource DropZoneIconBackgroundBrush}"
+                              BorderBrush="{DynamicResource DropZoneIconBorderBrush}"
+                              BorderThickness="1">
+                        <TextBlock HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   Foreground="{DynamicResource DropZoneIconForegroundBrush}"
+                                   FontSize="20"
+                                   FontWeight="Bold"
+                                   Text="+" />
+                      </Border>
+                      <StackPanel Grid.Column="1" Spacing="2">
+                        <TextBlock Foreground="{DynamicResource DropZoneTitleForegroundBrush}"
+                                   FontSize="16"
+                                   FontWeight="SemiBold"
+                                   Text="Drag and drop here" />
+                        <TextBlock Foreground="{DynamicResource DropZoneHelperForegroundBrush}"
+                                   TextWrapping="Wrap"
+                                   Text="Drag files here or click to upload" />
+                        <TextBlock Foreground="{DynamicResource DropZoneHelperForegroundBrush}"
+                                   TextWrapping="Wrap"
+                                   Text="Allowed: .wad, .pk3, .iwad, .ipk3, .ipk7, .pk7. Directories scan top-level files only." />
+                      </StackPanel>
+                    </Grid>
                     <ItemsControl Grid.Row="1"
-                                  Margin="0,8,0,0"
+                                  Margin="0,12,0,0"
                                   ItemsSource="{Binding IwadRows}">
                       <ItemsControl.ItemTemplate>
                         <DataTemplate>
@@ -405,16 +505,51 @@
                           Click="OnToggleModSectionCollapsedClicked" />
                 </Grid>
                 <Border Classes="DropZone"
+                        Classes.dragover="{Binding IsModDropZoneDragActive}"
                         IsVisible="{Binding AreModRowsVisible}"
+                        Tag="Mod"
+                        Focusable="True"
+                        IsTabStop="True"
+                        PointerPressed="OnDropZonePointerPressed"
+                        KeyDown="OnDropZoneKeyDown"
                         DragDrop.AllowDrop="True"
+                        DragDrop.DragEnter="OnDropZoneDragEnter"
+                        DragDrop.DragLeave="OnDropZoneDragLeave"
                         DragDrop.DragOver="OnDropZoneDragOver"
+                        automation:AutomationProperties.Name="Mod drop zone. Drag files here or click to upload."
+                        automation:AutomationProperties.HelpText="Allowed: .wad, .pwad, .pk3, .pk7, .ipk3, .ipk7, .pkz, .zip. Directories scan top-level files only."
                         DragDrop.Drop="OnModDrop">
                   <Grid Grid.IsSharedSizeScope="True" RowDefinitions="Auto,Auto">
-                    <TextBlock Grid.Row="0"
-                               Text="Allowed: .wad, .pwad, .pk3, .pk7, .ipk3, .ipk7, .pkz, .zip. Directories scan top-level files only."
-                               VerticalAlignment="Center" />
+                    <Grid Grid.Row="0" ColumnDefinitions="Auto,*">
+                      <Border Width="36"
+                              Height="36"
+                              Margin="0,0,12,0"
+                              CornerRadius="18"
+                              Background="{DynamicResource DropZoneIconBackgroundBrush}"
+                              BorderBrush="{DynamicResource DropZoneIconBorderBrush}"
+                              BorderThickness="1">
+                        <TextBlock HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   Foreground="{DynamicResource DropZoneIconForegroundBrush}"
+                                   FontSize="20"
+                                   FontWeight="Bold"
+                                   Text="+" />
+                      </Border>
+                      <StackPanel Grid.Column="1" Spacing="2">
+                        <TextBlock Foreground="{DynamicResource DropZoneTitleForegroundBrush}"
+                                   FontSize="16"
+                                   FontWeight="SemiBold"
+                                   Text="Drag and drop here" />
+                        <TextBlock Foreground="{DynamicResource DropZoneHelperForegroundBrush}"
+                                   TextWrapping="Wrap"
+                                   Text="Drag files here or click to upload" />
+                        <TextBlock Foreground="{DynamicResource DropZoneHelperForegroundBrush}"
+                                   TextWrapping="Wrap"
+                                   Text="Allowed: .wad, .pwad, .pk3, .pk7, .ipk3, .ipk7, .pkz, .zip. Directories scan top-level files only." />
+                      </StackPanel>
+                    </Grid>
                     <ItemsControl Grid.Row="1"
-                                  Margin="0,8,0,0"
+                                  Margin="0,12,0,0"
                                   ItemsSource="{Binding ModRows}">
                       <ItemsControl.ItemTemplate>
                         <DataTemplate>

@@ -5,7 +5,9 @@ using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
+using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using ModLoader.Core;
@@ -47,28 +49,71 @@ public partial class MainWindow : Window
         _profileListScrollViewer = this.FindControl<ScrollViewer>("ProfileListScrollViewer");
     }
 
+    private void OnDropZoneDragEnter(object? sender, DragEventArgs e)
+    {
+        UpdateDropZoneDragState(sender, e);
+    }
+
     private void OnDropZoneDragOver(object? sender, DragEventArgs e)
     {
-        e.DragEffects = HasFilePayload(e) ? DragDropEffects.Copy : DragDropEffects.None;
+        UpdateDropZoneDragState(sender, e);
+    }
+
+    private void OnDropZoneDragLeave(object? sender, RoutedEventArgs e)
+    {
+        if (TryGetDropZoneKind(sender, out var kind))
+        {
+            _viewModel.SetDropZoneDragActive(kind, false);
+        }
+
         e.Handled = true;
     }
 
     private void OnSourcePortDrop(object? sender, DragEventArgs e)
     {
+        _viewModel.SetDropZoneDragActive(DropZoneKind.SourcePort, false);
         _viewModel.ProcessSourcePortDrop(ExtractDroppedPaths(e));
         e.Handled = true;
     }
 
     private void OnIwadDrop(object? sender, DragEventArgs e)
     {
+        _viewModel.SetDropZoneDragActive(DropZoneKind.Iwad, false);
         _viewModel.ProcessIwadDrop(ExtractDroppedPaths(e));
         e.Handled = true;
     }
 
     private void OnModDrop(object? sender, DragEventArgs e)
     {
+        _viewModel.SetDropZoneDragActive(DropZoneKind.Mod, false);
         _viewModel.ProcessModDrop(ExtractDroppedPaths(e));
         e.Handled = true;
+    }
+
+    private async void OnDropZonePointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
+            || IsFromInteractiveChild(e.Source)
+            || IsWithinInputRow(e.Source)
+            || !TryGetDropZoneKind(sender, out var kind))
+        {
+            return;
+        }
+
+        e.Handled = true;
+        await OpenDropZonePickerAsync(kind);
+    }
+
+    private async void OnDropZoneKeyDown(object? sender, KeyEventArgs e)
+    {
+        if ((e.Key != Key.Enter && e.Key != Key.Space)
+            || !TryGetDropZoneKind(sender, out var kind))
+        {
+            return;
+        }
+
+        e.Handled = true;
+        await OpenDropZonePickerAsync(kind);
     }
 
     private void OnNewProfileClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -508,6 +553,29 @@ public partial class MainWindow : Window
         return false;
     }
 
+    private static bool IsWithinInputRow(object? source)
+    {
+        if (source is Border border && border.Classes.Contains("InputRow"))
+        {
+            return true;
+        }
+
+        if (source is not Avalonia.Visual visual)
+        {
+            return false;
+        }
+
+        foreach (var ancestor in visual.GetVisualAncestors())
+        {
+            if (ancestor is Border ancestorBorder && ancestorBorder.Classes.Contains("InputRow"))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private void UpdateProfileDrag(Point pointInHost)
     {
         _viewModel.UpdateProfileDragGhostPosition(pointInHost.X + 12d, pointInHost.Y + 12d);
@@ -622,6 +690,67 @@ public partial class MainWindow : Window
     {
         return Math.Abs(currentPoint.X - startPoint.X) >= ProfileDragStartThreshold
             || Math.Abs(currentPoint.Y - startPoint.Y) >= ProfileDragStartThreshold;
+    }
+
+    private void UpdateDropZoneDragState(object? sender, DragEventArgs e)
+    {
+        var hasFilePayload = HasFilePayload(e);
+        e.DragEffects = hasFilePayload ? DragDropEffects.Copy : DragDropEffects.None;
+
+        if (TryGetDropZoneKind(sender, out var kind))
+        {
+            _viewModel.SetDropZoneDragActive(kind, hasFilePayload);
+        }
+
+        e.Handled = true;
+    }
+
+    private async Task OpenDropZonePickerAsync(DropZoneKind kind)
+    {
+        if (!StorageProvider.CanOpen)
+        {
+            return;
+        }
+
+        var selectedFiles = await StorageProvider.OpenFilePickerAsync(DropZonePickerOptionsFactory.Create(kind));
+        var selectedPaths = selectedFiles
+            .Select(file => file.TryGetLocalPath())
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .Cast<string>()
+            .ToArray();
+
+        if (selectedPaths.Length == 0)
+        {
+            return;
+        }
+
+        switch (kind)
+        {
+            case DropZoneKind.SourcePort:
+                _viewModel.ProcessSourcePortDrop(selectedPaths);
+                break;
+            case DropZoneKind.Iwad:
+                _viewModel.ProcessIwadDrop(selectedPaths);
+                break;
+            case DropZoneKind.Mod:
+                _viewModel.ProcessModDrop(selectedPaths);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(kind), kind, null);
+        }
+    }
+
+    private static bool TryGetDropZoneKind(object? sender, out DropZoneKind kind)
+    {
+        if (sender is Border border
+            && border.Tag is string tag
+            && Enum.TryParse(tag, ignoreCase: false, out kind))
+        {
+            return true;
+        }
+
+        kind = default;
+        return false;
     }
 
     private void OnWindowSizeChanged(object? sender, SizeChangedEventArgs e)

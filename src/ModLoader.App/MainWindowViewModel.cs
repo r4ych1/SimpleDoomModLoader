@@ -16,11 +16,14 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private readonly LaunchInputsStore _store;
     private readonly List<ProfileConfig> _profiles = [];
     private bool _isFileLibraryPaneCollapsed;
+    private bool _isIwadDropZoneDragActive;
     private bool _isProfileDragGhostVisible;
     private bool _isProfileDropIndicatorVisible;
     private bool _isIwadSectionCollapsed;
     private bool _isModSectionCollapsed;
+    private bool _isModDropZoneDragActive;
     private bool _isSelectedProfileRenameVisible;
+    private bool _isSourcePortDropZoneDragActive;
     private bool _isSourcePortSectionCollapsed;
     private string? _messageText;
     private string? _pendingDeleteProfileId;
@@ -484,6 +487,51 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     public bool AreProfileCommandPreviewsVisible => IsFileLibraryPaneCollapsed && _windowWidth > ProfileCommandPreviewHideWidthThreshold;
 
+    public bool IsSourcePortDropZoneDragActive
+    {
+        get => _isSourcePortDropZoneDragActive;
+        private set
+        {
+            if (_isSourcePortDropZoneDragActive == value)
+            {
+                return;
+            }
+
+            _isSourcePortDropZoneDragActive = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool IsIwadDropZoneDragActive
+    {
+        get => _isIwadDropZoneDragActive;
+        private set
+        {
+            if (_isIwadDropZoneDragActive == value)
+            {
+                return;
+            }
+
+            _isIwadDropZoneDragActive = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool IsModDropZoneDragActive
+    {
+        get => _isModDropZoneDragActive;
+        private set
+        {
+            if (_isModDropZoneDragActive == value)
+            {
+                return;
+            }
+
+            _isModDropZoneDragActive = value;
+            OnPropertyChanged();
+        }
+    }
+
     public void SetWindowWidth(double width)
     {
         var normalizedWidth = width > 0d ? width : 0d;
@@ -498,6 +546,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     public void ProcessSourcePortDrop(IEnumerable<string> droppedPaths)
     {
+        ResetDropZoneDragStates();
         _store.ProcessSourcePortDrop(droppedPaths);
         ClearPendingDeleteConfirmation();
         RefreshFromStore();
@@ -506,6 +555,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     public void ProcessIwadDrop(IEnumerable<string> droppedPaths)
     {
+        ResetDropZoneDragStates();
         _store.ProcessIwadDrop(droppedPaths);
         ClearPendingDeleteConfirmation();
         RefreshFromStore();
@@ -514,10 +564,29 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     public void ProcessModDrop(IEnumerable<string> droppedPaths)
     {
+        ResetDropZoneDragStates();
         _store.ProcessModDrop(droppedPaths);
         ClearPendingDeleteConfirmation();
         RefreshFromStore();
         PersistState();
+    }
+
+    internal void SetDropZoneDragActive(DropZoneKind kind, bool isActive)
+    {
+        switch (kind)
+        {
+            case DropZoneKind.SourcePort:
+                IsSourcePortDropZoneDragActive = isActive;
+                break;
+            case DropZoneKind.Iwad:
+                IsIwadDropZoneDragActive = isActive;
+                break;
+            case DropZoneKind.Mod:
+                IsModDropZoneDragActive = isActive;
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(kind), kind, null);
+        }
     }
 
     public void ToggleSourcePortSectionCollapsed()
@@ -1496,6 +1565,13 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         return displayToken.Contains(' ', StringComparison.Ordinal)
             ? $"\"{displayToken}\""
             : displayToken;
+    }
+
+    private void ResetDropZoneDragStates()
+    {
+        IsSourcePortDropZoneDragActive = false;
+        IsIwadDropZoneDragActive = false;
+        IsModDropZoneDragActive = false;
     }
 
     private void PersistState()

@@ -52,6 +52,15 @@ Feature 010 later adds manual drag reordering for saved profile rows. Feature 00
   - the selected profile name or selected-profile rename input on the left
   - the `Rename` action on the right
 - The existing top message/warning area is reused for rename validation and delete confirmation.
+- While the file library pane is expanded, the Source Port, IWAD, and Mod drop zones inside that pane use the shared visible drop-zone affordance defined by Feature 002.
+- Each expanded file-library drop zone provides a section-specific accessible label, for example `Source Port drop zone. Drag files here or click to upload.`
+- Clicking empty instructional area inside an expanded file-library drop zone opens that section's file-picker fallback without changing existing row selection or row remove behavior.
+- Pressing `Enter` or `Space` while keyboard focus is on an expanded file-library drop zone opens that same section's file-picker fallback.
+- The click / keyboard fallback opens multi-select file pickers only:
+  - Source Port picker allows `.exe`
+  - IWAD picker allows the current IWAD allowlist
+  - Mod picker allows the current Mod allowlist including `.zip`
+- File-picker fallback does not add folder selection support; existing IWAD and Mod top-level folder ingestion remains drag-and-drop only.
 
 ### Profile List And Selection
 - Left pane shows:
@@ -298,6 +307,12 @@ When the file library content exceeds available vertical space
 Then the right pane scrolls independently.
 And the left profile pane remains pinned.
 And when the profile list exceeds available height, the profile list scrolls within the left pane.
+
+### Shared-library drop zones stay visibly interactive
+Given the file library pane is expanded
+When the Source Port, IWAD, and Mod sections are rendered
+Then each section shows a visibly interactive drop zone with instructional helper text before any drag begins.
+And each zone supports drag-over highlight, click fallback, keyboard activation, and a section-specific accessible label.
 
 ### Delete selected profile
 Given a selected profile exists
