@@ -792,7 +792,7 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
-    public void RemoveLibraryItemUsedBySelectedProfile_KeepsProfileSavedButInvalid()
+    public void RemoveSourcePortUsedBySelectedProfile_KeepsProfileSavedButInvalid()
     {
         using var temp = new TempDirectory();
         var source = temp.CreateFile("gzdoom.exe");
@@ -825,6 +825,81 @@ public sealed class MainWindowViewModelTests
         Assert.False(viewModel.CanLaunch);
         Assert.Null(viewModel.SelectedSourcePortPath);
         Assert.Equal(Path.GetFullPath(source), persistence.SavedStates.Last().Profiles.Single().SourcePortPath);
+    }
+
+    [Fact]
+    public void RemoveIwadUsedBySelectedProfile_KeepsProfileSavedButInvalid()
+    {
+        using var temp = new TempDirectory();
+        var source = temp.CreateFile("gzdoom.exe");
+        var iwad = temp.CreateFile("doom2.wad");
+
+        var persistence = new RecordingPersistence
+        {
+            LoadResult = new LaunchInputsLoadResult
+            {
+                State = new LaunchInputsConfig
+                {
+                    SourcePorts = [source],
+                    Iwads = [iwad],
+                    Profiles = [CreateProfile("p1", "Profile 1", source, iwad)],
+                    SelectedProfileId = "p1"
+                }
+            }
+        };
+
+        var viewModel = new MainWindowViewModel(persistence);
+
+        viewModel.RemoveIwad(iwad);
+
+        var profileRow = viewModel.ProfileRows.Single();
+        Assert.True(profileRow.IsInvalid);
+        Assert.False(profileRow.HasValidMessage);
+        Assert.True(profileRow.HasStatusBadge);
+        Assert.Equal("INVALID", profileRow.StatusBadgeText);
+        Assert.Contains("IWAD", profileRow.InvalidReason);
+        Assert.False(viewModel.CanLaunch);
+        Assert.Null(viewModel.SelectedIwadPath);
+        Assert.Equal(Path.GetFullPath(iwad), persistence.SavedStates.Last().Profiles.Single().IwadPath);
+    }
+
+    [Fact]
+    public void RemoveModUsedBySelectedProfile_KeepsProfileSavedAndLaunchable()
+    {
+        using var temp = new TempDirectory();
+        var source = temp.CreateFile("gzdoom.exe");
+        var iwad = temp.CreateFile("doom2.wad");
+        var mod = temp.CreateFile("mod-a.pk3");
+
+        var persistence = new RecordingPersistence
+        {
+            LoadResult = new LaunchInputsLoadResult
+            {
+                State = new LaunchInputsConfig
+                {
+                    SourcePorts = [source],
+                    Iwads = [iwad],
+                    Mods = [mod],
+                    Profiles = [CreateProfile("p1", "Profile 1", source, iwad, mod)],
+                    SelectedProfileId = "p1"
+                }
+            }
+        };
+
+        var viewModel = new MainWindowViewModel(persistence);
+
+        viewModel.RemoveMod(mod);
+
+        var profileRow = viewModel.ProfileRows.Single();
+        Assert.False(profileRow.IsInvalid);
+        Assert.True(profileRow.CanLaunchProfile);
+        Assert.True(profileRow.HasStatusBadge);
+        Assert.Equal("VALID", profileRow.StatusBadgeText);
+        Assert.Equal("Selected profile is ready to launch.", viewModel.SelectedProfileStatusText);
+        Assert.True(viewModel.CanLaunch);
+        Assert.Empty(viewModel.SelectedModPaths);
+        Assert.Equal("gzdoom.exe -iwad doom2.wad -file mod-a.pk3", profileRow.CommandPreviewText);
+        Assert.Equal([Path.GetFullPath(mod)], persistence.SavedStates.Last().Profiles.Single().SelectedModPaths);
     }
 
     [Fact]
@@ -865,6 +940,36 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
+    public void SelectedProfileHeader_ShowsAmberInvalidStatusAndSavedCommandPreview()
+    {
+        using var temp = new TempDirectory();
+        var source = temp.CreateFile("gzdoom.exe");
+        var missingIwad = Path.Combine(temp.Path, "missing.wad");
+
+        var persistence = new RecordingPersistence
+        {
+            LoadResult = new LaunchInputsLoadResult
+            {
+                State = new LaunchInputsConfig
+                {
+                    SourcePorts = [source],
+                    Profiles = [CreateProfile("p1", "Profile 1", source, missingIwad)],
+                    SelectedProfileId = "p1"
+                }
+            }
+        };
+
+        var viewModel = new MainWindowViewModel(persistence);
+
+        Assert.Equal("IWAD file is missing: missing.wad", viewModel.SelectedProfileStatusText);
+        Assert.Equal("#f59e0b", viewModel.SelectedProfileStatusForeground);
+        Assert.Equal("gzdoom.exe -iwad missing.wad", viewModel.SelectedProfileCommandPreviewText);
+        Assert.True(viewModel.HasSelectedProfileCommandPreview);
+        Assert.Null(viewModel.SelectedIwadPath);
+        Assert.Equal("gzdoom.exe", Path.GetFileName(viewModel.SelectedSourcePortPath));
+    }
+
+    [Fact]
     public void ValidProfileRow_ShowsExplicitValidBadge()
     {
         using var temp = new TempDirectory();
@@ -895,6 +1000,40 @@ public sealed class MainWindowViewModelTests
         Assert.True(row.HasValidMessage);
         Assert.Equal("VALID", row.ValidMessage);
         Assert.False(row.HasInvalidReason);
+    }
+
+    [Fact]
+    public void MissingSavedModPath_DoesNotInvalidateProfile()
+    {
+        using var temp = new TempDirectory();
+        var source = temp.CreateFile("gzdoom.exe");
+        var iwad = temp.CreateFile("doom2.wad");
+        var missingMod = Path.Combine(temp.Path, "missing-mod.pk3");
+
+        var persistence = new RecordingPersistence
+        {
+            LoadResult = new LaunchInputsLoadResult
+            {
+                State = new LaunchInputsConfig
+                {
+                    SourcePorts = [source],
+                    Iwads = [iwad],
+                    Profiles = [CreateProfile("p1", "Profile 1", source, iwad, missingMod)],
+                    SelectedProfileId = "p1"
+                }
+            }
+        };
+
+        var viewModel = new MainWindowViewModel(persistence);
+        var row = viewModel.ProfileRows.Single();
+
+        Assert.False(row.IsInvalid);
+        Assert.True(row.CanLaunchProfile);
+        Assert.Equal("VALID", row.StatusBadgeText);
+        Assert.Equal("Selected profile is ready to launch.", viewModel.SelectedProfileStatusText);
+        Assert.True(viewModel.CanLaunch);
+        Assert.Empty(viewModel.SelectedModPaths);
+        Assert.Equal("gzdoom.exe -iwad doom2.wad -file missing-mod.pk3", row.CommandPreviewText);
     }
 
     [Fact]
@@ -1467,6 +1606,9 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("FontFamily=\"Consolas\"", xaml, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding IsInvalidReasonVisible}\"", xaml, StringComparison.Ordinal);
         Assert.DoesNotContain("IsVisible=\"{Binding HasInvalidReason}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("Foreground=\"{Binding SelectedProfileStatusForeground}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding HasSelectedProfileCommandPreview}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding SelectedProfileCommandPreviewText}\"", xaml, StringComparison.Ordinal);
         Assert.Contains("MaxLines=\"2\"", xaml, StringComparison.Ordinal);
         Assert.Contains("TextTrimming=\"CharacterEllipsis\"", xaml, StringComparison.Ordinal);
         Assert.DoesNotContain("IsVisible=\"{Binding HasValidMessage}\"", xaml, StringComparison.Ordinal);
@@ -1498,6 +1640,7 @@ public sealed class MainWindowViewModelTests
         var newProfileIndex = xaml.IndexOf("Content=\"New Profile\"", StringComparison.Ordinal);
         var fileLibraryToggleIndex = xaml.IndexOf("Content=\"{Binding FileLibraryPaneToggleText}\"", StringComparison.Ordinal);
         var selectedProfileNameIndex = xaml.IndexOf("Text=\"{Binding SelectedProfileName}\"", StringComparison.Ordinal);
+        var selectedProfilePreviewIndex = xaml.IndexOf("Text=\"{Binding SelectedProfileCommandPreviewText}\"", StringComparison.Ordinal);
         var launchIndex = xaml.LastIndexOf("Content=\"Launch\"", StringComparison.Ordinal);
         var renameIndex = xaml.LastIndexOf("Content=\"Rename\"", StringComparison.Ordinal);
         var deleteIndex = xaml.LastIndexOf("Content=\"Delete\"", StringComparison.Ordinal);
@@ -1507,6 +1650,7 @@ public sealed class MainWindowViewModelTests
         Assert.True(fileLibraryToggleIndex > newProfileIndex);
         Assert.True(selectedProfileNameIndex > newProfileIndex);
         Assert.True(selectedProfileNameIndex > fileLibraryToggleIndex);
+        Assert.True(selectedProfilePreviewIndex > selectedProfileNameIndex);
         Assert.True(launchIndex >= 0);
         Assert.True(renameIndex > launchIndex);
         Assert.True(deleteIndex > launchIndex);
@@ -1531,12 +1675,15 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("fixed `380 px` width", spec, StringComparison.Ordinal);
         Assert.Contains("profile names wrap up to two lines", spec, StringComparison.Ordinal);
         Assert.Contains("inline invalid-reason text stays hidden while shared status badges remain visible", spec, StringComparison.Ordinal);
+        Assert.Contains("selected-profile header keeps the profile name, shows status text with the shared amber invalid color when invalid, and renders its own wrapped filename-only command preview", spec, StringComparison.Ordinal);
+        Assert.Contains("require one source port plus one IWAD only for profile validity", spec, StringComparison.Ordinal);
         Assert.Contains("Each drop zone renders a visible default target treatment before any drag begins", feature002, StringComparison.Ordinal);
         Assert.DoesNotContain("an always-visible empty-state icon or badge treatment", feature002, StringComparison.Ordinal);
         Assert.DoesNotContain("`Drag files here or click to upload`", feature002, StringComparison.Ordinal);
         Assert.Contains("clicking the zone opens a multi-select file picker for that zone", feature002, StringComparison.Ordinal);
         Assert.Contains("`Enter` and `Space` trigger the same picker flow as click", feature002, StringComparison.Ordinal);
         Assert.Contains("file-library `Expand` / `Collapse` action to the right of `New Profile`", feature008, StringComparison.Ordinal);
+        Assert.Contains("selected-profile command preview text below the status text when the selected profile has one or more previewable saved launch tokens", feature008, StringComparison.Ordinal);
         Assert.Contains("the Source Port, IWAD, and Mod drop zones inside that pane use the shared visible drop-zone affordance defined by Feature 002", feature008, StringComparison.Ordinal);
         Assert.Contains("File-picker fallback does not add folder selection support", feature008, StringComparison.Ordinal);
         Assert.Contains("valid rows show a `VALID` badge in that same slot", feature008, StringComparison.Ordinal);
@@ -1544,15 +1691,20 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("Feature 010 becomes authoritative for how profile row ordering is changed by drag reordering", feature008, StringComparison.Ordinal);
         Assert.Contains("does not render a separate inline valid text line", feature008, StringComparison.Ordinal);
         Assert.Contains("Profile names in left-pane rows wrap within the row body and are capped at two rendered lines.", feature008, StringComparison.Ordinal);
+        Assert.Contains("selected-profile status text in the right-pane header uses the same amber invalid text color", feature008, StringComparison.Ordinal);
         Assert.Contains("Each profile row renders its command preview in the non-interactive text area under the profile name", feature008, StringComparison.Ordinal);
         Assert.Contains("when the file library pane is expanded, row preview text is hidden for all profile rows regardless of width", feature008, StringComparison.Ordinal);
         Assert.Contains("when the file library pane is expanded, inline invalid-reason text is hidden for all profile rows regardless of width", feature008, StringComparison.Ordinal);
+        Assert.Contains("selected profile's saved launch inputs rather than current hydrated live selections", feature008, StringComparison.Ordinal);
         Assert.Contains("when the overall window width is less than or equal to `768 px`, row preview text is hidden for all profile rows even while the file library pane is collapsed", feature008, StringComparison.Ordinal);
         Assert.Contains("While the file library pane is collapsed, double-clicking a profile row is a profile-open shortcut", feature008, StringComparison.Ordinal);
         Assert.Contains("While the file library pane is expanded, double-clicking a profile row is the inverse pane shortcut", feature008, StringComparison.Ordinal);
         Assert.Contains("the second click does not toggle the row back off", feature008, StringComparison.Ordinal);
         Assert.Contains("Each profile row exposes `Launch`, `Rename`, and `Delete` actions in that order.", feature008, StringComparison.Ordinal);
         Assert.Contains("The right-pane selected-profile header remains display-only", feature008, StringComparison.Ordinal);
+        Assert.Contains("Removing a referenced Mod from the shared library does not invalidate the profile.", feature008, StringComparison.Ordinal);
+        Assert.Contains("Missing referenced Mod files on disk do not invalidate the profile.", feature008, StringComparison.Ordinal);
+        Assert.Contains("its saved Mod references remain preserved for preview text and launch argument construction", feature008, StringComparison.Ordinal);
         Assert.Contains("the right file-library pane is not rendered", feature009, StringComparison.Ordinal);
         Assert.Contains("the spacer gap between the profile pane and file-library pane is not rendered", feature009, StringComparison.Ordinal);
         Assert.Contains("when the file library pane is expanded, inline profile-row command preview is hidden for all profile rows", feature009, StringComparison.Ordinal);
@@ -1596,6 +1748,9 @@ public sealed class MainWindowViewModelTests
         Assert.Empty(viewModel.SelectedModPaths);
         Assert.False(viewModel.CanLaunch);
         Assert.Equal(string.Empty, viewModel.CommandPreviewArguments);
+        Assert.Equal(string.Empty, viewModel.SelectedProfileCommandPreviewText);
+        Assert.False(viewModel.HasSelectedProfileCommandPreview);
+        Assert.Equal("#94a3b8", viewModel.SelectedProfileStatusForeground);
     }
 
     private static string GetRepoFilePath(params string[] relativeParts)

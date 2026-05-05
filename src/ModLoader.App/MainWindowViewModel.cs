@@ -182,8 +182,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(HasSelectedProfile));
             OnPropertyChanged(nameof(CanRenameSelectedProfile));
             OnPropertyChanged(nameof(CanLaunch));
-            OnPropertyChanged(nameof(SelectedProfileName));
-            OnPropertyChanged(nameof(SelectedProfileStatusText));
+            OnSelectedProfilePresentationChanged();
 
             if (!IsSelectedProfileRenameVisible)
             {
@@ -313,6 +312,17 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     public string SelectedProfileName => GetSelectedProfile()?.Name ?? "No Profile Selected";
 
+    public string SelectedProfileCommandPreviewText
+    {
+        get
+        {
+            var selectedProfile = GetSelectedProfile();
+            return selectedProfile is null ? string.Empty : BuildCommandPreviewArguments(selectedProfile);
+        }
+    }
+
+    public bool HasSelectedProfileCommandPreview => !string.IsNullOrWhiteSpace(SelectedProfileCommandPreviewText);
+
     public string SelectedProfileRenameText
     {
         get => _selectedProfileRenameText;
@@ -360,6 +370,20 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
             var validity = GetProfileValidity(selectedProfile);
             return validity.IsValid ? "Selected profile is ready to launch." : validity.Reason;
+        }
+    }
+
+    public string SelectedProfileStatusForeground
+    {
+        get
+        {
+            var selectedProfile = GetSelectedProfile();
+            if (selectedProfile is null)
+            {
+                return "#94a3b8";
+            }
+
+            return GetProfileValidity(selectedProfile).IsValid ? "#94a3b8" : "#f59e0b";
         }
     }
 
@@ -656,7 +680,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         RefreshRows();
         RefreshProfileRows();
         OnPropertyChanged(nameof(CanLaunch));
-        OnPropertyChanged(nameof(SelectedProfileStatusText));
+        OnSelectedProfilePresentationChanged();
         PersistState();
     }
 
@@ -678,7 +702,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         RefreshRows();
         RefreshProfileRows();
         OnPropertyChanged(nameof(CanLaunch));
-        OnPropertyChanged(nameof(SelectedProfileStatusText));
+        OnSelectedProfilePresentationChanged();
         PersistState();
     }
 
@@ -702,7 +726,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         RefreshProfileRows();
         OnPropertyChanged(nameof(CommandPreviewArguments));
         OnPropertyChanged(nameof(CanLaunch));
-        OnPropertyChanged(nameof(SelectedProfileStatusText));
+        OnSelectedProfilePresentationChanged();
         PersistState();
     }
 
@@ -724,7 +748,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         RefreshRows();
         RefreshProfileRows();
         OnPropertyChanged(nameof(CanLaunch));
-        OnPropertyChanged(nameof(SelectedProfileStatusText));
+        OnSelectedProfilePresentationChanged();
         PersistState();
     }
 
@@ -748,7 +772,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         RefreshRows();
         RefreshProfileRows();
         OnPropertyChanged(nameof(CanLaunch));
-        OnPropertyChanged(nameof(SelectedProfileStatusText));
+        OnSelectedProfilePresentationChanged();
         PersistState();
         return true;
     }
@@ -773,8 +797,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         RefreshProfileRows();
         OnPropertyChanged(nameof(HasProfiles));
         OnPropertyChanged(nameof(CanLaunch));
-        OnPropertyChanged(nameof(SelectedProfileName));
-        OnPropertyChanged(nameof(SelectedProfileStatusText));
+        OnSelectedProfilePresentationChanged();
         PersistState();
     }
 
@@ -858,7 +881,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         RefreshProfileRows();
         ClearInformationalMessage();
         OnPropertyChanged(nameof(CanLaunch));
-        OnPropertyChanged(nameof(SelectedProfileStatusText));
+        OnSelectedProfilePresentationChanged();
         PersistState();
     }
 
@@ -918,8 +941,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         SelectedProfileRenameText = proposedName;
         ClearInformationalMessage();
         RefreshProfileRows();
-        OnPropertyChanged(nameof(SelectedProfileName));
-        OnPropertyChanged(nameof(SelectedProfileStatusText));
+        OnSelectedProfilePresentationChanged();
         PersistState();
     }
 
@@ -978,8 +1000,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         RefreshProfileRows();
         OnPropertyChanged(nameof(HasProfiles));
         OnPropertyChanged(nameof(CanLaunch));
-        OnPropertyChanged(nameof(SelectedProfileName));
-        OnPropertyChanged(nameof(SelectedProfileStatusText));
+        OnSelectedProfilePresentationChanged();
         PersistState();
     }
 
@@ -1002,7 +1023,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         RefreshRows();
         RefreshProfileRows();
         OnPropertyChanged(nameof(CanLaunch));
-        OnPropertyChanged(nameof(SelectedProfileStatusText));
+        OnSelectedProfilePresentationChanged();
         PersistState();
         LaunchSourcePort();
     }
@@ -1035,8 +1056,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         ClearPendingDeleteConfirmation();
         RefreshProfileRows();
         OnPropertyChanged(nameof(CanLaunch));
-        OnPropertyChanged(nameof(SelectedProfileName));
-        OnPropertyChanged(nameof(SelectedProfileStatusText));
+        OnSelectedProfilePresentationChanged();
         PersistState();
         return true;
     }
@@ -1089,8 +1109,16 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(CanCreateProfile));
         OnPropertyChanged(nameof(CanLaunch));
         OnPropertyChanged(nameof(CommandPreviewArguments));
+        OnSelectedProfilePresentationChanged();
+    }
+
+    private void OnSelectedProfilePresentationChanged()
+    {
         OnPropertyChanged(nameof(SelectedProfileName));
         OnPropertyChanged(nameof(SelectedProfileStatusText));
+        OnPropertyChanged(nameof(SelectedProfileStatusForeground));
+        OnPropertyChanged(nameof(SelectedProfileCommandPreviewText));
+        OnPropertyChanged(nameof(HasSelectedProfileCommandPreview));
     }
 
     private void RefreshRows()
@@ -1392,20 +1420,6 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             else if (!ContainsPath(Iwads, profile.IwadPath))
             {
                 reasons.Add($"IWAD is no longer in the library: {Path.GetFileName(profile.IwadPath)}");
-            }
-        }
-
-        foreach (var modPath in profile.SelectedModPaths)
-        {
-            if (!File.Exists(modPath))
-            {
-                reasons.Add($"Mod file is missing: {Path.GetFileName(modPath)}");
-                continue;
-            }
-
-            if (!ContainsPath(Mods, modPath))
-            {
-                reasons.Add($"Mod is no longer in the library: {Path.GetFileName(modPath)}");
             }
         }
 

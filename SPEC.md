@@ -41,9 +41,10 @@ This repository follows feature-scoped delivery. Behavior is only guaranteed whe
   - Authoritative spec: `Features/007-source-port-list-and-mod-zip.md`.
 - Feature 008: Selection-based profile workspace.
   - Adds saved profiles as the primary launch model in a two-pane workspace: a pinned profile list on the left and independently scrolling shared file library on the right, with `New Profile` in the left profile-management header.
-  - Profiles persist source port, IWAD, and ordered mod references to the shared library and are the only launchable unit.
+  - Profiles persist source port, IWAD, and ordered mod references to the shared library, are the only launchable unit, and require one source port plus one IWAD only for profile validity.
   - The expanded shared file-library pane renders Source Port, IWAD, and Mod drop zones as visibly interactive upload targets with visible instructional text, section-specific accessible labels, drag-over highlight, and click / keyboard fallback to multi-select file pickers that match each zone's existing allowlist.
   - Each saved profile row renders its own wrapped filename-only command preview inside the profile cell, and that preview appears only while the file library is collapsed and the window width remains above the Feature 008 minimum threshold.
+  - While a profile is selected in the expanded file library, the selected-profile header keeps the profile name, shows status text with the shared amber invalid color when invalid, and renders its own wrapped filename-only command preview from the saved profile inputs.
   - While the file library is expanded, the left `Profiles` pane uses a fixed `380 px` width, profile names wrap up to two lines, and inline invalid-reason text stays hidden while shared status badges remain visible.
   - Profile rows expose explicit `Launch`, `Rename`, and `Delete` actions plus a shared row-status badge treatment for valid and invalid states, while profile rename is handled inline on the selected row and outside-click rename exit cancels rather than saves.
   - Profile edits auto-save immediately through file-library selection changes; row launch actions select and run that specific valid saved profile.

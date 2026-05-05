@@ -14,7 +14,7 @@ Feature 010 later adds manual drag reordering for saved profile rows. Feature 00
 - Profile delete with confirmation.
 - Immediate profile auto-save when editing a selected profile through library selection changes.
 - Persisted `Profiles` and `SelectedProfileId`.
-- Profile validity computation based on required launch inputs plus library membership and file existence.
+- Profile validity computation based on required Source Port and IWAD launch inputs plus their library membership and file existence, while Mods remain non-blocking saved references.
 - Backward-compatible load of existing library lists without auto-migrating a profile from legacy selected fields.
 
 ## Out Of Scope
@@ -52,7 +52,10 @@ Feature 010 later adds manual drag reordering for saved profile rows. Feature 00
 - The right pane begins with a selected-profile header area that contains:
   - the selected profile name on the left
   - selected-profile status text below the name
+  - selected-profile command preview text below the status text when the selected profile has one or more previewable saved launch tokens
 - The existing top message/warning area is reused for rename validation and delete confirmation.
+- While the selected profile is invalid, the selected-profile status text in the right-pane header uses the same amber invalid text color used by left-pane inline invalid text.
+- While the selected profile is valid or no profile is selected, the selected-profile status text in the right-pane header keeps the muted helper/status text color.
 - While the file library pane is expanded, the Source Port, IWAD, and Mod drop zones inside that pane use the shared visible drop-zone affordance defined by Feature 002.
 - Each expanded file-library drop zone provides a section-specific accessible label that describes the drag-and-drop plus click-upload affordance, for example `Source Port drop zone. Drag files here or click to upload.`
 - Clicking empty instructional area inside an expanded file-library drop zone opens that section's file-picker fallback without changing existing row selection or row remove behavior.
@@ -185,13 +188,20 @@ Feature 010 later adds manual drag reordering for saved profile rows. Feature 00
   - exactly one IWAD
   - zero or more mods
   - preserved mod order
-  - every referenced path must exist on disk
-  - every referenced path must still exist in the matching shared library collection
+  - source-port path must exist on disk
+  - source-port path must still exist in the Source Port shared library collection
+  - IWAD path must exist on disk
+  - IWAD path must still exist in the IWAD shared library collection
 - Removing a library item that a profile references is allowed.
+- Removing a referenced Source Port or IWAD from its shared library invalidates the profile.
+- Removing a referenced Mod from the shared library does not invalidate the profile.
 - Profiles affected by removed or missing library items remain saved and listed.
+- Missing referenced Mod files on disk do not invalidate the profile.
+- Saved mod references remain preserved for preview text and launch argument construction even when those Mod paths are stale.
 - Invalid profiles:
   - show an explicit invalid-state indication in the shared row status slot
   - keep the invalid reason text under the profile name
+  - show the full invalid reason in the selected-profile status text when selected
   - remain selectable
   - remain renameable
   - remain editable through the shared library
@@ -199,7 +209,14 @@ Feature 010 later adds manual drag reordering for saved profile rows. Feature 00
   - are not launchable from their row action
 - Valid profiles:
   - show an explicit `VALID` badge in the same shared row status slot used by invalid profiles
+  - show `Selected profile is ready to launch.` in the selected-profile status text when selected
   - keep their row `Launch` action enabled
+- The selected-profile header command preview:
+  - uses the selected profile's saved launch inputs rather than current hydrated live selections
+  - uses filename-only tokens in this order: source-port filename, `-iwad`, IWAD filename, `-file`, ordered mod filenames
+  - wraps within the selected-profile header card
+  - remains visible for invalid selected profiles when one or more previewable saved tokens exist
+  - is omitted when no profile is selected or when the selected profile has no previewable saved tokens
 - Launch is available only through saved profile rows.
 - No selected profile means no currently selected launchable profile, even if current detached library selections are otherwise launch-valid.
 
@@ -239,7 +256,7 @@ Feature 010 later adds manual drag reordering for saved profile rows. Feature 00
 - On startup sanitation:
   - sanitize shared library collections as existing features require
   - preserve broken profiles
-  - recompute profile validity from sanitized library membership and file existence
+  - recompute profile validity from sanitized Source Port and IWAD library membership and file existence while leaving saved Mod references non-blocking
 
 ## Acceptance Criteria
 ### Create profile from current selections
@@ -332,15 +349,23 @@ And current Source Port / IWAD / Mod selections are cleared.
 And no neighboring profile is auto-selected.
 
 ### Invalid profile remains repairable
-Given a saved profile references a library item that is removed or a file path that no longer exists
+Given a saved profile references a Source Port or IWAD library item that is removed or a required Source Port or IWAD file path that no longer exists
 When validity is recomputed
 Then the profile remains saved and listed.
 And it is marked invalid with an explicit reason.
 And its row `Launch` action is disabled.
 And changing library selections while it is selected can repair it and restore launchability.
 
+### Removed or missing mod does not block launch
+Given a saved profile has valid saved Source Port and IWAD references and one or more saved Mod references
+When a saved Mod is removed from the shared Mod library or its file path no longer exists on disk
+Then the profile remains saved and listed.
+And the profile still recomputes as valid.
+And its row `Launch` action remains enabled.
+And its saved Mod references remain preserved for preview text and launch argument construction.
+
 ### Valid profile shows explicit valid badge
-Given a saved profile has exactly one source port, exactly one IWAD, and all referenced paths still exist in the matching shared library collections
+Given a saved profile has exactly one source port, exactly one IWAD, and its saved Source Port and IWAD paths still exist in their matching shared library collections
 When validity is recomputed
 Then the profile row shows an explicit `VALID` badge in the same status slot used by invalid profiles.
 And the profile row does not render a separate inline valid text line under the profile name.
@@ -365,6 +390,14 @@ When the file library pane is expanded
 Then the row keeps its `INVALID` badge.
 And inline invalid-reason text is hidden for that row.
 And the selected-profile header in the right pane still shows the selected profile's full status text.
+
+### Selected-profile header shows invalid amber status and saved command preview
+Given a saved profile is selected in the expanded file library
+When the selected-profile header is rendered
+Then the header shows the selected profile name.
+And the status text uses the shared amber invalid text color only when that selected profile is invalid.
+And the header shows a wrapped filename-only command preview from that selected profile's saved launch inputs when one or more previewable saved tokens exist.
+And the header omits the preview line when no selected profile exists or no previewable saved tokens exist.
 
 ### Double-click collapses expanded file library for a profile
 Given the file library pane is expanded and a saved profile row exists

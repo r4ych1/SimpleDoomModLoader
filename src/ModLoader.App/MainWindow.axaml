@@ -308,9 +308,14 @@
                              FontWeight="Bold"
                              Foreground="#e5e7eb"
                              Text="{Binding SelectedProfileName}" />
-                  <TextBlock Foreground="#94a3b8"
+                  <TextBlock Foreground="{Binding SelectedProfileStatusForeground}"
                              TextWrapping="Wrap"
                              Text="{Binding SelectedProfileStatusText}" />
+                  <TextBlock IsVisible="{Binding HasSelectedProfileCommandPreview}"
+                             Foreground="#94a3b8"
+                             FontFamily="Consolas"
+                             TextWrapping="Wrap"
+                             Text="{Binding SelectedProfileCommandPreviewText}" />
                 </StackPanel>
               </Border>
 
