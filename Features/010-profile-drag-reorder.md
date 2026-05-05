@@ -25,7 +25,8 @@ Allow users to manually reorder saved profiles directly within the left-side pro
 ## Rules
 ### Drag Start
 - Drag reordering starts only from the non-interactive body of a profile row in the left profile list.
-- `Launch` and `Delete` buttons do not start drag.
+- `Launch`, `Rename`, and `Delete` buttons do not start drag.
+- An active inline row rename editor and rename-mode row body do not start drag.
 - Valid and invalid profile rows are both draggable.
 - A small pointer-movement threshold is required before a press becomes an active drag.
 - A real drag does not also toggle profile row selection.

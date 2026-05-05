@@ -49,11 +49,11 @@ Feature 010 later adds manual drag reordering for saved profile rows. Feature 00
   - the file-library `Expand` / `Collapse` action to the right of `New Profile`
 - `New Profile` and the file-library `Expand` / `Collapse` action are right-aligned within the profile-management header row and aligned with the `Profiles` label.
 - The right pane begins with a selected-profile header area that contains:
-  - the selected profile name or selected-profile rename input on the left
-  - the `Rename` action on the right
+  - the selected profile name on the left
+  - selected-profile status text below the name
 - The existing top message/warning area is reused for rename validation and delete confirmation.
 - While the file library pane is expanded, the Source Port, IWAD, and Mod drop zones inside that pane use the shared visible drop-zone affordance defined by Feature 002.
-- Each expanded file-library drop zone provides a section-specific accessible label, for example `Source Port drop zone. Drag files here or click to upload.`
+- Each expanded file-library drop zone provides a section-specific accessible label that describes the drag-and-drop plus click-upload affordance, for example `Source Port drop zone. Drag files here or click to upload.`
 - Clicking empty instructional area inside an expanded file-library drop zone opens that section's file-picker fallback without changing existing row selection or row remove behavior.
 - Pressing `Enter` or `Space` while keyboard focus is on an expanded file-library drop zone opens that same section's file-picker fallback.
 - The click / keyboard fallback opens multi-select file pickers only:
@@ -99,7 +99,11 @@ Feature 010 later adds manual drag reordering for saved profile rows. Feature 00
   - current Source Port / IWAD / Mod selections hydrate from that profile
   - the file library pane expands immediately using Feature 009 behavior
   - the second click does not toggle the row back off
-- When the file library pane is expanded, double-clicking a profile row has no special behavior beyond the existing row-selection interaction model.
+- While the file library pane is expanded, double-clicking a profile row is the inverse pane shortcut:
+  - the clicked profile ends selected
+  - current Source Port / IWAD / Mod selections hydrate from that profile
+  - the file library pane collapses immediately using Feature 009 behavior
+  - the second click does not toggle the row back off
 - Profile-row double-click does not launch the profile, does not start rename, and does not change Feature 010 drag-reorder rules.
 
 ### Profile Launch
@@ -136,14 +140,21 @@ Feature 010 later adds manual drag reordering for saved profile rows. Feature 00
 - Auto-save includes transitions into invalid state.
 - There is no Save, Save As, dirty state, unsaved-changes prompt, or separate profile-name field.
 - Each profile row exposes `Launch` and `Delete` actions in that order.
-- Profile rename is available only through the selected-profile header in the right pane.
-- The selected-profile header `Rename` action is visible but disabled when no profile is selected.
-- Activating `Rename` opens inline rename mode in the selected-profile header by replacing the selected profile name text with a rename input.
+- Each profile row exposes `Launch`, `Rename`, and `Delete` actions in that order.
+- Profile rename is available only through the profile row `Rename` action.
+- Activating a row `Rename` action:
+  - selects that profile
+  - hydrates current Source Port / IWAD / Mod selections from that profile
+  - opens inline rename mode inside that same profile row by replacing the row name text with a rename input
+- The right-pane selected-profile header remains display-only and does not render a `Rename` action or rename input.
 - Rename commit behavior:
   - `Enter` saves if valid.
   - Clicking outside the rename input cancels rename and restores the prior saved name.
   - `Escape` cancels and restores the prior saved name.
 - The outside click that cancels rename is consumed and does not also activate the clicked row, button, or other control.
+- While a profile row is in rename mode:
+  - its normal row action buttons are not rendered
+  - the row does not start drag reorder from the rename editor or rename-mode body
 - Rename validity rules:
   - name is required
   - name cannot be empty or whitespace-only
@@ -267,8 +278,8 @@ And those changes may place the profile into or out of invalid state.
 
 ### Explicit rename action
 Given a selected profile exists
-When `Rename` is activated in the selected-profile header
-Then inline rename mode opens in the selected-profile header for that selected profile.
+When `Rename` is activated on that profile row
+Then inline rename mode opens inside that same profile row for that selected profile.
 And `Enter` saves a valid unique non-empty name.
 And outside click or `Escape` restores the previous saved name.
 And the outside click does not also activate another control.
@@ -283,16 +294,9 @@ And the right selected-profile header does not render a second `New Profile` act
 
 ### Rename placement
 Given the workspace is rendered
-When the right-pane selected-profile header is displayed
-Then `Rename` appears in that header.
-And `Rename` is right-aligned and aligned with the selected profile name.
-And profile rows do not render a row-level `Rename` action or row-level rename input.
-
-### Rename disabled with no selection
-Given no profile is selected
-When the selected-profile header is displayed
-Then the `Rename` action remains visible.
-And the `Rename` action is disabled.
+When saved profile rows are displayed
+Then each profile row renders a row-level `Rename` action between `Launch` and `Delete`.
+And the right-pane selected-profile header does not render a `Rename` action or rename input.
 
 ### Rename validation
 Given a profile is in rename mode
@@ -311,7 +315,7 @@ And when the profile list exceeds available height, the profile list scrolls wit
 ### Shared-library drop zones stay visibly interactive
 Given the file library pane is expanded
 When the Source Port, IWAD, and Mod sections are rendered
-Then each section shows a visibly interactive drop zone with instructional helper text before any drag begins.
+Then each section shows a visibly interactive drop zone with visible instructional text before any drag begins.
 And each zone supports drag-over highlight, click fallback, keyboard activation, and a section-specific accessible label.
 
 ### Delete selected profile
@@ -349,6 +353,14 @@ Given one or more saved profile rows have previewable launch tokens
 When the file library pane is expanded
 Then inline command preview is hidden for all profile rows regardless of width.
 And profile name, validity messaging, badges, and row actions remain visible.
+
+### Double-click collapses expanded file library for a profile
+Given the file library pane is expanded and a saved profile row exists
+When that profile row is double-clicked
+Then that profile ends selected.
+And current Source Port / IWAD / Mod selections hydrate from that profile.
+And the file library pane collapses using Feature 009 behavior.
+And the double-click does not unselect that profile.
 
 ### Profile row preview hides at minimum width while collapsed
 Given one or more saved profile rows have previewable launch tokens

@@ -1053,7 +1053,7 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
-    public void BeginRenameSelectedProfile_CommitRename_PersistsNewUniqueName()
+    public void BeginRenameProfile_CommitRename_PersistsNewUniqueName()
     {
         using var temp = new TempDirectory();
         var source = temp.CreateFile("gzdoom.exe");
@@ -1074,20 +1074,21 @@ public sealed class MainWindowViewModelTests
 
         var viewModel = new MainWindowViewModel(persistence);
 
-        viewModel.ToggleProfileSelection("p1");
-        viewModel.BeginRenameSelectedProfile();
+        viewModel.BeginRenameProfile("p1");
+        Assert.True(viewModel.ProfileRows.Single().IsRenameVisible);
         viewModel.SelectedProfileRenameText = "Ultra-Violence";
 
         viewModel.CommitRename("p1");
 
         Assert.False(viewModel.IsSelectedProfileRenameVisible);
+        Assert.False(viewModel.ProfileRows.Single().IsRenameVisible);
         Assert.Equal("Ultra-Violence", viewModel.SelectedProfileName);
         Assert.Equal("Ultra-Violence", persistence.SavedStates.Last().Profiles.Single().Name);
         Assert.False(viewModel.HasMessage);
     }
 
     [Fact]
-    public void BeginRenameSelectedProfile_SelectsProfileAndHydratesSelections()
+    public void BeginRenameProfile_SelectsProfileAndHydratesSelections()
     {
         using var temp = new TempDirectory();
         var source1 = temp.CreateFile("gzdoom.exe");
@@ -1117,8 +1118,7 @@ public sealed class MainWindowViewModelTests
 
         var viewModel = new MainWindowViewModel(persistence);
 
-        viewModel.ToggleProfileSelection("p2");
-        viewModel.BeginRenameSelectedProfile();
+        viewModel.BeginRenameProfile("p2");
 
         Assert.True(viewModel.IsSelectedProfileRenameVisible);
         Assert.Equal("Profile 2", viewModel.SelectedProfileRenameText);
@@ -1126,6 +1126,8 @@ public sealed class MainWindowViewModelTests
         Assert.Equal(Path.GetFullPath(source2), viewModel.SelectedSourcePortPath);
         Assert.Equal(Path.GetFullPath(iwad2), viewModel.SelectedIwadPath);
         Assert.Equal([Path.GetFullPath(mod2)], viewModel.SelectedModPaths);
+        Assert.False(viewModel.ProfileRows.Single(row => row.Id == "p1").IsRenameVisible);
+        Assert.True(viewModel.ProfileRows.Single(row => row.Id == "p2").IsRenameVisible);
         Assert.Equal("p2", persistence.SavedStates.Last().SelectedProfileId);
     }
 
@@ -1155,13 +1157,13 @@ public sealed class MainWindowViewModelTests
 
         var viewModel = new MainWindowViewModel(persistence);
 
-        viewModel.ToggleProfileSelection("p1");
-        viewModel.BeginRenameSelectedProfile();
+        viewModel.BeginRenameProfile("p1");
         viewModel.SelectedProfileRenameText = "profile 2";
 
         viewModel.CommitRename("p1");
 
         Assert.True(viewModel.IsSelectedProfileRenameVisible);
+        Assert.True(viewModel.ProfileRows.Single(row => row.Id == "p1").IsRenameVisible);
         Assert.Equal("Profile 1", viewModel.SelectedProfileName);
         Assert.Equal("Profile name must be unique.", viewModel.MessageText);
     }
@@ -1188,8 +1190,7 @@ public sealed class MainWindowViewModelTests
 
         var viewModel = new MainWindowViewModel(persistence);
 
-        viewModel.ToggleProfileSelection("p1");
-        viewModel.BeginRenameSelectedProfile();
+        viewModel.BeginRenameProfile("p1");
         var saveCallCountBeforeCancel = persistence.SaveCallCount;
         viewModel.SelectedProfileRenameText = "Ultra-Violence";
 
@@ -1197,6 +1198,7 @@ public sealed class MainWindowViewModelTests
 
         Assert.True(canceled);
         Assert.False(viewModel.IsSelectedProfileRenameVisible);
+        Assert.False(viewModel.ProfileRows.Single().IsRenameVisible);
         Assert.Equal("Profile 1", viewModel.SelectedProfileName);
         Assert.Equal("Profile 1", viewModel.SelectedProfileRenameText);
         Assert.Equal(saveCallCountBeforeCancel, persistence.SaveCallCount);
@@ -1214,6 +1216,45 @@ public sealed class MainWindowViewModelTests
         viewModel.BeginRenameSelectedProfile();
 
         Assert.False(viewModel.IsSelectedProfileRenameVisible);
+    }
+
+    [Fact]
+    public void SelectProfileAndSetFileLibraryPaneCollapsed_WhenExpanded_SelectsHydratesAndPersistsCollapsedState()
+    {
+        using var temp = new TempDirectory();
+        var source = temp.CreateFile("gzdoom.exe");
+        var iwad = temp.CreateFile("doom2.wad");
+        var mod = temp.CreateFile("mod-a.pk3");
+
+        var persistence = new RecordingPersistence
+        {
+            LoadResult = new LaunchInputsLoadResult
+            {
+                State = new LaunchInputsConfig
+                {
+                    SourcePorts = [source],
+                    Iwads = [iwad],
+                    Mods = [mod],
+                    Profiles = [CreateProfile("p1", "Profile 1", source, iwad, mod)],
+                    SelectedProfileId = "p1",
+                    IsFileLibraryPaneCollapsed = false
+                }
+            }
+        };
+
+        var viewModel = new MainWindowViewModel(persistence);
+
+        var wasSelected = viewModel.SelectProfileAndSetFileLibraryPaneCollapsed("p1", true);
+
+        Assert.True(wasSelected);
+        Assert.Equal("p1", viewModel.SelectedProfileId);
+        Assert.Equal(Path.GetFullPath(source), viewModel.SelectedSourcePortPath);
+        Assert.Equal(Path.GetFullPath(iwad), viewModel.SelectedIwadPath);
+        Assert.Equal([Path.GetFullPath(mod)], viewModel.SelectedModPaths);
+        Assert.True(viewModel.IsFileLibraryPaneCollapsed);
+        Assert.False(viewModel.IsFileLibraryPaneExpanded);
+        Assert.True(persistence.SavedStates.Last().IsFileLibraryPaneCollapsed);
+        Assert.Equal("p1", persistence.SavedStates.Last().SelectedProfileId);
     }
 
     [Fact]
@@ -1372,9 +1413,12 @@ public sealed class MainWindowViewModelTests
 
         Assert.DoesNotContain("Click=\"OnLaunchClicked\"", xaml, StringComparison.Ordinal);
         Assert.Contains("Click=\"OnLaunchProfileClicked\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding SelectedProfileRenameText, Mode=TwoWay}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding DataContext.SelectedProfileRenameText, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}\"", xaml, StringComparison.Ordinal);
         Assert.DoesNotContain("Text=\"{Binding RenameText, Mode=TwoWay}\"", xaml, StringComparison.Ordinal);
+        Assert.DoesNotContain("Text=\"{Binding SelectedProfileRenameText, Mode=TwoWay}\"", xaml, StringComparison.Ordinal);
         Assert.DoesNotContain("IsEnabled=\"{Binding CanCreateProfile}\"", xaml, StringComparison.Ordinal);
+        Assert.DoesNotContain("IsEnabled=\"{Binding CanRenameSelectedProfile}\"", xaml, StringComparison.Ordinal);
+        Assert.DoesNotContain("IsVisible=\"{Binding IsSelectedProfileRenameVisible}\"", xaml, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding HasStatusBadge}\"", xaml, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding StatusBadgeText}\"", xaml, StringComparison.Ordinal);
         Assert.Contains("Background=\"{Binding StatusBadgeBackground}\"", xaml, StringComparison.Ordinal);
@@ -1394,7 +1438,8 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("IsVisible=\"{Binding IsProfileDropIndicatorVisible}\"", xaml, StringComparison.Ordinal);
         Assert.Contains("Width=\"{Binding ProfileDropIndicatorWidth}\"", xaml, StringComparison.Ordinal);
         Assert.Contains("Text=\"Drag and drop here\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Text=\"Drag files here or click to upload\"", xaml, StringComparison.Ordinal);
+        Assert.DoesNotContain("Text=\"Drag files here or click to upload\"", xaml, StringComparison.Ordinal);
+        Assert.DoesNotContain("Text=\"+\"", xaml, StringComparison.Ordinal);
         Assert.Contains("PointerPressed=\"OnDropZonePointerPressed\"", xaml, StringComparison.Ordinal);
         Assert.Contains("KeyDown=\"OnDropZoneKeyDown\"", xaml, StringComparison.Ordinal);
         Assert.Contains("DragDrop.DragEnter=\"OnDropZoneDragEnter\"", xaml, StringComparison.Ordinal);
@@ -1410,8 +1455,8 @@ public sealed class MainWindowViewModelTests
         var newProfileIndex = xaml.IndexOf("Content=\"New Profile\"", StringComparison.Ordinal);
         var fileLibraryToggleIndex = xaml.IndexOf("Content=\"{Binding FileLibraryPaneToggleText}\"", StringComparison.Ordinal);
         var selectedProfileNameIndex = xaml.IndexOf("Text=\"{Binding SelectedProfileName}\"", StringComparison.Ordinal);
-        var renameIndex = xaml.IndexOf("Content=\"Rename\"", StringComparison.Ordinal);
         var launchIndex = xaml.LastIndexOf("Content=\"Launch\"", StringComparison.Ordinal);
+        var renameIndex = xaml.LastIndexOf("Content=\"Rename\"", StringComparison.Ordinal);
         var deleteIndex = xaml.LastIndexOf("Content=\"Delete\"", StringComparison.Ordinal);
 
         Assert.True(profilesHeaderIndex >= 0);
@@ -1419,9 +1464,10 @@ public sealed class MainWindowViewModelTests
         Assert.True(fileLibraryToggleIndex > newProfileIndex);
         Assert.True(selectedProfileNameIndex > newProfileIndex);
         Assert.True(selectedProfileNameIndex > fileLibraryToggleIndex);
-        Assert.True(renameIndex > selectedProfileNameIndex);
         Assert.True(launchIndex >= 0);
+        Assert.True(renameIndex > launchIndex);
         Assert.True(deleteIndex > launchIndex);
+        Assert.True(deleteIndex > renameIndex);
         Assert.Equal(fileLibraryToggleIndex, xaml.LastIndexOf("Content=\"{Binding FileLibraryPaneToggleText}\"", StringComparison.Ordinal));
     }
 
@@ -1437,7 +1483,11 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("always-visible instructional card styling", spec, StringComparison.Ordinal);
         Assert.Contains("clickable keyboard-accessible file-picker fallback", spec, StringComparison.Ordinal);
         Assert.Contains("click / keyboard fallback to multi-select file pickers", spec, StringComparison.Ordinal);
+        Assert.Contains("`Launch`, `Rename`, and `Delete` actions", spec, StringComparison.Ordinal);
+        Assert.Contains("Double-clicking a profile row acts as a pane shortcut", spec, StringComparison.Ordinal);
         Assert.Contains("Each drop zone renders a visible default target treatment before any drag begins", feature002, StringComparison.Ordinal);
+        Assert.DoesNotContain("an always-visible empty-state icon or badge treatment", feature002, StringComparison.Ordinal);
+        Assert.DoesNotContain("`Drag files here or click to upload`", feature002, StringComparison.Ordinal);
         Assert.Contains("clicking the zone opens a multi-select file picker for that zone", feature002, StringComparison.Ordinal);
         Assert.Contains("`Enter` and `Space` trigger the same picker flow as click", feature002, StringComparison.Ordinal);
         Assert.Contains("file-library `Expand` / `Collapse` action to the right of `New Profile`", feature008, StringComparison.Ordinal);
@@ -1450,12 +1500,17 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("when the file library pane is expanded, row preview text is hidden for all profile rows regardless of width", feature008, StringComparison.Ordinal);
         Assert.Contains("when the overall window width is less than or equal to `768 px`, row preview text is hidden for all profile rows even while the file library pane is collapsed", feature008, StringComparison.Ordinal);
         Assert.Contains("While the file library pane is collapsed, double-clicking a profile row is a profile-open shortcut", feature008, StringComparison.Ordinal);
+        Assert.Contains("While the file library pane is expanded, double-clicking a profile row is the inverse pane shortcut", feature008, StringComparison.Ordinal);
         Assert.Contains("the second click does not toggle the row back off", feature008, StringComparison.Ordinal);
+        Assert.Contains("Each profile row exposes `Launch`, `Rename`, and `Delete` actions in that order.", feature008, StringComparison.Ordinal);
+        Assert.Contains("The right-pane selected-profile header remains display-only", feature008, StringComparison.Ordinal);
         Assert.Contains("the right file-library pane is not rendered", feature009, StringComparison.Ordinal);
         Assert.Contains("the spacer gap between the profile pane and file-library pane is not rendered", feature009, StringComparison.Ordinal);
         Assert.Contains("when the file library pane is expanded, inline profile-row command preview is hidden for all profile rows", feature009, StringComparison.Ordinal);
         Assert.Contains("Double-clicking a profile row while the file library pane is collapsed is the other exception", feature009, StringComparison.Ordinal);
+        Assert.Contains("Double-clicking a profile row while the file library pane is expanded is the inverse exception", feature009, StringComparison.Ordinal);
         Assert.Contains("The drag ghost renders only the dragged profile name.", feature010, StringComparison.Ordinal);
+        Assert.Contains("`Launch`, `Rename`, and `Delete` buttons do not start drag.", feature010, StringComparison.Ordinal);
         Assert.Contains("A real drag does not also toggle profile row selection.", feature010, StringComparison.Ordinal);
     }
 

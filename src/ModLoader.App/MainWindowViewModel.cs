@@ -730,6 +730,11 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     public bool SelectProfileAndExpandFileLibraryPane(string profileId)
     {
+        return SelectProfileAndSetFileLibraryPaneCollapsed(profileId, false);
+    }
+
+    public bool SelectProfileAndSetFileLibraryPaneCollapsed(string profileId, bool isCollapsed)
+    {
         CancelRename();
 
         if (!TrySelectProfile(profileId))
@@ -738,7 +743,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         }
 
         HydrateSelectionsFromSelectedProfile();
-        IsFileLibraryPaneCollapsed = false;
+        IsFileLibraryPaneCollapsed = isCollapsed;
         ClearPendingDeleteConfirmation();
         RefreshRows();
         RefreshProfileRows();
@@ -850,6 +855,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
         IsSelectedProfileRenameVisible = true;
         SelectedProfileRenameText = row.Name;
+        RefreshProfileRows();
         ClearInformationalMessage();
         OnPropertyChanged(nameof(CanLaunch));
         OnPropertyChanged(nameof(SelectedProfileStatusText));
@@ -927,6 +933,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         IsSelectedProfileRenameVisible = false;
         SelectedProfileRenameText = GetSelectedProfile()?.Name ?? string.Empty;
         ClearInformationalMessage();
+        RefreshProfileRows();
         return true;
     }
 
@@ -1120,6 +1127,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
             row.Name = profile.Name;
             row.IsSelected = string.Equals(profile.Id, SelectedProfileId, StringComparison.Ordinal);
+            row.IsRenameVisible = IsSelectedProfileRenameVisible && row.IsSelected;
             row.IsInvalid = !validity.IsValid;
             row.CanLaunchProfile = validity.IsValid;
             row.ValidMessage = validity.IsValid ? "VALID" : string.Empty;
@@ -1660,6 +1668,7 @@ public sealed class ProfileListItem : INotifyPropertyChanged
     private string _commandPreviewText;
     private bool _isInvalid;
     private bool _isCommandPreviewVisible;
+    private bool _isRenameVisible;
     private bool _isSelected;
     private string _invalidReason;
     private string _name;
@@ -1707,6 +1716,24 @@ public sealed class ProfileListItem : INotifyPropertyChanged
             OnPropertyChanged();
         }
     }
+
+    public bool IsRenameVisible
+    {
+        get => _isRenameVisible;
+        set
+        {
+            if (_isRenameVisible == value)
+            {
+                return;
+            }
+
+            _isRenameVisible = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(IsDisplayVisible));
+        }
+    }
+
+    public bool IsDisplayVisible => !IsRenameVisible;
 
     public bool CanLaunchProfile
     {

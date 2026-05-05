@@ -42,15 +42,15 @@ This repository follows feature-scoped delivery. Behavior is only guaranteed whe
 - Feature 008: Selection-based profile workspace.
   - Adds saved profiles as the primary launch model in a two-pane workspace: a pinned profile list on the left and independently scrolling shared file library on the right, with `New Profile` in the left profile-management header.
   - Profiles persist source port, IWAD, and ordered mod references to the shared library and are the only launchable unit.
-  - The expanded shared file-library pane renders Source Port, IWAD, and Mod drop zones as visibly interactive upload targets with helper text, section-specific accessible labels, drag-over highlight, and click / keyboard fallback to multi-select file pickers that match each zone's existing allowlist.
+  - The expanded shared file-library pane renders Source Port, IWAD, and Mod drop zones as visibly interactive upload targets with visible instructional text, section-specific accessible labels, drag-over highlight, and click / keyboard fallback to multi-select file pickers that match each zone's existing allowlist.
   - Each saved profile row renders its own wrapped filename-only command preview inside the profile cell, and that preview appears only while the file library is collapsed and the window width remains above the Feature 008 minimum threshold.
-  - Profile rows expose explicit `Launch` and `Delete` actions plus a shared row-status badge treatment for valid and invalid states, while selected-profile rename lives in the right-pane selected-profile header and outside-click rename exit cancels rather than saves.
+  - Profile rows expose explicit `Launch`, `Rename`, and `Delete` actions plus a shared row-status badge treatment for valid and invalid states, while profile rename is handled inline on the selected row and outside-click rename exit cancels rather than saves.
   - Profile edits auto-save immediately through file-library selection changes; row launch actions select and run that specific valid saved profile.
   - Authoritative spec: `Features/008-profile-management.md`.
 - Feature 009: Collapsible file library pane.
   - Wraps the shared file library in its own right-side section with a pane-level collapse control that lives in the left profile-management header.
   - Collapsing the file library removes the right pane from view and collapses the pane gap while the left profile pane expands to fill the remaining workspace width.
-  - While collapsed, the file library can be restored either from the header expand control, from `New Profile`, or by double-clicking a profile row to open that profile.
+  - Double-clicking a profile row acts as a pane shortcut: it expands the file library while collapsed and collapses it while expanded, while keeping the clicked profile selected.
   - File-library pane collapse state persists across restart without changing profile, launch, or inner library-section behavior.
   - Authoritative spec: `Features/009-file-library-pane-collapse.md`.
 - Feature 010: Profile drag reordering.

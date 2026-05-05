@@ -194,8 +194,15 @@
                             PointerCaptureLost="OnProfileRowPointerCaptureLost">
                       <Grid ColumnDefinitions="*,Auto">
                         <StackPanel Grid.Column="0" Spacing="6">
-                          <TextBlock FontWeight="SemiBold"
+                          <TextBlock IsVisible="{Binding IsDisplayVisible}"
+                                     FontWeight="SemiBold"
                                      Text="{Binding Name}" />
+                          <TextBox IsVisible="{Binding IsRenameVisible}"
+                                   Tag="{Binding Id}"
+                                   Text="{Binding DataContext.SelectedProfileRenameText, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}"
+                                   KeyDown="OnProfileRenameKeyDown"
+                                   LostFocus="OnProfileRenameLostFocus"
+                                   Loaded="OnProfileRenameTextBoxLoaded" />
                           <TextBlock IsVisible="{Binding IsCommandPreviewVisible}"
                                      Foreground="#94a3b8"
                                      FontFamily="Consolas"
@@ -222,11 +229,15 @@
                           </Border>
                           <StackPanel Orientation="Horizontal"
                                       Spacing="8"
+                                      IsVisible="{Binding IsDisplayVisible}"
                                       HorizontalAlignment="Right">
                             <Button Content="Launch"
                                     Tag="{Binding Id}"
                                     IsEnabled="{Binding CanLaunchProfile}"
                                     Click="OnLaunchProfileClicked" />
+                            <Button Content="Rename"
+                                    Tag="{Binding Id}"
+                                    Click="OnRenameProfileClicked" />
                             <Button Content="Delete"
                                     Tag="{Binding Id}"
                                     Click="OnDeleteProfileClicked" />
@@ -289,34 +300,15 @@
                       CornerRadius="8"
                       Background="#111827"
                       Padding="12">
-                <Grid ColumnDefinitions="*,Auto">
-                  <StackPanel Grid.Column="0"
-                              IsVisible="{Binding IsSelectedProfileDisplayVisible}"
-                              Spacing="4">
-                    <TextBlock FontSize="18"
-                               FontWeight="Bold"
-                               Foreground="#e5e7eb"
-                               Text="{Binding SelectedProfileName}" />
-                    <TextBlock Foreground="#94a3b8"
-                               TextWrapping="Wrap"
-                               Text="{Binding SelectedProfileStatusText}" />
-                  </StackPanel>
-                  <TextBox Grid.Column="0"
-                           IsVisible="{Binding IsSelectedProfileRenameVisible}"
-                           Tag="{Binding SelectedProfileId}"
-                           Text="{Binding SelectedProfileRenameText, Mode=TwoWay}"
-                           KeyDown="OnProfileRenameKeyDown"
-                           LostFocus="OnProfileRenameLostFocus"
-                           Loaded="OnProfileRenameTextBoxLoaded" />
-                  <Button Grid.Column="1"
-                          Content="Rename"
-                          IsEnabled="{Binding CanRenameSelectedProfile}"
-                          IsVisible="{Binding IsSelectedProfileDisplayVisible}"
-                          HorizontalAlignment="Right"
-                          VerticalAlignment="Top"
-                          Margin="12,0,0,0"
-                          Click="OnRenameProfileClicked" />
-                </Grid>
+                <StackPanel Spacing="4">
+                  <TextBlock FontSize="18"
+                             FontWeight="Bold"
+                             Foreground="#e5e7eb"
+                             Text="{Binding SelectedProfileName}" />
+                  <TextBlock Foreground="#94a3b8"
+                             TextWrapping="Wrap"
+                             Text="{Binding SelectedProfileStatusText}" />
+                </StackPanel>
               </Border>
 
               <StackPanel Spacing="8">
@@ -344,34 +336,15 @@
                         automation:AutomationProperties.HelpText="Allowed: .exe. Drop one or more files. Directories are ignored."
                         DragDrop.Drop="OnSourcePortDrop">
                   <Grid Grid.IsSharedSizeScope="True" RowDefinitions="Auto,Auto">
-                    <Grid Grid.Row="0" ColumnDefinitions="Auto,*">
-                      <Border Width="36"
-                              Height="36"
-                              Margin="0,0,12,0"
-                              CornerRadius="18"
-                              Background="{DynamicResource DropZoneIconBackgroundBrush}"
-                              BorderBrush="{DynamicResource DropZoneIconBorderBrush}"
-                              BorderThickness="1">
-                        <TextBlock HorizontalAlignment="Center"
-                                   VerticalAlignment="Center"
-                                   Foreground="{DynamicResource DropZoneIconForegroundBrush}"
-                                   FontSize="20"
-                                   FontWeight="Bold"
-                                   Text="+" />
-                      </Border>
-                      <StackPanel Grid.Column="1" Spacing="2">
-                        <TextBlock Foreground="{DynamicResource DropZoneTitleForegroundBrush}"
-                                   FontSize="16"
-                                   FontWeight="SemiBold"
-                                   Text="Drag and drop here" />
-                        <TextBlock Foreground="{DynamicResource DropZoneHelperForegroundBrush}"
-                                   TextWrapping="Wrap"
-                                   Text="Drag files here or click to upload" />
-                        <TextBlock Foreground="{DynamicResource DropZoneHelperForegroundBrush}"
-                                   TextWrapping="Wrap"
-                                   Text="Allowed: .exe. Drop one or more files. Directories are ignored." />
-                      </StackPanel>
-                    </Grid>
+                    <StackPanel Grid.Row="0" Spacing="2">
+                      <TextBlock Foreground="{DynamicResource DropZoneTitleForegroundBrush}"
+                                 FontSize="16"
+                                 FontWeight="SemiBold"
+                                 Text="Drag and drop here" />
+                      <TextBlock Foreground="{DynamicResource DropZoneHelperForegroundBrush}"
+                                 TextWrapping="Wrap"
+                                 Text="Allowed: .exe. Drop one or more files. Directories are ignored." />
+                    </StackPanel>
                     <ItemsControl Grid.Row="1"
                                   Margin="0,12,0,0"
                                   ItemsSource="{Binding SourcePortRows}">
@@ -432,34 +405,15 @@
                         automation:AutomationProperties.HelpText="Allowed: .wad, .pk3, .iwad, .ipk3, .ipk7, .pk7. Directories scan top-level files only."
                         DragDrop.Drop="OnIwadDrop">
                   <Grid Grid.IsSharedSizeScope="True" RowDefinitions="Auto,Auto">
-                    <Grid Grid.Row="0" ColumnDefinitions="Auto,*">
-                      <Border Width="36"
-                              Height="36"
-                              Margin="0,0,12,0"
-                              CornerRadius="18"
-                              Background="{DynamicResource DropZoneIconBackgroundBrush}"
-                              BorderBrush="{DynamicResource DropZoneIconBorderBrush}"
-                              BorderThickness="1">
-                        <TextBlock HorizontalAlignment="Center"
-                                   VerticalAlignment="Center"
-                                   Foreground="{DynamicResource DropZoneIconForegroundBrush}"
-                                   FontSize="20"
-                                   FontWeight="Bold"
-                                   Text="+" />
-                      </Border>
-                      <StackPanel Grid.Column="1" Spacing="2">
-                        <TextBlock Foreground="{DynamicResource DropZoneTitleForegroundBrush}"
-                                   FontSize="16"
-                                   FontWeight="SemiBold"
-                                   Text="Drag and drop here" />
-                        <TextBlock Foreground="{DynamicResource DropZoneHelperForegroundBrush}"
-                                   TextWrapping="Wrap"
-                                   Text="Drag files here or click to upload" />
-                        <TextBlock Foreground="{DynamicResource DropZoneHelperForegroundBrush}"
-                                   TextWrapping="Wrap"
-                                   Text="Allowed: .wad, .pk3, .iwad, .ipk3, .ipk7, .pk7. Directories scan top-level files only." />
-                      </StackPanel>
-                    </Grid>
+                    <StackPanel Grid.Row="0" Spacing="2">
+                      <TextBlock Foreground="{DynamicResource DropZoneTitleForegroundBrush}"
+                                 FontSize="16"
+                                 FontWeight="SemiBold"
+                                 Text="Drag and drop here" />
+                      <TextBlock Foreground="{DynamicResource DropZoneHelperForegroundBrush}"
+                                 TextWrapping="Wrap"
+                                 Text="Allowed: .wad, .pk3, .iwad, .ipk3, .ipk7, .pk7. Directories scan top-level files only." />
+                    </StackPanel>
                     <ItemsControl Grid.Row="1"
                                   Margin="0,12,0,0"
                                   ItemsSource="{Binding IwadRows}">
@@ -520,34 +474,15 @@
                         automation:AutomationProperties.HelpText="Allowed: .wad, .pwad, .pk3, .pk7, .ipk3, .ipk7, .pkz, .zip. Directories scan top-level files only."
                         DragDrop.Drop="OnModDrop">
                   <Grid Grid.IsSharedSizeScope="True" RowDefinitions="Auto,Auto">
-                    <Grid Grid.Row="0" ColumnDefinitions="Auto,*">
-                      <Border Width="36"
-                              Height="36"
-                              Margin="0,0,12,0"
-                              CornerRadius="18"
-                              Background="{DynamicResource DropZoneIconBackgroundBrush}"
-                              BorderBrush="{DynamicResource DropZoneIconBorderBrush}"
-                              BorderThickness="1">
-                        <TextBlock HorizontalAlignment="Center"
-                                   VerticalAlignment="Center"
-                                   Foreground="{DynamicResource DropZoneIconForegroundBrush}"
-                                   FontSize="20"
-                                   FontWeight="Bold"
-                                   Text="+" />
-                      </Border>
-                      <StackPanel Grid.Column="1" Spacing="2">
-                        <TextBlock Foreground="{DynamicResource DropZoneTitleForegroundBrush}"
-                                   FontSize="16"
-                                   FontWeight="SemiBold"
-                                   Text="Drag and drop here" />
-                        <TextBlock Foreground="{DynamicResource DropZoneHelperForegroundBrush}"
-                                   TextWrapping="Wrap"
-                                   Text="Drag files here or click to upload" />
-                        <TextBlock Foreground="{DynamicResource DropZoneHelperForegroundBrush}"
-                                   TextWrapping="Wrap"
-                                   Text="Allowed: .wad, .pwad, .pk3, .pk7, .ipk3, .ipk7, .pkz, .zip. Directories scan top-level files only." />
-                      </StackPanel>
-                    </Grid>
+                    <StackPanel Grid.Row="0" Spacing="2">
+                      <TextBlock Foreground="{DynamicResource DropZoneTitleForegroundBrush}"
+                                 FontSize="16"
+                                 FontWeight="SemiBold"
+                                 Text="Drag and drop here" />
+                      <TextBlock Foreground="{DynamicResource DropZoneHelperForegroundBrush}"
+                                 TextWrapping="Wrap"
+                                 Text="Allowed: .wad, .pwad, .pk3, .pk7, .ipk3, .ipk7, .pkz, .zip. Directories scan top-level files only." />
+                    </StackPanel>
                     <ItemsControl Grid.Row="1"
                                   Margin="0,12,0,0"
                                   ItemsSource="{Binding ModRows}">

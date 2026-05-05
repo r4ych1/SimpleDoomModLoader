@@ -55,6 +55,11 @@ Wrap the shared file library in its own right-side workspace section and allow t
   - current Source Port / IWAD / Mod selections hydrate from that profile
   - the file library pane expands immediately so the selected-profile header becomes visible
   - the expanded pane state persists immediately
+- Double-clicking a profile row while the file library pane is expanded is the inverse exception:
+  - the clicked profile ends selected using existing Feature 008 rules
+  - current Source Port / IWAD / Mod selections hydrate from that profile
+  - the file library pane collapses immediately
+  - the collapsed pane state persists immediately
 - Expanding the file library restores the full file-library pane body without resetting its inner section states.
 
 ### Persistence
@@ -93,6 +98,14 @@ When that profile row is double-clicked
 Then that profile is selected using Feature 008 rules.
 And the file library returns to its default expanded size.
 And the selected-profile header area becomes visible again.
+
+### Double-clicked profile collapses expanded pane
+Given the file library is expanded
+And a saved profile row exists
+When that profile row is double-clicked
+Then that profile is selected using Feature 008 rules.
+And the file library pane is removed from view.
+And the spacer gap between the panes is removed from view.
 
 ### Collapse state persists
 Given the user collapses or expands the file library

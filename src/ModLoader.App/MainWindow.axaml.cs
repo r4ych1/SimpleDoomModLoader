@@ -134,7 +134,10 @@ public partial class MainWindow : Window
     private void OnRenameProfileClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         CancelPendingProfileToggle();
-        _viewModel.BeginRenameSelectedProfile();
+        if (sender is Button button && button.Tag is string profileId)
+        {
+            _viewModel.BeginRenameProfile(profileId);
+        }
     }
 
     private void OnLaunchProfileClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -232,10 +235,11 @@ public partial class MainWindow : Window
 
         if (e.ClickCount > 1)
         {
-            if (_viewModel.IsFileLibraryPaneCollapsed
-                && sender is Border doubleClickedBorder
+            if (sender is Border doubleClickedBorder
                 && doubleClickedBorder.Tag is string doubleClickedProfileId
-                && _viewModel.SelectProfileAndExpandFileLibraryPane(doubleClickedProfileId))
+                && _viewModel.SelectProfileAndSetFileLibraryPaneCollapsed(
+                    doubleClickedProfileId,
+                    !_viewModel.IsFileLibraryPaneCollapsed))
             {
                 e.Handled = true;
             }
@@ -315,8 +319,7 @@ public partial class MainWindow : Window
         }
         else
         {
-            if (_viewModel.IsFileLibraryPaneCollapsed
-                && string.Equals(_viewModel.SelectedProfileId, releasedProfileId, StringComparison.Ordinal))
+            if (string.Equals(_viewModel.SelectedProfileId, releasedProfileId, StringComparison.Ordinal))
             {
                 SchedulePendingProfileToggle(releasedProfileId);
             }
@@ -378,7 +381,6 @@ public partial class MainWindow : Window
         _pendingToggleProfileId = null;
 
         if (pendingProfileId is null
-            || !_viewModel.IsFileLibraryPaneCollapsed
             || !string.Equals(_viewModel.SelectedProfileId, pendingProfileId, StringComparison.Ordinal))
         {
             return;
