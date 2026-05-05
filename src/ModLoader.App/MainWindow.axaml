@@ -3,7 +3,7 @@
         x:Class="ModLoader.App.MainWindow"
         Width="1180"
         Height="820"
-        Title="ModLoader - Feature 009">
+        Title="ModLoader - Feature 010">
   <Window.Resources>
     <ResourceDictionary>
       <ResourceDictionary.ThemeDictionaries>
@@ -66,7 +66,7 @@
         <TextBlock FontSize="20"
                    FontWeight="Bold"
                    Foreground="#e5e7eb"
-                   Text="Feature 009: Collapsible File Library" />
+                   Text="Feature 010: Profile Drag Reorder" />
         <TextBlock Foreground="#9ca3af"
                    Text="Profiles are the only launchable unit. Select a profile on the left, then manage Source Port, IWAD, and Mods from the shared library on the right." />
       </StackPanel>
@@ -168,59 +168,88 @@
                        Text="Select, launch, or delete a launch profile from the saved profile list." />
           </Grid>
 
-          <ScrollViewer Grid.Row="1"
-                        Margin="0,12,0,0"
-                        VerticalScrollBarVisibility="Auto"
-                        HorizontalScrollBarVisibility="Disabled">
-            <ItemsControl ItemsSource="{Binding ProfileRows}">
-              <ItemsControl.ItemTemplate>
-                <DataTemplate>
-                  <Border Classes="InputRow"
-                          Classes.selected="{Binding IsSelected}"
-                          Margin="0,0,0,8"
-                          Tag="{Binding Id}"
-                          PointerPressed="OnProfileRowPointerPressed">
-                    <Grid ColumnDefinitions="*,Auto">
-                      <StackPanel Grid.Column="0" Spacing="6">
-                        <TextBlock FontWeight="SemiBold"
-                                   Text="{Binding Name}" />
-                        <TextBlock IsVisible="{Binding HasInvalidReason}"
-                                   Foreground="#f59e0b"
-                                   TextWrapping="Wrap"
-                                   Text="{Binding InvalidReason}" />
-                      </StackPanel>
-
-                      <StackPanel Grid.Column="1"
-                                  Spacing="6"
-                                  Margin="8,0,0,0"
-                                  VerticalAlignment="Top">
-                        <Border IsVisible="{Binding HasStatusBadge}"
-                                Background="{Binding StatusBadgeBackground}"
-                                CornerRadius="999"
-                                Padding="8,2">
-                          <TextBlock Foreground="{Binding StatusBadgeForeground}"
-                                     FontSize="11"
-                                     FontWeight="Bold"
-                                     Text="{Binding StatusBadgeText}" />
-                        </Border>
-                        <StackPanel Orientation="Horizontal"
-                                    Spacing="8"
-                                    HorizontalAlignment="Right">
-                          <Button Content="Launch"
-                                  Tag="{Binding Id}"
-                                  IsEnabled="{Binding CanLaunchProfile}"
-                                  Click="OnLaunchProfileClicked" />
-                          <Button Content="Delete"
-                                  Tag="{Binding Id}"
-                                  Click="OnDeleteProfileClicked" />
+          <Grid Grid.Row="1"
+                x:Name="ProfileListHost"
+                Margin="0,12,0,0"
+                ClipToBounds="True">
+            <ScrollViewer x:Name="ProfileListScrollViewer"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled">
+              <ItemsControl ItemsSource="{Binding ProfileRows}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <Border Classes="InputRow"
+                            Classes.selected="{Binding IsSelected}"
+                            Margin="0,0,0,8"
+                            Tag="{Binding Id}"
+                            PointerPressed="OnProfileRowPointerPressed"
+                            PointerMoved="OnProfileRowPointerMoved"
+                            PointerReleased="OnProfileRowPointerReleased"
+                            PointerCaptureLost="OnProfileRowPointerCaptureLost">
+                      <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel Grid.Column="0" Spacing="6">
+                          <TextBlock FontWeight="SemiBold"
+                                     Text="{Binding Name}" />
+                          <TextBlock IsVisible="{Binding HasInvalidReason}"
+                                     Foreground="#f59e0b"
+                                     TextWrapping="Wrap"
+                                     Text="{Binding InvalidReason}" />
                         </StackPanel>
-                      </StackPanel>
-                    </Grid>
-                  </Border>
-                </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
-          </ScrollViewer>
+
+                        <StackPanel Grid.Column="1"
+                                    Spacing="6"
+                                    Margin="8,0,0,0"
+                                    VerticalAlignment="Top">
+                          <Border IsVisible="{Binding HasStatusBadge}"
+                                  Background="{Binding StatusBadgeBackground}"
+                                  CornerRadius="999"
+                                  Padding="8,2">
+                            <TextBlock Foreground="{Binding StatusBadgeForeground}"
+                                       FontSize="11"
+                                       FontWeight="Bold"
+                                       Text="{Binding StatusBadgeText}" />
+                          </Border>
+                          <StackPanel Orientation="Horizontal"
+                                      Spacing="8"
+                                      HorizontalAlignment="Right">
+                            <Button Content="Launch"
+                                    Tag="{Binding Id}"
+                                    IsEnabled="{Binding CanLaunchProfile}"
+                                    Click="OnLaunchProfileClicked" />
+                            <Button Content="Delete"
+                                    Tag="{Binding Id}"
+                                    Click="OnDeleteProfileClicked" />
+                          </StackPanel>
+                        </StackPanel>
+                      </Grid>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </ScrollViewer>
+
+            <Canvas IsHitTestVisible="False">
+              <Border IsVisible="{Binding IsProfileDropIndicatorVisible}"
+                      Canvas.Left="{Binding ProfileDropIndicatorLeft}"
+                      Canvas.Top="{Binding ProfileDropIndicatorTop}"
+                      Width="{Binding ProfileDropIndicatorWidth}"
+                      Height="2"
+                      Background="#60a5fa" />
+              <Border IsVisible="{Binding IsProfileDragGhostVisible}"
+                      Canvas.Left="{Binding ProfileDragGhostLeft}"
+                      Canvas.Top="{Binding ProfileDragGhostTop}"
+                      Background="#111827"
+                      BorderBrush="#60a5fa"
+                      BorderThickness="1"
+                      CornerRadius="6"
+                      Padding="12,8"
+                      Opacity="0.96">
+                <TextBlock Foreground="#e5e7eb"
+                           FontWeight="SemiBold"
+                           Text="{Binding ProfileDragGhostText}" />
+              </Border>
+            </Canvas>
+          </Grid>
         </Grid>
       </Border>
 

@@ -39,6 +39,7 @@ coverage/
 # Build artifacts
 dist/
 publish/
+.artifacts/
 
 # OS
 .DS_Store

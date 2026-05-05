@@ -49,6 +49,10 @@ This repository follows feature-scoped delivery. Behavior is only guaranteed whe
   - Collapsing the file library removes the right pane from view and collapses the pane gap while the left profile pane expands to fill the remaining workspace width.
   - File-library pane collapse state persists across restart without changing profile, launch, or inner library-section behavior.
   - Authoritative spec: `Features/009-file-library-pane-collapse.md`.
+- Feature 010: Profile drag reordering.
+  - Adds manual drag reordering to the left-side profile-management list using a name-only floating ghost row and a single insertion marker.
+  - Persisted profile order becomes user-managed list order while keeping profile selection, launch, rename, delete, and validity rules unchanged.
+  - Authoritative spec: `Features/010-profile-drag-reorder.md`.
 
 ## Scope Boundary For Feature 001
 Feature 001 provides in-memory state management and UI interactions only. It does not include:

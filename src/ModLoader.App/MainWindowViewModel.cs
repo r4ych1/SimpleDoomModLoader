@@ -15,12 +15,20 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private readonly LaunchInputsStore _store;
     private readonly List<ProfileConfig> _profiles = [];
     private bool _isFileLibraryPaneCollapsed;
+    private bool _isProfileDragGhostVisible;
+    private bool _isProfileDropIndicatorVisible;
     private bool _isIwadSectionCollapsed;
     private bool _isModSectionCollapsed;
     private bool _isSelectedProfileRenameVisible;
     private bool _isSourcePortSectionCollapsed;
     private string? _messageText;
     private string? _pendingDeleteProfileId;
+    private string _profileDragGhostText = string.Empty;
+    private double _profileDragGhostLeft;
+    private double _profileDragGhostTop;
+    private double _profileDropIndicatorLeft;
+    private double _profileDropIndicatorTop;
+    private double _profileDropIndicatorWidth;
     private string? _selectedIwadPath;
     private string? _selectedProfileId;
     private string _selectedProfileRenameText = string.Empty;
@@ -350,6 +358,126 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         }
     }
 
+    public bool IsProfileDragGhostVisible
+    {
+        get => _isProfileDragGhostVisible;
+        private set
+        {
+            if (_isProfileDragGhostVisible == value)
+            {
+                return;
+            }
+
+            _isProfileDragGhostVisible = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public string ProfileDragGhostText
+    {
+        get => _profileDragGhostText;
+        private set
+        {
+            if (_profileDragGhostText == value)
+            {
+                return;
+            }
+
+            _profileDragGhostText = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public double ProfileDragGhostLeft
+    {
+        get => _profileDragGhostLeft;
+        private set
+        {
+            if (_profileDragGhostLeft == value)
+            {
+                return;
+            }
+
+            _profileDragGhostLeft = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public double ProfileDragGhostTop
+    {
+        get => _profileDragGhostTop;
+        private set
+        {
+            if (_profileDragGhostTop == value)
+            {
+                return;
+            }
+
+            _profileDragGhostTop = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool IsProfileDropIndicatorVisible
+    {
+        get => _isProfileDropIndicatorVisible;
+        private set
+        {
+            if (_isProfileDropIndicatorVisible == value)
+            {
+                return;
+            }
+
+            _isProfileDropIndicatorVisible = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public double ProfileDropIndicatorLeft
+    {
+        get => _profileDropIndicatorLeft;
+        private set
+        {
+            if (_profileDropIndicatorLeft == value)
+            {
+                return;
+            }
+
+            _profileDropIndicatorLeft = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public double ProfileDropIndicatorTop
+    {
+        get => _profileDropIndicatorTop;
+        private set
+        {
+            if (_profileDropIndicatorTop == value)
+            {
+                return;
+            }
+
+            _profileDropIndicatorTop = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public double ProfileDropIndicatorWidth
+    {
+        get => _profileDropIndicatorWidth;
+        private set
+        {
+            if (_profileDropIndicatorWidth == value)
+            {
+                return;
+            }
+
+            _profileDropIndicatorWidth = value;
+            OnPropertyChanged();
+        }
+    }
+
     public string CommandPreviewArguments => BuildCommandPreviewArguments();
 
     public void ProcessSourcePortDrop(IEnumerable<string> droppedPaths)
@@ -539,6 +667,50 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         PersistState();
     }
 
+    public bool BeginProfileDrag(string profileId, double ghostLeft, double ghostTop)
+    {
+        CancelRename();
+
+        var row = FindProfileRow(profileId);
+        if (row is null)
+        {
+            return false;
+        }
+
+        ProfileDragGhostText = row.Name;
+        ProfileDragGhostLeft = ghostLeft;
+        ProfileDragGhostTop = ghostTop;
+        IsProfileDragGhostVisible = true;
+        HideProfileDropIndicator();
+        return true;
+    }
+
+    public void UpdateProfileDragGhostPosition(double ghostLeft, double ghostTop)
+    {
+        ProfileDragGhostLeft = ghostLeft;
+        ProfileDragGhostTop = ghostTop;
+    }
+
+    public void ShowProfileDropIndicator(double left, double top, double width)
+    {
+        ProfileDropIndicatorLeft = left;
+        ProfileDropIndicatorTop = top;
+        ProfileDropIndicatorWidth = width;
+        IsProfileDropIndicatorVisible = true;
+    }
+
+    public void HideProfileDropIndicator()
+    {
+        IsProfileDropIndicatorVisible = false;
+    }
+
+    public void HideProfileDragFeedback()
+    {
+        IsProfileDragGhostVisible = false;
+        ProfileDragGhostText = string.Empty;
+        HideProfileDropIndicator();
+    }
+
     public void BeginRenameSelectedProfile()
     {
         var selectedProfileId = SelectedProfileId;
@@ -720,6 +892,40 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(SelectedProfileStatusText));
         PersistState();
         LaunchSourcePort();
+    }
+
+    public bool ReorderProfile(string profileId, int targetIndex)
+    {
+        CancelRename();
+
+        if (string.IsNullOrWhiteSpace(profileId))
+        {
+            return false;
+        }
+
+        var currentIndex = FindProfileIndex(profileId);
+        if (currentIndex < 0 || targetIndex < 0 || targetIndex > _profiles.Count)
+        {
+            return false;
+        }
+
+        var adjustedIndex = targetIndex > currentIndex ? targetIndex - 1 : targetIndex;
+        if (adjustedIndex == currentIndex)
+        {
+            return false;
+        }
+
+        var movedProfile = _profiles[currentIndex];
+        _profiles.RemoveAt(currentIndex);
+        _profiles.Insert(adjustedIndex, movedProfile);
+
+        ClearPendingDeleteConfirmation();
+        RefreshProfileRows();
+        OnPropertyChanged(nameof(CanLaunch));
+        OnPropertyChanged(nameof(SelectedProfileName));
+        OnPropertyChanged(nameof(SelectedProfileStatusText));
+        PersistState();
+        return true;
     }
 
     public void LaunchSourcePort()

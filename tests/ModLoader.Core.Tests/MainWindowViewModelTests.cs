@@ -601,6 +601,200 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
+    public void ReorderProfile_MovesProfileToFirstPosition_AndPersistsCanonicalOrder()
+    {
+        using var temp = new TempDirectory();
+        var source = temp.CreateFile("gzdoom.exe");
+        var iwad = temp.CreateFile("doom2.wad");
+
+        var persistence = new RecordingPersistence
+        {
+            LoadResult = new LaunchInputsLoadResult
+            {
+                State = new LaunchInputsConfig
+                {
+                    SourcePorts = [source],
+                    Iwads = [iwad],
+                    Profiles =
+                    [
+                        CreateProfile("p1", "Profile 1", source, iwad),
+                        CreateProfile("p2", "Profile 2", source, iwad),
+                        CreateProfile("p3", "Profile 3", source, iwad)
+                    ]
+                }
+            }
+        };
+
+        var viewModel = new MainWindowViewModel(persistence);
+
+        var reordered = viewModel.ReorderProfile("p3", 0);
+
+        Assert.True(reordered);
+        Assert.Equal(["p3", "p1", "p2"], viewModel.ProfileRows.Select(row => row.Id).ToArray());
+        Assert.Equal(["p3", "p1", "p2"], persistence.SavedStates.Last().Profiles.Select(profile => profile.Id).ToArray());
+        Assert.All(persistence.SavedStates.Last().Profiles, profile =>
+        {
+            Assert.Equal(Path.GetFullPath(source), profile.SourcePortPath);
+            Assert.Equal(Path.GetFullPath(iwad), profile.IwadPath);
+        });
+    }
+
+    [Fact]
+    public void ReorderProfile_PreservesSelectedProfileSelectionsAndLaunchState()
+    {
+        using var temp = new TempDirectory();
+        var source = temp.CreateFile("gzdoom.exe");
+        var iwad = temp.CreateFile("doom2.wad");
+        var mod = temp.CreateFile("mod-a.pk3");
+
+        var persistence = new RecordingPersistence
+        {
+            LoadResult = new LaunchInputsLoadResult
+            {
+                State = new LaunchInputsConfig
+                {
+                    SourcePorts = [source],
+                    Iwads = [iwad],
+                    Mods = [mod],
+                    Profiles =
+                    [
+                        CreateProfile("p1", "Profile 1", source, iwad, mod),
+                        CreateProfile("p2", "Profile 2", source, iwad),
+                        CreateProfile("p3", "Profile 3", source, iwad)
+                    ],
+                    SelectedProfileId = "p1"
+                }
+            }
+        };
+
+        var viewModel = new MainWindowViewModel(persistence);
+
+        var reordered = viewModel.ReorderProfile("p1", 3);
+
+        Assert.True(reordered);
+        Assert.Equal("p1", viewModel.SelectedProfileId);
+        Assert.Equal("Profile 1", viewModel.SelectedProfileName);
+        Assert.Equal(Path.GetFullPath(source), viewModel.SelectedSourcePortPath);
+        Assert.Equal(Path.GetFullPath(iwad), viewModel.SelectedIwadPath);
+        Assert.Equal([Path.GetFullPath(mod)], viewModel.SelectedModPaths);
+        Assert.True(viewModel.CanLaunch);
+        Assert.Equal(["p2", "p3", "p1"], persistence.SavedStates.Last().Profiles.Select(profile => profile.Id).ToArray());
+        Assert.Equal("p1", persistence.SavedStates.Last().SelectedProfileId);
+    }
+
+    [Fact]
+    public void ReorderProfile_SupportsMiddleInsertion()
+    {
+        using var temp = new TempDirectory();
+        var source = temp.CreateFile("gzdoom.exe");
+        var iwad = temp.CreateFile("doom2.wad");
+
+        var persistence = new RecordingPersistence
+        {
+            LoadResult = new LaunchInputsLoadResult
+            {
+                State = new LaunchInputsConfig
+                {
+                    SourcePorts = [source],
+                    Iwads = [iwad],
+                    Profiles =
+                    [
+                        CreateProfile("p1", "Profile 1", source, iwad),
+                        CreateProfile("p2", "Profile 2", source, iwad),
+                        CreateProfile("p3", "Profile 3", source, iwad),
+                        CreateProfile("p4", "Profile 4", source, iwad)
+                    ]
+                }
+            }
+        };
+
+        var viewModel = new MainWindowViewModel(persistence);
+
+        var reordered = viewModel.ReorderProfile("p1", 2);
+
+        Assert.True(reordered);
+        Assert.Equal(["p2", "p1", "p3", "p4"], viewModel.ProfileRows.Select(row => row.Id).ToArray());
+        Assert.Equal(["p2", "p1", "p3", "p4"], persistence.SavedStates.Last().Profiles.Select(profile => profile.Id).ToArray());
+    }
+
+    [Fact]
+    public void ReorderProfile_NoOpTargets_DoNotPersistNewOrder()
+    {
+        using var temp = new TempDirectory();
+        var source = temp.CreateFile("gzdoom.exe");
+        var iwad = temp.CreateFile("doom2.wad");
+
+        var persistence = new RecordingPersistence
+        {
+            LoadResult = new LaunchInputsLoadResult
+            {
+                State = new LaunchInputsConfig
+                {
+                    SourcePorts = [source],
+                    Iwads = [iwad],
+                    Profiles =
+                    [
+                        CreateProfile("p1", "Profile 1", source, iwad),
+                        CreateProfile("p2", "Profile 2", source, iwad),
+                        CreateProfile("p3", "Profile 3", source, iwad)
+                    ]
+                }
+            }
+        };
+
+        var viewModel = new MainWindowViewModel(persistence);
+        var saveCountBeforeNoOps = persistence.SaveCallCount;
+
+        Assert.False(viewModel.ReorderProfile("missing", 0));
+        Assert.False(viewModel.ReorderProfile("p2", 1));
+        Assert.False(viewModel.ReorderProfile("p2", 2));
+        Assert.False(viewModel.ReorderProfile("p2", -1));
+        Assert.False(viewModel.ReorderProfile("p2", 4));
+
+        Assert.Equal(saveCountBeforeNoOps, persistence.SaveCallCount);
+        Assert.Equal(["p1", "p2", "p3"], viewModel.ProfileRows.Select(row => row.Id).ToArray());
+    }
+
+    [Fact]
+    public void BeginProfileDrag_UsesProfileNameOnlyGhost_AndHideClearsFeedback()
+    {
+        using var temp = new TempDirectory();
+        var source = temp.CreateFile("gzdoom.exe");
+        var iwad = temp.CreateFile("doom2.wad");
+
+        var persistence = new RecordingPersistence
+        {
+            LoadResult = new LaunchInputsLoadResult
+            {
+                State = new LaunchInputsConfig
+                {
+                    SourcePorts = [source],
+                    Iwads = [iwad],
+                    Profiles = [CreateProfile("p1", "Ultra-Violence", source, iwad)]
+                }
+            }
+        };
+
+        var viewModel = new MainWindowViewModel(persistence);
+
+        var began = viewModel.BeginProfileDrag("p1", 24d, 48d);
+        viewModel.ShowProfileDropIndicator(8d, 16d, 120d);
+
+        Assert.True(began);
+        Assert.True(viewModel.IsProfileDragGhostVisible);
+        Assert.Equal("Ultra-Violence", viewModel.ProfileDragGhostText);
+        Assert.Equal(24d, viewModel.ProfileDragGhostLeft);
+        Assert.Equal(48d, viewModel.ProfileDragGhostTop);
+        Assert.True(viewModel.IsProfileDropIndicatorVisible);
+
+        viewModel.HideProfileDragFeedback();
+
+        Assert.False(viewModel.IsProfileDragGhostVisible);
+        Assert.Equal(string.Empty, viewModel.ProfileDragGhostText);
+        Assert.False(viewModel.IsProfileDropIndicatorVisible);
+    }
+
+    [Fact]
     public void BeginRenameSelectedProfile_CommitRename_PersistsNewUniqueName()
     {
         using var temp = new TempDirectory();
@@ -909,6 +1103,13 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("Foreground=\"{Binding StatusBadgeForeground}\"", xaml, StringComparison.Ordinal);
         Assert.DoesNotContain("IsVisible=\"{Binding HasValidMessage}\"", xaml, StringComparison.Ordinal);
         Assert.DoesNotContain("IsVisible=\"{Binding IsFileLibraryPaneCollapsed}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("PointerMoved=\"OnProfileRowPointerMoved\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("PointerReleased=\"OnProfileRowPointerReleased\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("PointerCaptureLost=\"OnProfileRowPointerCaptureLost\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding IsProfileDragGhostVisible}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding ProfileDragGhostText}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding IsProfileDropIndicatorVisible}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("Width=\"{Binding ProfileDropIndicatorWidth}\"", xaml, StringComparison.Ordinal);
 
         var profilesHeaderIndex = xaml.IndexOf("Text=\"Profiles\"", StringComparison.Ordinal);
         var newProfileIndex = xaml.IndexOf("Content=\"New Profile\"", StringComparison.Ordinal);
@@ -930,16 +1131,20 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
-    public void FeatureSpecs_ReflectProfileHeaderToggleAndValidBadgeCorrection()
+    public void FeatureSpecs_ReflectProfileOrderingAndDragReorderSpecs()
     {
         var feature008 = File.ReadAllText(GetRepoFilePath("Features", "008-profile-management.md"));
         var feature009 = File.ReadAllText(GetRepoFilePath("Features", "009-file-library-pane-collapse.md"));
+        var feature010 = File.ReadAllText(GetRepoFilePath("Features", "010-profile-drag-reorder.md"));
 
         Assert.Contains("file-library `Expand` / `Collapse` action to the right of `New Profile`", feature008, StringComparison.Ordinal);
         Assert.Contains("valid rows show a `VALID` badge in that same slot", feature008, StringComparison.Ordinal);
+        Assert.Contains("Feature 010 becomes authoritative for how profile row ordering is changed by drag reordering", feature008, StringComparison.Ordinal);
         Assert.Contains("does not render a separate inline valid text line", feature008, StringComparison.Ordinal);
         Assert.Contains("the right file-library pane is not rendered", feature009, StringComparison.Ordinal);
         Assert.Contains("the spacer gap between the profile pane and file-library pane is not rendered", feature009, StringComparison.Ordinal);
+        Assert.Contains("The drag ghost renders only the dragged profile name.", feature010, StringComparison.Ordinal);
+        Assert.Contains("A real drag does not also toggle profile row selection.", feature010, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -979,7 +1184,21 @@ public sealed class MainWindowViewModelTests
 
     private static string GetRepoFilePath(params string[] relativeParts)
     {
-        return Path.GetFullPath(Path.Combine([AppContext.BaseDirectory, "..", "..", "..", "..", "..", .. relativeParts]));
+        var currentDirectory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (currentDirectory is not null)
+        {
+            var specPath = Path.Combine(currentDirectory.FullName, "SPEC.md");
+            var featuresPath = Path.Combine(currentDirectory.FullName, "Features");
+            var srcPath = Path.Combine(currentDirectory.FullName, "src");
+            if (File.Exists(specPath) && Directory.Exists(featuresPath) && Directory.Exists(srcPath))
+            {
+                return Path.GetFullPath(Path.Combine([currentDirectory.FullName, .. relativeParts]));
+            }
+
+            currentDirectory = currentDirectory.Parent;
+        }
+
+        throw new DirectoryNotFoundException("Could not locate repository root from test output directory.");
     }
 
     private static ProfileConfig CreateProfile(string id, string name, string? sourcePortPath, string? iwadPath, params string[] selectedModPaths)

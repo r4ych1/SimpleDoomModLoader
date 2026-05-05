@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Markup.Xaml;
@@ -11,7 +13,15 @@ namespace ModLoader.App;
 
 public partial class MainWindow : Window
 {
+    private const double ProfileDragStartThreshold = 6d;
     private readonly MainWindowViewModel _viewModel;
+    private Grid? _profileListHost;
+    private ScrollViewer? _profileListScrollViewer;
+    private bool _isProfileDragActive;
+    private int? _profileDropIndex;
+    private string? _pressedProfileId;
+    private Point _pressedProfilePointInHost;
+    private Border? _pressedProfileRow;
 
     public MainWindow()
     {
@@ -27,6 +37,8 @@ public partial class MainWindow : Window
     private void InitializeComponent()
     {
         AvaloniaXamlLoader.Load(this);
+        _profileListHost = this.FindControl<Grid>("ProfileListHost");
+        _profileListScrollViewer = this.FindControl<ScrollViewer>("ProfileListScrollViewer");
     }
 
     private void OnDropZoneDragOver(object? sender, DragEventArgs e)
@@ -158,11 +170,97 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (sender is Border border && border.Tag is string profileId)
+        if (sender is Border border
+            && border.Tag is string profileId
+            && TryGetProfileListPoint(e, out var pointInHost))
         {
-            _viewModel.ToggleProfileSelection(profileId);
+            _pressedProfileRow = border;
+            _pressedProfileId = profileId;
+            _pressedProfilePointInHost = pointInHost;
+            _isProfileDragActive = false;
+            _profileDropIndex = null;
+            e.Pointer.Capture(border);
             e.Handled = true;
         }
+    }
+
+    private void OnProfileRowPointerMoved(object? sender, PointerEventArgs e)
+    {
+        if (!IsActivePressedProfileRow(sender) || _pressedProfileId is null || !TryGetProfileListPoint(e, out var pointInHost))
+        {
+            return;
+        }
+
+        if (!_isProfileDragActive)
+        {
+            if (!HasExceededProfileDragThreshold(_pressedProfilePointInHost, pointInHost))
+            {
+                return;
+            }
+
+            if (!_viewModel.BeginProfileDrag(_pressedProfileId, pointInHost.X + 12d, pointInHost.Y + 12d))
+            {
+                ClearProfilePointerInteraction();
+                e.Pointer.Capture(null);
+                return;
+            }
+
+            _isProfileDragActive = true;
+        }
+
+        UpdateProfileDrag(pointInHost);
+        e.Handled = true;
+    }
+
+    private void OnProfileRowPointerReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        if (!IsActivePressedProfileRow(sender))
+        {
+            return;
+        }
+
+        var releasedProfileId = _pressedProfileId;
+        var wasDragActive = _isProfileDragActive;
+        var dropIndex = _profileDropIndex;
+
+        ClearProfilePointerInteraction();
+        e.Pointer.Capture(null);
+
+        if (releasedProfileId is null)
+        {
+            return;
+        }
+
+        if (wasDragActive)
+        {
+            if (dropIndex.HasValue)
+            {
+                _viewModel.ReorderProfile(releasedProfileId, dropIndex.Value);
+            }
+
+            _viewModel.HideProfileDragFeedback();
+        }
+        else
+        {
+            _viewModel.ToggleProfileSelection(releasedProfileId);
+        }
+
+        e.Handled = true;
+    }
+
+    private void OnProfileRowPointerCaptureLost(object? sender, PointerCaptureLostEventArgs e)
+    {
+        if (!IsActivePressedProfileRow(sender))
+        {
+            return;
+        }
+
+        if (_isProfileDragActive)
+        {
+            _viewModel.HideProfileDragFeedback();
+        }
+
+        ClearProfilePointerInteraction();
     }
 
     private void OnProfileRenameKeyDown(object? sender, KeyEventArgs e)
@@ -329,5 +427,136 @@ public partial class MainWindow : Window
 
         textBox = null!;
         return false;
+    }
+
+    private void UpdateProfileDrag(Point pointInHost)
+    {
+        _viewModel.UpdateProfileDragGhostPosition(pointInHost.X + 12d, pointInHost.Y + 12d);
+
+        if (TryGetProfileDropTarget(pointInHost, out var dropTarget))
+        {
+            _profileDropIndex = dropTarget.Index;
+            _viewModel.ShowProfileDropIndicator(dropTarget.Left, dropTarget.Top, dropTarget.Width);
+        }
+        else
+        {
+            _profileDropIndex = null;
+            _viewModel.HideProfileDropIndicator();
+        }
+    }
+
+    private bool TryGetProfileListPoint(PointerEventArgs e, out Point pointInHost)
+    {
+        if (_profileListHost is null)
+        {
+            pointInHost = default;
+            return false;
+        }
+
+        pointInHost = e.GetPosition(_profileListHost);
+        return true;
+    }
+
+    private bool TryGetProfileDropTarget(Point pointInHost, out ProfileDropTarget dropTarget)
+    {
+        dropTarget = default;
+
+        if (_profileListHost is null
+            || pointInHost.X < 0
+            || pointInHost.Y < 0
+            || pointInHost.X > _profileListHost.Bounds.Width
+            || pointInHost.Y > _profileListHost.Bounds.Height)
+        {
+            return false;
+        }
+
+        var rowBounds = GetVisibleProfileRowBounds();
+        if (rowBounds.Count == 0)
+        {
+            return false;
+        }
+
+        var firstRow = rowBounds[0];
+        if (pointInHost.Y <= firstRow.Top)
+        {
+            dropTarget = new ProfileDropTarget(0, firstRow.Left, firstRow.Top, firstRow.Width);
+            return true;
+        }
+
+        for (var i = 0; i < rowBounds.Count; i++)
+        {
+            var row = rowBounds[i];
+            if (pointInHost.Y > row.Bottom)
+            {
+                continue;
+            }
+
+            var beforeRow = pointInHost.Y < row.Top + (row.Height / 2d);
+            var targetIndex = beforeRow ? i : i + 1;
+            var markerTop = beforeRow
+                ? row.Top
+                : i == rowBounds.Count - 1
+                    ? row.Bottom
+                    : rowBounds[i + 1].Top;
+            var markerRow = beforeRow || i == rowBounds.Count - 1 ? row : rowBounds[i + 1];
+
+            dropTarget = new ProfileDropTarget(targetIndex, markerRow.Left, markerTop, markerRow.Width);
+            return true;
+        }
+
+        var lastRow = rowBounds[^1];
+        dropTarget = new ProfileDropTarget(rowBounds.Count, lastRow.Left, lastRow.Bottom, lastRow.Width);
+        return true;
+    }
+
+    private List<ProfileRowBounds> GetVisibleProfileRowBounds()
+    {
+        if (_profileListHost is null || _profileListScrollViewer is null)
+        {
+            return [];
+        }
+
+        return
+        [
+            .. _profileListScrollViewer.GetVisualDescendants()
+                .OfType<Border>()
+                .Where(border => border.DataContext is ProfileListItem && border.Classes.Contains("InputRow"))
+                .Select(border => new { Border = border, TopLeft = border.TranslatePoint(new Point(0, 0), _profileListHost) })
+                .Where(item => item.TopLeft.HasValue)
+                .Select(item => new ProfileRowBounds(
+                    item.TopLeft!.Value.X,
+                    item.TopLeft.Value.Y,
+                    item.Border.Bounds.Width,
+                    item.Border.Bounds.Height))
+                .OrderBy(row => row.Top)
+        ];
+    }
+
+    private bool IsActivePressedProfileRow(object? sender)
+    {
+        return sender is Border border
+            && _pressedProfileRow is not null
+            && ReferenceEquals(border, _pressedProfileRow);
+    }
+
+    private static bool HasExceededProfileDragThreshold(Point startPoint, Point currentPoint)
+    {
+        return Math.Abs(currentPoint.X - startPoint.X) >= ProfileDragStartThreshold
+            || Math.Abs(currentPoint.Y - startPoint.Y) >= ProfileDragStartThreshold;
+    }
+
+    private void ClearProfilePointerInteraction()
+    {
+        _pressedProfileRow = null;
+        _pressedProfileId = null;
+        _profileDropIndex = null;
+        _isProfileDragActive = false;
+    }
+
+    private readonly record struct ProfileDropTarget(int Index, double Left, double Top, double Width);
+
+    private readonly record struct ProfileRowBounds(double Left, double Top, double Width, double Height)
+    {
+        public double Bottom => Top + Height;
     }
 }

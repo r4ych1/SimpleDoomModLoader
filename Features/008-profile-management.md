@@ -4,6 +4,7 @@
 Introduce saved launch profiles as the primary launch model by converting the current screen into a two-pane workspace: saved profiles on the left and the shared Source Port / IWAD / Mod library on the right.
 
 Feature 009 later adds pane-level collapse for the right-side file library. Feature 008 remains authoritative for the expanded file-library workspace behavior.
+Feature 010 later adds manual drag reordering for saved profile rows. Feature 008 remains authoritative for profile selection, launch, rename, delete, validity, and auto-save behavior outside explicit ordering rules introduced there.
 
 ## In Scope
 - Saved profile list with single-select toggle behavior.
@@ -59,6 +60,8 @@ Feature 009 later adds pane-level collapse for the right-side file library. Feat
   - explicit row-level validity messaging
   - launch access
   - delete access
+- Saved profile row ordering is the current profile-list display order.
+- Feature 010 becomes authoritative for how profile row ordering is changed by drag reordering and persisted afterward.
 - Profile rows use one shared right-side status-badge slot:
   - invalid rows show an `INVALID` badge in that slot and keep the invalid reason text under the profile name
   - valid rows show a `VALID` badge in that same slot
