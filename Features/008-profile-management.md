@@ -51,12 +51,12 @@ Feature 010 later adds manual drag reordering for saved profile rows. Feature 00
 - The right pane begins with a selected-profile header area that contains:
   - the selected profile name or selected-profile rename input on the left
   - the `Rename` action on the right
-- The footer command preview remains visible and reflects current library selections, even when no profile is selected.
 - The existing top message/warning area is reused for rename validation and delete confirmation.
 
 ### Profile List And Selection
 - Left pane shows:
   - saved profile rows
+  - row-scoped command preview text
   - explicit row-level validity messaging
   - launch access
   - delete access
@@ -66,6 +66,16 @@ Feature 010 later adds manual drag reordering for saved profile rows. Feature 00
   - invalid rows show an `INVALID` badge in that slot and keep the invalid reason text under the profile name
   - valid rows show a `VALID` badge in that same slot
   - valid rows do not render a separate inline valid text line under the profile name
+- Each profile row renders its command preview in the non-interactive text area under the profile name:
+  - preview text uses wrapped display
+  - preview text uses the profile's saved launch inputs rather than current detached selections
+  - preview text uses filename-only tokens in this order: source-port filename, `-iwad`, IWAD filename, `-file`, ordered mod filenames
+  - rows with no previewable tokens omit the preview line instead of showing an empty placeholder
+  - invalid-reason text, when present, remains distinct from the preview text
+- Inline profile-row command preview is responsive:
+  - when the file library pane is collapsed and the overall window width is greater than `768 px`, row preview text is visible
+  - when the file library pane is expanded, row preview text is hidden for all profile rows regardless of width
+  - when the overall window width is less than or equal to `768 px`, row preview text is hidden for all profile rows even while the file library pane is collapsed
 - Profile rows are single-select toggle rows:
   - Clicking an unselected row selects it.
   - Clicking a different selected row moves selection to that profile.
@@ -297,6 +307,25 @@ When validity is recomputed
 Then the profile row shows an explicit `VALID` badge in the same status slot used by invalid profiles.
 And the profile row does not render a separate inline valid text line under the profile name.
 And its row `Launch` action remains enabled.
+
+### Profile row preview placement and wrapping
+Given a saved profile row has one or more previewable launch tokens
+When the file library pane is collapsed and the profile list is rendered at a window width greater than `768 px`
+Then that row shows its filename-only command preview directly under the profile name.
+And the preview text wraps within the profile row body.
+And the preview text does not render in a separate footer bar.
+
+### Profile row preview hides while file library is expanded
+Given one or more saved profile rows have previewable launch tokens
+When the file library pane is expanded
+Then inline command preview is hidden for all profile rows regardless of width.
+And profile name, validity messaging, badges, and row actions remain visible.
+
+### Profile row preview hides at minimum width while collapsed
+Given one or more saved profile rows have previewable launch tokens
+When the file library pane is collapsed and the overall window width is less than or equal to `768 px`
+Then inline command preview is hidden for all profile rows.
+And profile name, validity messaging, badges, and row actions remain visible.
 
 ### Mod ordering by profile context
 Given at least three Mod rows and one or more profiles

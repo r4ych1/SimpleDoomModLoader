@@ -41,6 +41,7 @@ This repository follows feature-scoped delivery. Behavior is only guaranteed whe
 - Feature 008: Selection-based profile workspace.
   - Adds saved profiles as the primary launch model in a two-pane workspace: a pinned profile list on the left and independently scrolling shared file library on the right, with `New Profile` in the left profile-management header.
   - Profiles persist source port, IWAD, and ordered mod references to the shared library and are the only launchable unit.
+  - Each saved profile row renders its own wrapped filename-only command preview inside the profile cell, and that preview appears only while the file library is collapsed and the window width remains above the Feature 008 minimum threshold.
   - Profile rows expose explicit `Launch` and `Delete` actions plus a shared row-status badge treatment for valid and invalid states, while selected-profile rename lives in the right-pane selected-profile header and outside-click rename exit cancels rather than saves.
   - Profile edits auto-save immediately through file-library selection changes; row launch actions select and run that specific valid saved profile.
   - Authoritative spec: `Features/008-profile-management.md`.

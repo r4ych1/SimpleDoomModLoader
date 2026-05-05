@@ -101,30 +101,6 @@
       </Grid>
     </Border>
 
-    <Border DockPanel.Dock="Bottom"
-            BorderThickness="1,1,1,0"
-            BorderBrush="#374151"
-            Background="#111827"
-            Padding="12">
-      <StackPanel Spacing="6">
-        <TextBlock Foreground="#d1d5db"
-                   FontWeight="SemiBold"
-                   Text="Command Preview" />
-        <TextBox Text="{Binding CommandPreviewArguments}"
-                 IsReadOnly="True"
-                 AcceptsReturn="True"
-                 TextWrapping="Wrap"
-                 Background="#0f172a"
-                 Foreground="#e5e7eb"
-                 BorderBrush="#4b5563"
-                 BorderThickness="1"
-                 FontFamily="Consolas"
-                 MinHeight="56"
-                 Padding="8"
-                 Watermark="-iwad ... -file ..." />
-      </StackPanel>
-    </Border>
-
     <Grid Margin="20">
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="{Binding ProfilePaneColumnWidth}" />
@@ -190,6 +166,11 @@
                         <StackPanel Grid.Column="0" Spacing="6">
                           <TextBlock FontWeight="SemiBold"
                                      Text="{Binding Name}" />
+                          <TextBlock IsVisible="{Binding IsCommandPreviewVisible}"
+                                     Foreground="#94a3b8"
+                                     FontFamily="Consolas"
+                                     TextWrapping="Wrap"
+                                     Text="{Binding CommandPreviewText}" />
                           <TextBlock IsVisible="{Binding HasInvalidReason}"
                                      Foreground="#f59e0b"
                                      TextWrapping="Wrap"

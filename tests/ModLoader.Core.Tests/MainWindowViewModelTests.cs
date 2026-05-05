@@ -349,6 +349,135 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
+    public void ProfileRows_ShowSavedCommandPreviewTextFromProfileData()
+    {
+        using var temp = new TempDirectory();
+        var source = temp.CreateFile("gzdoom.exe");
+        var iwad = temp.CreateFile("doom2.wad");
+        var modA = temp.CreateFile("mod-a.pk3");
+        var modB = temp.CreateFile("mod-b.pk3");
+
+        var persistence = new RecordingPersistence
+        {
+            LoadResult = new LaunchInputsLoadResult
+            {
+                State = new LaunchInputsConfig
+                {
+                    SourcePorts = [source],
+                    Iwads = [iwad],
+                    Mods = [modA, modB],
+                    Profiles = [CreateProfile("p1", "Profile 1", source, iwad, modA, modB)]
+                }
+            }
+        };
+
+        var viewModel = new MainWindowViewModel(persistence);
+
+        var row = viewModel.ProfileRows.Single();
+        Assert.Equal("gzdoom.exe -iwad doom2.wad -file mod-a.pk3 mod-b.pk3", row.CommandPreviewText);
+        Assert.False(row.IsCommandPreviewVisible);
+
+        viewModel.ToggleFileLibraryPaneCollapsed();
+        Assert.True(row.IsCommandPreviewVisible);
+    }
+
+    [Fact]
+    public void ProfileRows_ShowPartialCommandPreviewForInvalidProfile()
+    {
+        using var temp = new TempDirectory();
+        var source = temp.CreateFile("gzdoom.exe");
+        var mod = temp.CreateFile("mod-a.pk3");
+
+        var persistence = new RecordingPersistence
+        {
+            LoadResult = new LaunchInputsLoadResult
+            {
+                State = new LaunchInputsConfig
+                {
+                    SourcePorts = [source],
+                    Mods = [mod],
+                    Profiles = [CreateProfile("p1", "Profile 1", source, null, mod)]
+                }
+            }
+        };
+
+        var viewModel = new MainWindowViewModel(persistence);
+
+        var row = viewModel.ProfileRows.Single();
+        Assert.True(row.IsInvalid);
+        Assert.Equal("gzdoom.exe -file mod-a.pk3", row.CommandPreviewText);
+        Assert.False(row.IsCommandPreviewVisible);
+
+        viewModel.ToggleFileLibraryPaneCollapsed();
+        Assert.True(row.IsCommandPreviewVisible);
+    }
+
+    [Fact]
+    public void ProfileRows_OmitCommandPreviewWhenProfileHasNoPreviewableTokens()
+    {
+        var persistence = new RecordingPersistence
+        {
+            LoadResult = new LaunchInputsLoadResult
+            {
+                State = new LaunchInputsConfig
+                {
+                    Profiles = [CreateProfile("p1", "Profile 1", null, null)]
+                }
+            }
+        };
+
+        var viewModel = new MainWindowViewModel(persistence);
+
+        var row = viewModel.ProfileRows.Single();
+        Assert.Equal(string.Empty, row.CommandPreviewText);
+        Assert.False(row.IsCommandPreviewVisible);
+    }
+
+    [Fact]
+    public void ProfileRows_ShowAndHideCommandPreviewFromPaneStateAndWidth()
+    {
+        using var temp = new TempDirectory();
+        var source = temp.CreateFile("gzdoom.exe");
+        var iwad = temp.CreateFile("doom2.wad");
+
+        var persistence = new RecordingPersistence
+        {
+            LoadResult = new LaunchInputsLoadResult
+            {
+                State = new LaunchInputsConfig
+                {
+                    SourcePorts = [source],
+                    Iwads = [iwad],
+                    Profiles = [CreateProfile("p1", "Profile 1", source, iwad)]
+                }
+            }
+        };
+
+        var viewModel = new MainWindowViewModel(persistence);
+        var row = viewModel.ProfileRows.Single();
+
+        Assert.False(row.IsCommandPreviewVisible);
+
+        viewModel.ToggleFileLibraryPaneCollapsed();
+        Assert.True(row.IsCommandPreviewVisible);
+
+        viewModel.SetWindowWidth(768d);
+        Assert.False(row.IsCommandPreviewVisible);
+
+        viewModel.SetWindowWidth(700d);
+        Assert.False(row.IsCommandPreviewVisible);
+
+        viewModel.SetWindowWidth(769d);
+        Assert.True(row.IsCommandPreviewVisible);
+
+        viewModel.ToggleFileLibraryPaneCollapsed();
+        Assert.False(row.IsCommandPreviewVisible);
+
+        viewModel.ToggleFileLibraryPaneCollapsed();
+        Assert.True(row.IsCommandPreviewVisible);
+    }
+
+    [Fact]
     public void DetachedModRows_DefaultToAlphabeticalFilenameOrder_AndTemporarilyReorderSelectedMods()
     {
         using var temp = new TempDirectory();
@@ -1101,8 +1230,13 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("Text=\"{Binding StatusBadgeText}\"", xaml, StringComparison.Ordinal);
         Assert.Contains("Background=\"{Binding StatusBadgeBackground}\"", xaml, StringComparison.Ordinal);
         Assert.Contains("Foreground=\"{Binding StatusBadgeForeground}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding IsCommandPreviewVisible}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding CommandPreviewText}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("FontFamily=\"Consolas\"", xaml, StringComparison.Ordinal);
         Assert.DoesNotContain("IsVisible=\"{Binding HasValidMessage}\"", xaml, StringComparison.Ordinal);
         Assert.DoesNotContain("IsVisible=\"{Binding IsFileLibraryPaneCollapsed}\"", xaml, StringComparison.Ordinal);
+        Assert.DoesNotContain("Text=\"Command Preview\"", xaml, StringComparison.Ordinal);
+        Assert.DoesNotContain("Text=\"{Binding CommandPreviewArguments}\"", xaml, StringComparison.Ordinal);
         Assert.Contains("PointerMoved=\"OnProfileRowPointerMoved\"", xaml, StringComparison.Ordinal);
         Assert.Contains("PointerReleased=\"OnProfileRowPointerReleased\"", xaml, StringComparison.Ordinal);
         Assert.Contains("PointerCaptureLost=\"OnProfileRowPointerCaptureLost\"", xaml, StringComparison.Ordinal);
@@ -1141,8 +1275,12 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("valid rows show a `VALID` badge in that same slot", feature008, StringComparison.Ordinal);
         Assert.Contains("Feature 010 becomes authoritative for how profile row ordering is changed by drag reordering", feature008, StringComparison.Ordinal);
         Assert.Contains("does not render a separate inline valid text line", feature008, StringComparison.Ordinal);
+        Assert.Contains("Each profile row renders its command preview in the non-interactive text area under the profile name", feature008, StringComparison.Ordinal);
+        Assert.Contains("when the file library pane is expanded, row preview text is hidden for all profile rows regardless of width", feature008, StringComparison.Ordinal);
+        Assert.Contains("when the overall window width is less than or equal to `768 px`, row preview text is hidden for all profile rows even while the file library pane is collapsed", feature008, StringComparison.Ordinal);
         Assert.Contains("the right file-library pane is not rendered", feature009, StringComparison.Ordinal);
         Assert.Contains("the spacer gap between the profile pane and file-library pane is not rendered", feature009, StringComparison.Ordinal);
+        Assert.Contains("when the file library pane is expanded, inline profile-row command preview is hidden for all profile rows", feature009, StringComparison.Ordinal);
         Assert.Contains("The drag ghost renders only the dragged profile name.", feature010, StringComparison.Ordinal);
         Assert.Contains("A real drag does not also toggle profile row selection.", feature010, StringComparison.Ordinal);
     }

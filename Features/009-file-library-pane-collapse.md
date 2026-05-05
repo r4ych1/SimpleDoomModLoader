@@ -40,10 +40,12 @@ Wrap the shared file library in its own right-side workspace section and allow t
 - File-library pane collapse does not change:
   - selected profile
   - current library selections
-  - command preview behavior
   - left-pane row launch availability
   - profile auto-save behavior
   - Source Port / IWAD / Mod inner section collapse state
+- File-library pane state controls inline profile-row command preview visibility:
+  - when the file library pane is collapsed, inline profile-row command preview may be visible subject to the shared Feature 008 window-width rule
+  - when the file library pane is expanded, inline profile-row command preview is hidden for all profile rows
 - Activating `New Profile` while the file library pane is collapsed is the one exception:
   - the new profile is still created and selected using existing Feature 008 rules
   - the file library pane expands immediately so the selected-profile header becomes visible
@@ -70,6 +72,7 @@ When the expand control is activated
 Then the file library returns to its default expanded size.
 And the spacer gap between the panes returns.
 And the selected-profile header area and shared library controls become visible again.
+And inline profile-row command preview is hidden for all profile rows.
 
 ### New profile expands collapsed pane
 Given the file library is collapsed

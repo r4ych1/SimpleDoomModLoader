@@ -31,6 +31,8 @@ public partial class MainWindow : Window
 
         InitializeComponent();
         AddHandler(InputElement.PointerPressedEvent, OnWindowPointerPressed, Avalonia.Interactivity.RoutingStrategies.Tunnel);
+        SizeChanged += OnWindowSizeChanged;
+        _viewModel.SetWindowWidth(Width);
         DataContext = _viewModel;
     }
 
@@ -543,6 +545,11 @@ public partial class MainWindow : Window
     {
         return Math.Abs(currentPoint.X - startPoint.X) >= ProfileDragStartThreshold
             || Math.Abs(currentPoint.Y - startPoint.Y) >= ProfileDragStartThreshold;
+    }
+
+    private void OnWindowSizeChanged(object? sender, SizeChangedEventArgs e)
+    {
+        _viewModel.SetWindowWidth(e.NewSize.Width);
     }
 
     private void ClearProfilePointerInteraction()

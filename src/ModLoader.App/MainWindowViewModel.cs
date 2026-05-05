@@ -10,6 +10,7 @@ namespace ModLoader.App;
 
 public sealed class MainWindowViewModel : INotifyPropertyChanged
 {
+    private const double ProfileCommandPreviewHideWidthThreshold = 768d;
     private readonly ISourcePortLauncher _launcher;
     private readonly ILaunchInputsPersistence _persistence;
     private readonly LaunchInputsStore _store;
@@ -29,6 +30,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private double _profileDropIndicatorLeft;
     private double _profileDropIndicatorTop;
     private double _profileDropIndicatorWidth;
+    private double _windowWidth = double.PositiveInfinity;
     private string? _selectedIwadPath;
     private string? _selectedProfileId;
     private string _selectedProfileRenameText = string.Empty;
@@ -480,6 +482,20 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     public string CommandPreviewArguments => BuildCommandPreviewArguments();
 
+    public bool AreProfileCommandPreviewsVisible => IsFileLibraryPaneCollapsed && _windowWidth > ProfileCommandPreviewHideWidthThreshold;
+
+    public void SetWindowWidth(double width)
+    {
+        var normalizedWidth = width > 0d ? width : 0d;
+        if (Math.Abs(_windowWidth - normalizedWidth) < 0.01d)
+        {
+            return;
+        }
+
+        _windowWidth = normalizedWidth;
+        RefreshProfileRows();
+    }
+
     public void ProcessSourcePortDrop(IEnumerable<string> droppedPaths)
     {
         _store.ProcessSourcePortDrop(droppedPaths);
@@ -513,6 +529,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     public void ToggleFileLibraryPaneCollapsed()
     {
         IsFileLibraryPaneCollapsed = !IsFileLibraryPaneCollapsed;
+        RefreshProfileRows();
         PersistState();
     }
 
@@ -1018,6 +1035,8 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             row.CanLaunchProfile = validity.IsValid;
             row.ValidMessage = validity.IsValid ? "VALID" : string.Empty;
             row.InvalidReason = validity.Reason;
+            row.CommandPreviewText = BuildCommandPreviewArguments(profile);
+            row.IsCommandPreviewVisible = AreProfileCommandPreviewsVisible && !string.IsNullOrWhiteSpace(row.CommandPreviewText);
 
             ProfileRows.Add(row);
         }
@@ -1394,23 +1413,33 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     private string BuildCommandPreviewArguments()
     {
+        return BuildCommandPreviewArguments(SelectedSourcePortPath, SelectedIwadPath, SelectedModPaths);
+    }
+
+    private static string BuildCommandPreviewArguments(ProfileConfig profile)
+    {
+        return BuildCommandPreviewArguments(profile.SourcePortPath, profile.IwadPath, profile.SelectedModPaths);
+    }
+
+    private static string BuildCommandPreviewArguments(string? sourcePortPath, string? iwadPath, IReadOnlyList<string> modPaths)
+    {
         var arguments = new List<string>();
 
-        if (!string.IsNullOrWhiteSpace(SelectedSourcePortPath))
+        if (!string.IsNullOrWhiteSpace(sourcePortPath))
         {
-            arguments.Add(FormatPreviewFileToken(SelectedSourcePortPath));
+            arguments.Add(FormatPreviewFileToken(sourcePortPath));
         }
 
-        if (!string.IsNullOrWhiteSpace(SelectedIwadPath))
+        if (!string.IsNullOrWhiteSpace(iwadPath))
         {
             arguments.Add("-iwad");
-            arguments.Add(FormatPreviewFileToken(SelectedIwadPath));
+            arguments.Add(FormatPreviewFileToken(iwadPath));
         }
 
-        if (SelectedModPaths.Count > 0)
+        if (modPaths.Count > 0)
         {
             arguments.Add("-file");
-            foreach (var selectedModPath in SelectedModPaths)
+            foreach (var selectedModPath in modPaths)
             {
                 arguments.Add(FormatPreviewFileToken(selectedModPath));
             }
@@ -1532,7 +1561,9 @@ public sealed class SelectablePathRow
 public sealed class ProfileListItem : INotifyPropertyChanged
 {
     private bool _canLaunchProfile;
+    private string _commandPreviewText;
     private bool _isInvalid;
+    private bool _isCommandPreviewVisible;
     private bool _isSelected;
     private string _invalidReason;
     private string _name;
@@ -1541,6 +1572,7 @@ public sealed class ProfileListItem : INotifyPropertyChanged
     public ProfileListItem(string id, string name)
     {
         Id = id;
+        _commandPreviewText = string.Empty;
         _name = name;
         _invalidReason = string.Empty;
         _validMessage = string.Empty;
@@ -1591,6 +1623,36 @@ public sealed class ProfileListItem : INotifyPropertyChanged
             }
 
             _canLaunchProfile = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public string CommandPreviewText
+    {
+        get => _commandPreviewText;
+        set
+        {
+            if (_commandPreviewText == value)
+            {
+                return;
+            }
+
+            _commandPreviewText = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool IsCommandPreviewVisible
+    {
+        get => _isCommandPreviewVisible;
+        set
+        {
+            if (_isCommandPreviewVisible == value)
+            {
+                return;
+            }
+
+            _isCommandPreviewVisible = value;
             OnPropertyChanged();
         }
     }
