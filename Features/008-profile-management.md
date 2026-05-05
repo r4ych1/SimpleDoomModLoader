@@ -41,6 +41,7 @@ Feature 010 later adds manual drag reordering for saved profile rows. Feature 00
 - The window becomes a two-pane workspace:
   - Left pane: profile management.
   - Right pane: the existing shared Source Port / IWAD / Mod library.
+- While the file library pane is expanded, the left profile pane uses a fixed width of `380 px`.
 - The left profile pane remains pinned while the right file-library pane scrolls independently.
 - The left profile list provides its own internal scrolling when saved profiles exceed available vertical space.
 - The left pane begins with a profile-management header row that contains:
@@ -72,9 +73,10 @@ Feature 010 later adds manual drag reordering for saved profile rows. Feature 00
 - Saved profile row ordering is the current profile-list display order.
 - Feature 010 becomes authoritative for how profile row ordering is changed by drag reordering and persisted afterward.
 - Profile rows use one shared right-side status-badge slot:
-  - invalid rows show an `INVALID` badge in that slot and keep the invalid reason text under the profile name
+  - invalid rows show an `INVALID` badge in that slot and keep invalid-reason text available for the inline row message area when that text is visible
   - valid rows show a `VALID` badge in that same slot
   - valid rows do not render a separate inline valid text line under the profile name
+- Profile names in left-pane rows wrap within the row body and are capped at two rendered lines.
 - Each profile row renders its command preview in the non-interactive text area under the profile name:
   - preview text uses wrapped display
   - preview text uses the profile's saved launch inputs rather than current detached selections
@@ -85,6 +87,9 @@ Feature 010 later adds manual drag reordering for saved profile rows. Feature 00
   - when the file library pane is collapsed and the overall window width is greater than `768 px`, row preview text is visible
   - when the file library pane is expanded, row preview text is hidden for all profile rows regardless of width
   - when the overall window width is less than or equal to `768 px`, row preview text is hidden for all profile rows even while the file library pane is collapsed
+- Inline invalid-reason text is also responsive:
+  - when the file library pane is expanded, inline invalid-reason text is hidden for all profile rows regardless of width
+  - when the file library pane is collapsed, invalid rows show their inline invalid-reason text under the profile name
 - Profile rows are single-select toggle rows:
   - Clicking an unselected row selects it.
   - Clicking a different selected row moves selection to that profile.
@@ -354,6 +359,13 @@ When the file library pane is expanded
 Then inline command preview is hidden for all profile rows regardless of width.
 And profile name, validity messaging, badges, and row actions remain visible.
 
+### Invalid reason text hides while file library is expanded
+Given an invalid saved profile row exists
+When the file library pane is expanded
+Then the row keeps its `INVALID` badge.
+And inline invalid-reason text is hidden for that row.
+And the selected-profile header in the right pane still shows the selected profile's full status text.
+
 ### Double-click collapses expanded file library for a profile
 Given the file library pane is expanded and a saved profile row exists
 When that profile row is double-clicked
@@ -367,6 +379,13 @@ Given one or more saved profile rows have previewable launch tokens
 When the file library pane is collapsed and the overall window width is less than or equal to `768 px`
 Then inline command preview is hidden for all profile rows.
 And profile name, validity messaging, badges, and row actions remain visible.
+
+### Profile names wrap in the expanded profile pane
+Given a saved profile row has a long name
+When the file library pane is expanded and the profile list is rendered
+Then the left profile pane uses a fixed width of `380 px`.
+And the profile name wraps within the row body.
+And the rendered profile name is capped at two lines.
 
 ### Mod ordering by profile context
 Given at least three Mod rows and one or more profiles

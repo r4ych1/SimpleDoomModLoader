@@ -186,6 +186,7 @@ public sealed class MainWindowViewModelTests
         Assert.False(viewModel.IsFileLibraryPaneCollapsed);
         Assert.True(viewModel.IsFileLibraryPaneExpanded);
         Assert.Equal("Collapse", viewModel.FileLibraryPaneToggleText);
+        Assert.Equal(380d, viewModel.ProfilePaneColumnWidth.Value);
         Assert.Equal(16d, viewModel.PaneSpacerColumnWidth.Value);
         Assert.Equal(1d, viewModel.FileLibraryPaneColumnWidth.Value);
         Assert.True(viewModel.AreSourcePortRowsVisible);
@@ -204,6 +205,7 @@ public sealed class MainWindowViewModelTests
         Assert.True(viewModel.IsFileLibraryPaneCollapsed);
         Assert.False(viewModel.IsFileLibraryPaneExpanded);
         Assert.Equal("Expand", viewModel.FileLibraryPaneToggleText);
+        Assert.Equal(1d, viewModel.ProfilePaneColumnWidth.Value);
         Assert.Equal(0d, viewModel.PaneSpacerColumnWidth.Value);
         Assert.Equal(0d, viewModel.FileLibraryPaneColumnWidth.Value);
         Assert.True(viewModel.IsSourcePortSectionCollapsed);
@@ -826,6 +828,43 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
+    public void InvalidProfileRow_HidesInlineInvalidReasonWhileExpanded_AndShowsItWhenCollapsed()
+    {
+        using var temp = new TempDirectory();
+        var source = temp.CreateFile("gzdoom.exe");
+        var missingIwad = Path.Combine(temp.Path, "missing.wad");
+
+        var persistence = new RecordingPersistence
+        {
+            LoadResult = new LaunchInputsLoadResult
+            {
+                State = new LaunchInputsConfig
+                {
+                    SourcePorts = [source],
+                    Profiles = [CreateProfile("p1", "Profile 1", source, missingIwad)],
+                    SelectedProfileId = "p1"
+                }
+            }
+        };
+
+        var viewModel = new MainWindowViewModel(persistence);
+        var row = viewModel.ProfileRows.Single();
+
+        Assert.True(row.IsInvalid);
+        Assert.Equal("INVALID", row.StatusBadgeText);
+        Assert.False(row.IsInvalidReasonVisible);
+        Assert.Contains("IWAD file is missing", row.InvalidReason);
+        Assert.Contains("IWAD file is missing", viewModel.SelectedProfileStatusText);
+
+        viewModel.ToggleFileLibraryPaneCollapsed();
+
+        Assert.True(row.IsInvalid);
+        Assert.Equal("INVALID", row.StatusBadgeText);
+        Assert.True(row.IsInvalidReasonVisible);
+        Assert.Contains("IWAD file is missing", viewModel.SelectedProfileStatusText);
+    }
+
+    [Fact]
     public void ValidProfileRow_ShowsExplicitValidBadge()
     {
         using var temp = new TempDirectory();
@@ -1426,6 +1465,10 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("IsVisible=\"{Binding IsCommandPreviewVisible}\"", xaml, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding CommandPreviewText}\"", xaml, StringComparison.Ordinal);
         Assert.Contains("FontFamily=\"Consolas\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding IsInvalidReasonVisible}\"", xaml, StringComparison.Ordinal);
+        Assert.DoesNotContain("IsVisible=\"{Binding HasInvalidReason}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("MaxLines=\"2\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("TextTrimming=\"CharacterEllipsis\"", xaml, StringComparison.Ordinal);
         Assert.DoesNotContain("IsVisible=\"{Binding HasValidMessage}\"", xaml, StringComparison.Ordinal);
         Assert.DoesNotContain("IsVisible=\"{Binding IsFileLibraryPaneCollapsed}\"", xaml, StringComparison.Ordinal);
         Assert.DoesNotContain("Text=\"Command Preview\"", xaml, StringComparison.Ordinal);
@@ -1485,6 +1528,9 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("click / keyboard fallback to multi-select file pickers", spec, StringComparison.Ordinal);
         Assert.Contains("`Launch`, `Rename`, and `Delete` actions", spec, StringComparison.Ordinal);
         Assert.Contains("Double-clicking a profile row acts as a pane shortcut", spec, StringComparison.Ordinal);
+        Assert.Contains("fixed `380 px` width", spec, StringComparison.Ordinal);
+        Assert.Contains("profile names wrap up to two lines", spec, StringComparison.Ordinal);
+        Assert.Contains("inline invalid-reason text stays hidden while shared status badges remain visible", spec, StringComparison.Ordinal);
         Assert.Contains("Each drop zone renders a visible default target treatment before any drag begins", feature002, StringComparison.Ordinal);
         Assert.DoesNotContain("an always-visible empty-state icon or badge treatment", feature002, StringComparison.Ordinal);
         Assert.DoesNotContain("`Drag files here or click to upload`", feature002, StringComparison.Ordinal);
@@ -1494,10 +1540,13 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("the Source Port, IWAD, and Mod drop zones inside that pane use the shared visible drop-zone affordance defined by Feature 002", feature008, StringComparison.Ordinal);
         Assert.Contains("File-picker fallback does not add folder selection support", feature008, StringComparison.Ordinal);
         Assert.Contains("valid rows show a `VALID` badge in that same slot", feature008, StringComparison.Ordinal);
+        Assert.Contains("left profile pane uses a fixed width of `380 px`", feature008, StringComparison.Ordinal);
         Assert.Contains("Feature 010 becomes authoritative for how profile row ordering is changed by drag reordering", feature008, StringComparison.Ordinal);
         Assert.Contains("does not render a separate inline valid text line", feature008, StringComparison.Ordinal);
+        Assert.Contains("Profile names in left-pane rows wrap within the row body and are capped at two rendered lines.", feature008, StringComparison.Ordinal);
         Assert.Contains("Each profile row renders its command preview in the non-interactive text area under the profile name", feature008, StringComparison.Ordinal);
         Assert.Contains("when the file library pane is expanded, row preview text is hidden for all profile rows regardless of width", feature008, StringComparison.Ordinal);
+        Assert.Contains("when the file library pane is expanded, inline invalid-reason text is hidden for all profile rows regardless of width", feature008, StringComparison.Ordinal);
         Assert.Contains("when the overall window width is less than or equal to `768 px`, row preview text is hidden for all profile rows even while the file library pane is collapsed", feature008, StringComparison.Ordinal);
         Assert.Contains("While the file library pane is collapsed, double-clicking a profile row is a profile-open shortcut", feature008, StringComparison.Ordinal);
         Assert.Contains("While the file library pane is expanded, double-clicking a profile row is the inverse pane shortcut", feature008, StringComparison.Ordinal);

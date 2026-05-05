@@ -238,7 +238,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     public GridLength ProfilePaneColumnWidth => IsFileLibraryPaneCollapsed
         ? new GridLength(1, GridUnitType.Star)
-        : new GridLength(320);
+        : new GridLength(380);
 
     public GridLength PaneSpacerColumnWidth => IsFileLibraryPaneCollapsed
         ? new GridLength(0)
@@ -1132,6 +1132,9 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             row.CanLaunchProfile = validity.IsValid;
             row.ValidMessage = validity.IsValid ? "VALID" : string.Empty;
             row.InvalidReason = validity.Reason;
+            row.IsInvalidReasonVisible = !validity.IsValid
+                && IsFileLibraryPaneCollapsed
+                && !string.IsNullOrWhiteSpace(validity.Reason);
             row.CommandPreviewText = BuildCommandPreviewArguments(profile);
             row.IsCommandPreviewVisible = AreProfileCommandPreviewsVisible && !string.IsNullOrWhiteSpace(row.CommandPreviewText);
 
@@ -1667,6 +1670,7 @@ public sealed class ProfileListItem : INotifyPropertyChanged
     private bool _canLaunchProfile;
     private string _commandPreviewText;
     private bool _isInvalid;
+    private bool _isInvalidReasonVisible;
     private bool _isCommandPreviewVisible;
     private bool _isRenameVisible;
     private bool _isSelected;
@@ -1814,6 +1818,21 @@ public sealed class ProfileListItem : INotifyPropertyChanged
             _invalidReason = value;
             OnPropertyChanged();
             OnPropertyChanged(nameof(HasInvalidReason));
+        }
+    }
+
+    public bool IsInvalidReasonVisible
+    {
+        get => _isInvalidReasonVisible;
+        set
+        {
+            if (_isInvalidReasonVisible == value)
+            {
+                return;
+            }
+
+            _isInvalidReasonVisible = value;
+            OnPropertyChanged();
         }
     }
 

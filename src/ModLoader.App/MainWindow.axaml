@@ -196,6 +196,9 @@
                         <StackPanel Grid.Column="0" Spacing="6">
                           <TextBlock IsVisible="{Binding IsDisplayVisible}"
                                      FontWeight="SemiBold"
+                                     TextWrapping="Wrap"
+                                     MaxLines="2"
+                                     TextTrimming="CharacterEllipsis"
                                      Text="{Binding Name}" />
                           <TextBox IsVisible="{Binding IsRenameVisible}"
                                    Tag="{Binding Id}"
@@ -208,7 +211,7 @@
                                      FontFamily="Consolas"
                                      TextWrapping="Wrap"
                                      Text="{Binding CommandPreviewText}" />
-                          <TextBlock IsVisible="{Binding HasInvalidReason}"
+                          <TextBlock IsVisible="{Binding IsInvalidReasonVisible}"
                                      Foreground="#f59e0b"
                                      TextWrapping="Wrap"
                                      Text="{Binding InvalidReason}" />
