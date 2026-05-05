@@ -349,6 +349,83 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
+    public void SelectProfileAndExpandFileLibraryPane_WhenCollapsedAndUnselected_SelectsHydratesAndPersistsExpandedState()
+    {
+        using var temp = new TempDirectory();
+        var source = temp.CreateFile("gzdoom.exe");
+        var iwad = temp.CreateFile("doom2.wad");
+        var mod = temp.CreateFile("mod-a.pk3");
+
+        var persistence = new RecordingPersistence
+        {
+            LoadResult = new LaunchInputsLoadResult
+            {
+                State = new LaunchInputsConfig
+                {
+                    SourcePorts = [source],
+                    Iwads = [iwad],
+                    Mods = [mod],
+                    Profiles = [CreateProfile("p1", "Profile 1", source, iwad, mod)],
+                    IsFileLibraryPaneCollapsed = true
+                }
+            }
+        };
+
+        var viewModel = new MainWindowViewModel(persistence);
+
+        var wasSelected = viewModel.SelectProfileAndExpandFileLibraryPane("p1");
+
+        Assert.True(wasSelected);
+        Assert.Equal("p1", viewModel.SelectedProfileId);
+        Assert.Equal(Path.GetFullPath(source), viewModel.SelectedSourcePortPath);
+        Assert.Equal(Path.GetFullPath(iwad), viewModel.SelectedIwadPath);
+        Assert.Equal([Path.GetFullPath(mod)], viewModel.SelectedModPaths);
+        Assert.False(viewModel.IsFileLibraryPaneCollapsed);
+        Assert.True(viewModel.IsFileLibraryPaneExpanded);
+        Assert.False(persistence.SavedStates.Last().IsFileLibraryPaneCollapsed);
+        Assert.Equal("p1", persistence.SavedStates.Last().SelectedProfileId);
+    }
+
+    [Fact]
+    public void SelectProfileAndExpandFileLibraryPane_WhenCollapsedAndAlreadySelected_KeepsSelectionAndSelectionsIntact()
+    {
+        using var temp = new TempDirectory();
+        var source = temp.CreateFile("gzdoom.exe");
+        var iwad = temp.CreateFile("doom2.wad");
+        var mod = temp.CreateFile("mod-a.pk3");
+
+        var persistence = new RecordingPersistence
+        {
+            LoadResult = new LaunchInputsLoadResult
+            {
+                State = new LaunchInputsConfig
+                {
+                    SourcePorts = [source],
+                    Iwads = [iwad],
+                    Mods = [mod],
+                    Profiles = [CreateProfile("p1", "Profile 1", source, iwad, mod)],
+                    SelectedProfileId = "p1",
+                    IsFileLibraryPaneCollapsed = true
+                }
+            }
+        };
+
+        var viewModel = new MainWindowViewModel(persistence);
+
+        var wasSelected = viewModel.SelectProfileAndExpandFileLibraryPane("p1");
+
+        Assert.True(wasSelected);
+        Assert.Equal("p1", viewModel.SelectedProfileId);
+        Assert.Equal(Path.GetFullPath(source), viewModel.SelectedSourcePortPath);
+        Assert.Equal(Path.GetFullPath(iwad), viewModel.SelectedIwadPath);
+        Assert.Equal([Path.GetFullPath(mod)], viewModel.SelectedModPaths);
+        Assert.False(viewModel.IsFileLibraryPaneCollapsed);
+        Assert.True(viewModel.IsFileLibraryPaneExpanded);
+        Assert.False(persistence.SavedStates.Last().IsFileLibraryPaneCollapsed);
+        Assert.Equal("p1", persistence.SavedStates.Last().SelectedProfileId);
+    }
+
+    [Fact]
     public void ProfileRows_ShowSavedCommandPreviewTextFromProfileData()
     {
         using var temp = new TempDirectory();
@@ -1278,9 +1355,12 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("Each profile row renders its command preview in the non-interactive text area under the profile name", feature008, StringComparison.Ordinal);
         Assert.Contains("when the file library pane is expanded, row preview text is hidden for all profile rows regardless of width", feature008, StringComparison.Ordinal);
         Assert.Contains("when the overall window width is less than or equal to `768 px`, row preview text is hidden for all profile rows even while the file library pane is collapsed", feature008, StringComparison.Ordinal);
+        Assert.Contains("While the file library pane is collapsed, double-clicking a profile row is a profile-open shortcut", feature008, StringComparison.Ordinal);
+        Assert.Contains("the second click does not toggle the row back off", feature008, StringComparison.Ordinal);
         Assert.Contains("the right file-library pane is not rendered", feature009, StringComparison.Ordinal);
         Assert.Contains("the spacer gap between the profile pane and file-library pane is not rendered", feature009, StringComparison.Ordinal);
         Assert.Contains("when the file library pane is expanded, inline profile-row command preview is hidden for all profile rows", feature009, StringComparison.Ordinal);
+        Assert.Contains("Double-clicking a profile row while the file library pane is collapsed is the other exception", feature009, StringComparison.Ordinal);
         Assert.Contains("The drag ghost renders only the dragged profile name.", feature010, StringComparison.Ordinal);
         Assert.Contains("A real drag does not also toggle profile row selection.", feature010, StringComparison.Ordinal);
     }

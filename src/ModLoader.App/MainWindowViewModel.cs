@@ -659,6 +659,26 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         PersistState();
     }
 
+    public bool SelectProfileAndExpandFileLibraryPane(string profileId)
+    {
+        CancelRename();
+
+        if (!TrySelectProfile(profileId))
+        {
+            return false;
+        }
+
+        HydrateSelectionsFromSelectedProfile();
+        IsFileLibraryPaneCollapsed = false;
+        ClearPendingDeleteConfirmation();
+        RefreshRows();
+        RefreshProfileRows();
+        OnPropertyChanged(nameof(CanLaunch));
+        OnPropertyChanged(nameof(SelectedProfileStatusText));
+        PersistState();
+        return true;
+    }
+
     public void CreateNewProfile()
     {
         CancelRename();

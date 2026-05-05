@@ -6,6 +6,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Markup.Xaml;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 using ModLoader.Core;
 
@@ -14,7 +15,10 @@ namespace ModLoader.App;
 public partial class MainWindow : Window
 {
     private const double ProfileDragStartThreshold = 6d;
+    private static readonly TimeSpan CollapsedSelectedProfileToggleDelay = TimeSpan.FromMilliseconds(275);
     private readonly MainWindowViewModel _viewModel;
+    private DispatcherTimer? _pendingProfileToggleTimer;
+    private string? _pendingToggleProfileId;
     private Grid? _profileListHost;
     private ScrollViewer? _profileListScrollViewer;
     private bool _isProfileDragActive;
@@ -69,11 +73,13 @@ public partial class MainWindow : Window
 
     private void OnNewProfileClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
+        CancelPendingProfileToggle();
         _viewModel.CreateNewProfile();
     }
 
     private void OnDeleteProfileClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
+        CancelPendingProfileToggle();
         if (sender is Button button && button.Tag is string profileId)
         {
             _viewModel.RequestDeleteProfile(profileId);
@@ -82,11 +88,13 @@ public partial class MainWindow : Window
 
     private void OnRenameProfileClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
+        CancelPendingProfileToggle();
         _viewModel.BeginRenameSelectedProfile();
     }
 
     private void OnLaunchProfileClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
+        CancelPendingProfileToggle();
         if (sender is Button button && button.Tag is string profileId)
         {
             _viewModel.LaunchProfile(profileId);
@@ -95,16 +103,19 @@ public partial class MainWindow : Window
 
     private void OnConfirmDeleteProfileClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
+        CancelPendingProfileToggle();
         _viewModel.ConfirmDeleteProfile();
     }
 
     private void OnCancelDeleteProfileClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
+        CancelPendingProfileToggle();
         _viewModel.CancelDeleteConfirmation();
     }
 
     private void OnToggleFileLibraryPaneCollapsedClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
+        CancelPendingProfileToggle();
         _viewModel.ToggleFileLibraryPaneCollapsed();
     }
 
@@ -167,8 +178,23 @@ public partial class MainWindow : Window
 
     private void OnProfileRowPointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (e.ClickCount > 1 || IsFromInteractiveChild(e.Source))
+        if (IsFromInteractiveChild(e.Source))
         {
+            return;
+        }
+
+        CancelPendingProfileToggle();
+
+        if (e.ClickCount > 1)
+        {
+            if (_viewModel.IsFileLibraryPaneCollapsed
+                && sender is Border doubleClickedBorder
+                && doubleClickedBorder.Tag is string doubleClickedProfileId
+                && _viewModel.SelectProfileAndExpandFileLibraryPane(doubleClickedProfileId))
+            {
+                e.Handled = true;
+            }
+
             return;
         }
 
@@ -244,7 +270,15 @@ public partial class MainWindow : Window
         }
         else
         {
-            _viewModel.ToggleProfileSelection(releasedProfileId);
+            if (_viewModel.IsFileLibraryPaneCollapsed
+                && string.Equals(_viewModel.SelectedProfileId, releasedProfileId, StringComparison.Ordinal))
+            {
+                SchedulePendingProfileToggle(releasedProfileId);
+            }
+            else
+            {
+                _viewModel.ToggleProfileSelection(releasedProfileId);
+            }
         }
 
         e.Handled = true;
@@ -263,6 +297,49 @@ public partial class MainWindow : Window
         }
 
         ClearProfilePointerInteraction();
+    }
+
+    private void CancelPendingProfileToggle()
+    {
+        if (_pendingProfileToggleTimer is not null)
+        {
+            _pendingProfileToggleTimer.Stop();
+        }
+
+        _pendingToggleProfileId = null;
+    }
+
+    private void SchedulePendingProfileToggle(string profileId)
+    {
+        if (_pendingProfileToggleTimer is null)
+        {
+            _pendingProfileToggleTimer = new DispatcherTimer
+            {
+                Interval = CollapsedSelectedProfileToggleDelay
+            };
+            _pendingProfileToggleTimer.Tick += OnPendingProfileToggleTick;
+        }
+
+        _pendingToggleProfileId = profileId;
+        _pendingProfileToggleTimer.Stop();
+        _pendingProfileToggleTimer.Start();
+    }
+
+    private void OnPendingProfileToggleTick(object? sender, EventArgs e)
+    {
+        _pendingProfileToggleTimer?.Stop();
+
+        var pendingProfileId = _pendingToggleProfileId;
+        _pendingToggleProfileId = null;
+
+        if (pendingProfileId is null
+            || !_viewModel.IsFileLibraryPaneCollapsed
+            || !string.Equals(_viewModel.SelectedProfileId, pendingProfileId, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _viewModel.ToggleProfileSelection(pendingProfileId);
     }
 
     private void OnProfileRenameKeyDown(object? sender, KeyEventArgs e)

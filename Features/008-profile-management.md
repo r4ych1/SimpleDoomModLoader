@@ -85,7 +85,13 @@ Feature 010 later adds manual drag reordering for saved profile rows. Feature 00
   - sets `SelectedProfileId` to `null`
   - clears current Source Port / IWAD / Mod selections
   - leaves no launchable selected profile
-- Double-clicking a profile row has no special behavior beyond the existing row-selection interaction model.
+- While the file library pane is collapsed, double-clicking a profile row is a profile-open shortcut:
+  - the clicked profile ends selected
+  - current Source Port / IWAD / Mod selections hydrate from that profile
+  - the file library pane expands immediately using Feature 009 behavior
+  - the second click does not toggle the row back off
+- When the file library pane is expanded, double-clicking a profile row has no special behavior beyond the existing row-selection interaction model.
+- Profile-row double-click does not launch the profile, does not start rename, and does not change Feature 010 drag-reorder rules.
 
 ### Profile Launch
 - Each profile row exposes a `Launch` action immediately to the left of `Delete`.
@@ -228,6 +234,14 @@ And when the selected row is selected again
 Then `SelectedProfileId` becomes `null`.
 And current Source Port / IWAD / Mod selections are cleared.
 And no profile remains selected for launch.
+
+### Double-click opens collapsed file library for a profile
+Given the file library pane is collapsed and a saved profile row exists
+When that profile row is double-clicked
+Then that profile ends selected.
+And current Source Port / IWAD / Mod selections hydrate from that profile.
+And the file library pane expands using Feature 009 behavior.
+And the double-click does not launch the profile.
 
 ### Launch profile from row action
 Given a valid saved profile row exists and a different profile or no profile is currently selected

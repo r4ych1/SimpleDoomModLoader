@@ -48,6 +48,7 @@ This repository follows feature-scoped delivery. Behavior is only guaranteed whe
 - Feature 009: Collapsible file library pane.
   - Wraps the shared file library in its own right-side section with a pane-level collapse control that lives in the left profile-management header.
   - Collapsing the file library removes the right pane from view and collapses the pane gap while the left profile pane expands to fill the remaining workspace width.
+  - While collapsed, the file library can be restored either from the header expand control, from `New Profile`, or by double-clicking a profile row to open that profile.
   - File-library pane collapse state persists across restart without changing profile, launch, or inner library-section behavior.
   - Authoritative spec: `Features/009-file-library-pane-collapse.md`.
 - Feature 010: Profile drag reordering.
