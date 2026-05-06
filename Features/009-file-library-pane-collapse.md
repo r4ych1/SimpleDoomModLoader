@@ -24,7 +24,10 @@ Wrap the shared file library in its own right-side workspace section and allow t
 ### Workspace Layout
 - The right-side shared library is rendered inside its own bordered `File Library` section similar in structure to the left profile-management section.
 - The file-library section header contains the `File Library` section title.
-- The file-library collapse and expand action is invoked from the left profile-management header, using the `Expand` / `Collapse` control to the right of `New Profile`.
+- The file-library collapse and expand action is invoked from the left profile-management header, using the file-library toggle control to the right of the profile-creation action.
+- Feature 011 later becomes authoritative for the visible icon presentation of that toggle while preserving the same collapse and expand semantics.
+- While the file library pane is collapsed, that toggle exposes `Expand File Library` through tooltip and automation name text.
+- While the file library pane is expanded, that toggle exposes `Collapse File Library` through tooltip and automation name text.
 - The selected-profile header area remains inside the file-library pane body and keeps its existing behavior except where this feature explicitly updates pane-collapse interaction.
 - When the file library is expanded:
   - the workspace uses the existing Feature 008 two-pane arrangement
@@ -46,7 +49,7 @@ Wrap the shared file library in its own right-side workspace section and allow t
 - File-library pane state controls inline profile-row command preview visibility:
   - when the file library pane is collapsed, inline profile-row command preview may be visible subject to the shared Feature 008 window-width rule
   - when the file library pane is expanded, inline profile-row command preview is hidden for all profile rows
-- Activating `New Profile` while the file library pane is collapsed is one exception:
+- Activating the profile-creation action while the file library pane is collapsed is one exception:
   - the new profile is still created and selected using existing Feature 008 rules
   - the file library pane expands immediately so the selected-profile header becomes visible
   - the expanded pane state persists immediately
@@ -83,10 +86,16 @@ Then the file library returns to its default expanded size.
 And the spacer gap between the panes returns.
 And the selected-profile header area and shared library controls become visible again.
 And inline profile-row command preview is hidden for all profile rows.
+And the toggle exposes `Collapse File Library` through tooltip and automation name text.
+
+### Collapsed toggle text is file-library specific
+Given the file library is expanded
+When the file-library collapse control is activated
+Then the toggle exposes `Expand File Library` through tooltip and automation name text while collapsed.
 
 ### New profile expands collapsed pane
 Given the file library is collapsed
-When `New Profile` is activated from the left profile-management header
+When the profile-creation action is activated from the left profile-management header
 Then the new profile is created and selected using Feature 008 rules.
 And the file library returns to its default expanded size.
 And the selected-profile header area becomes visible again.

@@ -3,9 +3,11 @@
 ## Goal
 Align row-level and section-level actions into a shared right-hand action-column pattern, move collapse controls inline with section labels, and provide distinct hover/selected/selected+hover row visuals in light and dark themes.
 
+Feature 011 later becomes authoritative for icon presentation of the row `Delete` actions and section collapse toggles while preserving the layout and behavior defined here.
+
 ## In Scope
-- Row-level `Remove` button alignment for IWAD and Mod rows.
-- Row-level `Remove` button alignment for Source Port, IWAD, and Mod rows.
+- Row-level `Delete` button alignment for IWAD and Mod rows.
+- Row-level `Delete` button alignment for Source Port, IWAD, and Mod rows.
 - Section-level collapse / expand toggle for Source Port list.
 - Section-level collapse / expand toggles for IWAD and Mod lists.
 - Persisted collapse state for Source Port, IWAD, and Mod sections.
@@ -22,7 +24,7 @@ Align row-level and section-level actions into a shared right-hand action-column
 
 ## Definitions
 - Shared right-hand action column:
-  - The single right-side action column used by row-level `Remove` buttons within a section.
+  - The single right-side action column used by row-level `Delete` buttons within a section.
   - The section header action group for that section must align to this same column, with `Collapse` / `Expand` inline to the right of the section label.
 - Selected + hover state:
   - The visual state when a row is selected and currently pointer-hovered.
@@ -30,16 +32,17 @@ Align row-level and section-level actions into a shared right-hand action-column
   - A section state where only the section header row remains visible and the descriptor text, drop zone, and input rows are hidden.
 
 ## Rules
-### Row-Level Remove Alignment
-- Each IWAD/Mod row `Remove` button is right-aligned to the section's shared right-hand action column.
-- Row `Remove` buttons remain vertically centered within each row.
-- Existing remove behavior is unchanged.
+### Row-Level Delete Alignment
+- Each Source Port / IWAD / Mod row `Delete` action is right-aligned to the section's shared right-hand action column.
+- Row `Delete` actions remain vertically centered within each row.
+- Existing removal behavior is unchanged.
 
 ### Section Collapse / Expand
 - Source Port, IWAD, and Mod sections each provide a section-header toggle button.
-- The toggle button label is `Collapse` when that section's rows are currently visible.
-- The toggle button label is `Expand` when that section's rows are currently hidden.
+- The toggle button exposes `Collapse` semantics when that section's rows are currently visible.
+- The toggle button exposes `Expand` semantics when that section's rows are currently hidden.
 - The toggle button appears inline with the section label on the same header row.
+- Feature 011 later defines the visible icon used by that toggle.
 - Activating the toggle hides or shows that section's body:
   - descriptive text
   - drop zone
@@ -58,15 +61,15 @@ Align row-level and section-level actions into a shared right-hand action-column
 
 ## Acceptance Criteria
 ### Shared action-column alignment
-Given IWAD and Mod rows with row-level `Remove` buttons
+Given Source Port, IWAD, and Mod rows with row-level `Delete` actions
 When the section is rendered
-Then each `Remove` button is aligned to its section's shared right-hand action column.
-And each `Remove` button remains vertically centered in its row.
+Then each `Delete` action is aligned to its section's shared right-hand action column.
+And each `Delete` action remains vertically centered in its row.
 
 ### Section collapse toggle behavior and placement
 Given any Source Port, IWAD, or Mod section is rendered
 When the section header is displayed
-Then that section shows a `Collapse` or `Expand` button inline with the section label.
+Then that section shows the collapse / expand toggle inline with the section label.
 And activating the toggle hides or shows that section's body.
 And a collapsed section renders only the section header row.
 

@@ -233,7 +233,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     public bool IsFileLibraryPaneExpanded => !IsFileLibraryPaneCollapsed;
 
-    public string FileLibraryPaneToggleText => IsFileLibraryPaneCollapsed ? "Expand" : "Collapse";
+    public string FileLibraryPaneToggleText => IsFileLibraryPaneCollapsed ? "Expand File Library" : "Collapse File Library";
 
     public GridLength ProfilePaneColumnWidth => IsFileLibraryPaneCollapsed
         ? new GridLength(1, GridUnitType.Star)
