@@ -27,6 +27,19 @@ Expand the drop interaction hit area to each section border and add deterministi
 ### Full-Border Drop Interaction
 - Drag-over and drop handlers for each section apply to the full area inside that section border, including empty interior space.
 - Existing file validation, dedupe, and ordering rules from Feature 001 remain unchanged.
+- Each drop zone renders a visible default target treatment before any drag begins:
+  - rounded card/container styling
+  - lightly tinted background
+  - visible outlined border
+  - clearly readable instructional text
+- Each drop zone renders helper copy that includes:
+  - `Drag and drop here`
+- Helper text remains visibly instructional rather than low-contrast decorative text.
+- When a valid file payload is dragged over a drop zone, that zone enters a visible drag-over state:
+  - border contrast and/or thickness increases
+  - background becomes brighter or more tinted
+  - the active drop target is visually clearer than its default state
+- Each drop zone provides a section-specific accessible label describing the drag-and-drop affordance.
 
 ### IWAD Selection
 - Row click toggles selection for that row.
@@ -49,6 +62,23 @@ Expand the drop interaction hit area to each section border and add deterministi
 Given a pointer over empty interior area of a section border
 When files are dropped
 Then that section processes the drop with the same validation and ordering behavior defined in Feature 001.
+
+### Visible idle affordance
+Given any Source Port, IWAD, or Mod drop zone is rendered
+When no drag is active
+Then the zone still appears as an intentional upload target with visible instructional styling and helper text.
+
+### Drag-over highlight state
+Given a valid file payload is dragged over a drop zone
+When the zone enters drag-over
+Then that zone shows a stronger highlighted state than its default idle styling.
+And when the drag leaves or the drop completes
+Then the zone returns to its default idle styling.
+
+### Drag-only target behavior
+Given a drop zone is rendered
+When the user clicks inside the zone without dragging files
+Then the zone does not open a file picker or perform any other add-files action.
 
 ### IWAD single-select toggle
 Given at least two IWAD rows

@@ -10,17 +10,30 @@ namespace ModLoader.App;
 
 public sealed class MainWindowViewModel : INotifyPropertyChanged
 {
+    private const double ProfileCommandPreviewHideWidthThreshold = 768d;
     private readonly ISourcePortLauncher _launcher;
     private readonly ILaunchInputsPersistence _persistence;
     private readonly LaunchInputsStore _store;
     private readonly List<ProfileConfig> _profiles = [];
     private bool _isFileLibraryPaneCollapsed;
+    private bool _isIwadDropZoneDragActive;
+    private bool _isProfileDragGhostVisible;
+    private bool _isProfileDropIndicatorVisible;
     private bool _isIwadSectionCollapsed;
     private bool _isModSectionCollapsed;
+    private bool _isModDropZoneDragActive;
     private bool _isSelectedProfileRenameVisible;
+    private bool _isSourcePortDropZoneDragActive;
     private bool _isSourcePortSectionCollapsed;
     private string? _messageText;
     private string? _pendingDeleteProfileId;
+    private string _profileDragGhostText = string.Empty;
+    private double _profileDragGhostLeft;
+    private double _profileDragGhostTop;
+    private double _profileDropIndicatorLeft;
+    private double _profileDropIndicatorTop;
+    private double _profileDropIndicatorWidth;
+    private double _windowWidth = double.PositiveInfinity;
     private string? _selectedIwadPath;
     private string? _selectedProfileId;
     private string _selectedProfileRenameText = string.Empty;
@@ -169,8 +182,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(HasSelectedProfile));
             OnPropertyChanged(nameof(CanRenameSelectedProfile));
             OnPropertyChanged(nameof(CanLaunch));
-            OnPropertyChanged(nameof(SelectedProfileName));
-            OnPropertyChanged(nameof(SelectedProfileStatusText));
+            OnSelectedProfilePresentationChanged();
 
             if (!IsSelectedProfileRenameVisible)
             {
@@ -225,7 +237,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     public GridLength ProfilePaneColumnWidth => IsFileLibraryPaneCollapsed
         ? new GridLength(1, GridUnitType.Star)
-        : new GridLength(320);
+        : new GridLength(380);
 
     public GridLength PaneSpacerColumnWidth => IsFileLibraryPaneCollapsed
         ? new GridLength(0)
@@ -300,6 +312,17 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     public string SelectedProfileName => GetSelectedProfile()?.Name ?? "No Profile Selected";
 
+    public string SelectedProfileCommandPreviewText
+    {
+        get
+        {
+            var selectedProfile = GetSelectedProfile();
+            return selectedProfile is null ? string.Empty : BuildCommandPreviewArguments(selectedProfile);
+        }
+    }
+
+    public bool HasSelectedProfileCommandPreview => !string.IsNullOrWhiteSpace(SelectedProfileCommandPreviewText);
+
     public string SelectedProfileRenameText
     {
         get => _selectedProfileRenameText;
@@ -350,10 +373,204 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         }
     }
 
+    public string SelectedProfileStatusForeground
+    {
+        get
+        {
+            var selectedProfile = GetSelectedProfile();
+            if (selectedProfile is null)
+            {
+                return "#94a3b8";
+            }
+
+            return GetProfileValidity(selectedProfile).IsValid ? "#94a3b8" : "#f59e0b";
+        }
+    }
+
+    public bool IsProfileDragGhostVisible
+    {
+        get => _isProfileDragGhostVisible;
+        private set
+        {
+            if (_isProfileDragGhostVisible == value)
+            {
+                return;
+            }
+
+            _isProfileDragGhostVisible = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public string ProfileDragGhostText
+    {
+        get => _profileDragGhostText;
+        private set
+        {
+            if (_profileDragGhostText == value)
+            {
+                return;
+            }
+
+            _profileDragGhostText = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public double ProfileDragGhostLeft
+    {
+        get => _profileDragGhostLeft;
+        private set
+        {
+            if (_profileDragGhostLeft == value)
+            {
+                return;
+            }
+
+            _profileDragGhostLeft = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public double ProfileDragGhostTop
+    {
+        get => _profileDragGhostTop;
+        private set
+        {
+            if (_profileDragGhostTop == value)
+            {
+                return;
+            }
+
+            _profileDragGhostTop = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool IsProfileDropIndicatorVisible
+    {
+        get => _isProfileDropIndicatorVisible;
+        private set
+        {
+            if (_isProfileDropIndicatorVisible == value)
+            {
+                return;
+            }
+
+            _isProfileDropIndicatorVisible = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public double ProfileDropIndicatorLeft
+    {
+        get => _profileDropIndicatorLeft;
+        private set
+        {
+            if (_profileDropIndicatorLeft == value)
+            {
+                return;
+            }
+
+            _profileDropIndicatorLeft = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public double ProfileDropIndicatorTop
+    {
+        get => _profileDropIndicatorTop;
+        private set
+        {
+            if (_profileDropIndicatorTop == value)
+            {
+                return;
+            }
+
+            _profileDropIndicatorTop = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public double ProfileDropIndicatorWidth
+    {
+        get => _profileDropIndicatorWidth;
+        private set
+        {
+            if (_profileDropIndicatorWidth == value)
+            {
+                return;
+            }
+
+            _profileDropIndicatorWidth = value;
+            OnPropertyChanged();
+        }
+    }
+
     public string CommandPreviewArguments => BuildCommandPreviewArguments();
+
+    public bool AreProfileCommandPreviewsVisible => IsFileLibraryPaneCollapsed && _windowWidth > ProfileCommandPreviewHideWidthThreshold;
+
+    public bool IsSourcePortDropZoneDragActive
+    {
+        get => _isSourcePortDropZoneDragActive;
+        private set
+        {
+            if (_isSourcePortDropZoneDragActive == value)
+            {
+                return;
+            }
+
+            _isSourcePortDropZoneDragActive = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool IsIwadDropZoneDragActive
+    {
+        get => _isIwadDropZoneDragActive;
+        private set
+        {
+            if (_isIwadDropZoneDragActive == value)
+            {
+                return;
+            }
+
+            _isIwadDropZoneDragActive = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool IsModDropZoneDragActive
+    {
+        get => _isModDropZoneDragActive;
+        private set
+        {
+            if (_isModDropZoneDragActive == value)
+            {
+                return;
+            }
+
+            _isModDropZoneDragActive = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public void SetWindowWidth(double width)
+    {
+        var normalizedWidth = width > 0d ? width : 0d;
+        if (Math.Abs(_windowWidth - normalizedWidth) < 0.01d)
+        {
+            return;
+        }
+
+        _windowWidth = normalizedWidth;
+        RefreshProfileRows();
+    }
 
     public void ProcessSourcePortDrop(IEnumerable<string> droppedPaths)
     {
+        ResetDropZoneDragStates();
         _store.ProcessSourcePortDrop(droppedPaths);
         ClearPendingDeleteConfirmation();
         RefreshFromStore();
@@ -362,6 +579,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     public void ProcessIwadDrop(IEnumerable<string> droppedPaths)
     {
+        ResetDropZoneDragStates();
         _store.ProcessIwadDrop(droppedPaths);
         ClearPendingDeleteConfirmation();
         RefreshFromStore();
@@ -370,10 +588,29 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     public void ProcessModDrop(IEnumerable<string> droppedPaths)
     {
+        ResetDropZoneDragStates();
         _store.ProcessModDrop(droppedPaths);
         ClearPendingDeleteConfirmation();
         RefreshFromStore();
         PersistState();
+    }
+
+    internal void SetDropZoneDragActive(DropZoneKind kind, bool isActive)
+    {
+        switch (kind)
+        {
+            case DropZoneKind.SourcePort:
+                IsSourcePortDropZoneDragActive = isActive;
+                break;
+            case DropZoneKind.Iwad:
+                IsIwadDropZoneDragActive = isActive;
+                break;
+            case DropZoneKind.Mod:
+                IsModDropZoneDragActive = isActive;
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(kind), kind, null);
+        }
     }
 
     public void ToggleSourcePortSectionCollapsed()
@@ -385,6 +622,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     public void ToggleFileLibraryPaneCollapsed()
     {
         IsFileLibraryPaneCollapsed = !IsFileLibraryPaneCollapsed;
+        RefreshProfileRows();
         PersistState();
     }
 
@@ -442,7 +680,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         RefreshRows();
         RefreshProfileRows();
         OnPropertyChanged(nameof(CanLaunch));
-        OnPropertyChanged(nameof(SelectedProfileStatusText));
+        OnSelectedProfilePresentationChanged();
         PersistState();
     }
 
@@ -464,7 +702,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         RefreshRows();
         RefreshProfileRows();
         OnPropertyChanged(nameof(CanLaunch));
-        OnPropertyChanged(nameof(SelectedProfileStatusText));
+        OnSelectedProfilePresentationChanged();
         PersistState();
     }
 
@@ -488,7 +726,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         RefreshProfileRows();
         OnPropertyChanged(nameof(CommandPreviewArguments));
         OnPropertyChanged(nameof(CanLaunch));
-        OnPropertyChanged(nameof(SelectedProfileStatusText));
+        OnSelectedProfilePresentationChanged();
         PersistState();
     }
 
@@ -510,8 +748,33 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         RefreshRows();
         RefreshProfileRows();
         OnPropertyChanged(nameof(CanLaunch));
-        OnPropertyChanged(nameof(SelectedProfileStatusText));
+        OnSelectedProfilePresentationChanged();
         PersistState();
+    }
+
+    public bool SelectProfileAndExpandFileLibraryPane(string profileId)
+    {
+        return SelectProfileAndSetFileLibraryPaneCollapsed(profileId, false);
+    }
+
+    public bool SelectProfileAndSetFileLibraryPaneCollapsed(string profileId, bool isCollapsed)
+    {
+        CancelRename();
+
+        if (!TrySelectProfile(profileId))
+        {
+            return false;
+        }
+
+        HydrateSelectionsFromSelectedProfile();
+        IsFileLibraryPaneCollapsed = isCollapsed;
+        ClearPendingDeleteConfirmation();
+        RefreshRows();
+        RefreshProfileRows();
+        OnPropertyChanged(nameof(CanLaunch));
+        OnSelectedProfilePresentationChanged();
+        PersistState();
+        return true;
     }
 
     public void CreateNewProfile()
@@ -534,9 +797,52 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         RefreshProfileRows();
         OnPropertyChanged(nameof(HasProfiles));
         OnPropertyChanged(nameof(CanLaunch));
-        OnPropertyChanged(nameof(SelectedProfileName));
-        OnPropertyChanged(nameof(SelectedProfileStatusText));
+        OnSelectedProfilePresentationChanged();
         PersistState();
+    }
+
+    public bool BeginProfileDrag(string profileId, double ghostLeft, double ghostTop)
+    {
+        CancelRename();
+
+        var row = FindProfileRow(profileId);
+        if (row is null)
+        {
+            return false;
+        }
+
+        ProfileDragGhostText = row.Name;
+        ProfileDragGhostLeft = ghostLeft;
+        ProfileDragGhostTop = ghostTop;
+        IsProfileDragGhostVisible = true;
+        HideProfileDropIndicator();
+        return true;
+    }
+
+    public void UpdateProfileDragGhostPosition(double ghostLeft, double ghostTop)
+    {
+        ProfileDragGhostLeft = ghostLeft;
+        ProfileDragGhostTop = ghostTop;
+    }
+
+    public void ShowProfileDropIndicator(double left, double top, double width)
+    {
+        ProfileDropIndicatorLeft = left;
+        ProfileDropIndicatorTop = top;
+        ProfileDropIndicatorWidth = width;
+        IsProfileDropIndicatorVisible = true;
+    }
+
+    public void HideProfileDropIndicator()
+    {
+        IsProfileDropIndicatorVisible = false;
+    }
+
+    public void HideProfileDragFeedback()
+    {
+        IsProfileDragGhostVisible = false;
+        ProfileDragGhostText = string.Empty;
+        HideProfileDropIndicator();
     }
 
     public void BeginRenameSelectedProfile()
@@ -572,9 +878,10 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
         IsSelectedProfileRenameVisible = true;
         SelectedProfileRenameText = row.Name;
+        RefreshProfileRows();
         ClearInformationalMessage();
         OnPropertyChanged(nameof(CanLaunch));
-        OnPropertyChanged(nameof(SelectedProfileStatusText));
+        OnSelectedProfilePresentationChanged();
         PersistState();
     }
 
@@ -634,8 +941,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         SelectedProfileRenameText = proposedName;
         ClearInformationalMessage();
         RefreshProfileRows();
-        OnPropertyChanged(nameof(SelectedProfileName));
-        OnPropertyChanged(nameof(SelectedProfileStatusText));
+        OnSelectedProfilePresentationChanged();
         PersistState();
     }
 
@@ -649,6 +955,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         IsSelectedProfileRenameVisible = false;
         SelectedProfileRenameText = GetSelectedProfile()?.Name ?? string.Empty;
         ClearInformationalMessage();
+        RefreshProfileRows();
         return true;
     }
 
@@ -693,8 +1000,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         RefreshProfileRows();
         OnPropertyChanged(nameof(HasProfiles));
         OnPropertyChanged(nameof(CanLaunch));
-        OnPropertyChanged(nameof(SelectedProfileName));
-        OnPropertyChanged(nameof(SelectedProfileStatusText));
+        OnSelectedProfilePresentationChanged();
         PersistState();
     }
 
@@ -717,9 +1023,42 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         RefreshRows();
         RefreshProfileRows();
         OnPropertyChanged(nameof(CanLaunch));
-        OnPropertyChanged(nameof(SelectedProfileStatusText));
+        OnSelectedProfilePresentationChanged();
         PersistState();
         LaunchSourcePort();
+    }
+
+    public bool ReorderProfile(string profileId, int targetIndex)
+    {
+        CancelRename();
+
+        if (string.IsNullOrWhiteSpace(profileId))
+        {
+            return false;
+        }
+
+        var currentIndex = FindProfileIndex(profileId);
+        if (currentIndex < 0 || targetIndex < 0 || targetIndex > _profiles.Count)
+        {
+            return false;
+        }
+
+        var adjustedIndex = targetIndex > currentIndex ? targetIndex - 1 : targetIndex;
+        if (adjustedIndex == currentIndex)
+        {
+            return false;
+        }
+
+        var movedProfile = _profiles[currentIndex];
+        _profiles.RemoveAt(currentIndex);
+        _profiles.Insert(adjustedIndex, movedProfile);
+
+        ClearPendingDeleteConfirmation();
+        RefreshProfileRows();
+        OnPropertyChanged(nameof(CanLaunch));
+        OnSelectedProfilePresentationChanged();
+        PersistState();
+        return true;
     }
 
     public void LaunchSourcePort()
@@ -770,8 +1109,16 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(CanCreateProfile));
         OnPropertyChanged(nameof(CanLaunch));
         OnPropertyChanged(nameof(CommandPreviewArguments));
+        OnSelectedProfilePresentationChanged();
+    }
+
+    private void OnSelectedProfilePresentationChanged()
+    {
         OnPropertyChanged(nameof(SelectedProfileName));
         OnPropertyChanged(nameof(SelectedProfileStatusText));
+        OnPropertyChanged(nameof(SelectedProfileStatusForeground));
+        OnPropertyChanged(nameof(SelectedProfileCommandPreviewText));
+        OnPropertyChanged(nameof(HasSelectedProfileCommandPreview));
     }
 
     private void RefreshRows()
@@ -808,10 +1155,16 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
             row.Name = profile.Name;
             row.IsSelected = string.Equals(profile.Id, SelectedProfileId, StringComparison.Ordinal);
+            row.IsRenameVisible = IsSelectedProfileRenameVisible && row.IsSelected;
             row.IsInvalid = !validity.IsValid;
             row.CanLaunchProfile = validity.IsValid;
             row.ValidMessage = validity.IsValid ? "VALID" : string.Empty;
             row.InvalidReason = validity.Reason;
+            row.IsInvalidReasonVisible = !validity.IsValid
+                && IsFileLibraryPaneCollapsed
+                && !string.IsNullOrWhiteSpace(validity.Reason);
+            row.CommandPreviewText = BuildCommandPreviewArguments(profile);
+            row.IsCommandPreviewVisible = AreProfileCommandPreviewsVisible && !string.IsNullOrWhiteSpace(row.CommandPreviewText);
 
             ProfileRows.Add(row);
         }
@@ -1070,20 +1423,6 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             }
         }
 
-        foreach (var modPath in profile.SelectedModPaths)
-        {
-            if (!File.Exists(modPath))
-            {
-                reasons.Add($"Mod file is missing: {Path.GetFileName(modPath)}");
-                continue;
-            }
-
-            if (!ContainsPath(Mods, modPath))
-            {
-                reasons.Add($"Mod is no longer in the library: {Path.GetFileName(modPath)}");
-            }
-        }
-
         return reasons.Count == 0
             ? new ProfileValidity(true, "Selected profile is ready to launch.")
             : new ProfileValidity(false, string.Join(" ", reasons));
@@ -1188,23 +1527,33 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     private string BuildCommandPreviewArguments()
     {
+        return BuildCommandPreviewArguments(SelectedSourcePortPath, SelectedIwadPath, SelectedModPaths);
+    }
+
+    private static string BuildCommandPreviewArguments(ProfileConfig profile)
+    {
+        return BuildCommandPreviewArguments(profile.SourcePortPath, profile.IwadPath, profile.SelectedModPaths);
+    }
+
+    private static string BuildCommandPreviewArguments(string? sourcePortPath, string? iwadPath, IReadOnlyList<string> modPaths)
+    {
         var arguments = new List<string>();
 
-        if (!string.IsNullOrWhiteSpace(SelectedSourcePortPath))
+        if (!string.IsNullOrWhiteSpace(sourcePortPath))
         {
-            arguments.Add(FormatPreviewFileToken(SelectedSourcePortPath));
+            arguments.Add(FormatPreviewFileToken(sourcePortPath));
         }
 
-        if (!string.IsNullOrWhiteSpace(SelectedIwadPath))
+        if (!string.IsNullOrWhiteSpace(iwadPath))
         {
             arguments.Add("-iwad");
-            arguments.Add(FormatPreviewFileToken(SelectedIwadPath));
+            arguments.Add(FormatPreviewFileToken(iwadPath));
         }
 
-        if (SelectedModPaths.Count > 0)
+        if (modPaths.Count > 0)
         {
             arguments.Add("-file");
-            foreach (var selectedModPath in SelectedModPaths)
+            foreach (var selectedModPath in modPaths)
             {
                 arguments.Add(FormatPreviewFileToken(selectedModPath));
             }
@@ -1241,6 +1590,13 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         return displayToken.Contains(' ', StringComparison.Ordinal)
             ? $"\"{displayToken}\""
             : displayToken;
+    }
+
+    private void ResetDropZoneDragStates()
+    {
+        IsSourcePortDropZoneDragActive = false;
+        IsIwadDropZoneDragActive = false;
+        IsModDropZoneDragActive = false;
     }
 
     private void PersistState()
@@ -1326,7 +1682,11 @@ public sealed class SelectablePathRow
 public sealed class ProfileListItem : INotifyPropertyChanged
 {
     private bool _canLaunchProfile;
+    private string _commandPreviewText;
     private bool _isInvalid;
+    private bool _isInvalidReasonVisible;
+    private bool _isCommandPreviewVisible;
+    private bool _isRenameVisible;
     private bool _isSelected;
     private string _invalidReason;
     private string _name;
@@ -1335,6 +1695,7 @@ public sealed class ProfileListItem : INotifyPropertyChanged
     public ProfileListItem(string id, string name)
     {
         Id = id;
+        _commandPreviewText = string.Empty;
         _name = name;
         _invalidReason = string.Empty;
         _validMessage = string.Empty;
@@ -1374,6 +1735,24 @@ public sealed class ProfileListItem : INotifyPropertyChanged
         }
     }
 
+    public bool IsRenameVisible
+    {
+        get => _isRenameVisible;
+        set
+        {
+            if (_isRenameVisible == value)
+            {
+                return;
+            }
+
+            _isRenameVisible = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(IsDisplayVisible));
+        }
+    }
+
+    public bool IsDisplayVisible => !IsRenameVisible;
+
     public bool CanLaunchProfile
     {
         get => _canLaunchProfile;
@@ -1385,6 +1764,36 @@ public sealed class ProfileListItem : INotifyPropertyChanged
             }
 
             _canLaunchProfile = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public string CommandPreviewText
+    {
+        get => _commandPreviewText;
+        set
+        {
+            if (_commandPreviewText == value)
+            {
+                return;
+            }
+
+            _commandPreviewText = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool IsCommandPreviewVisible
+    {
+        get => _isCommandPreviewVisible;
+        set
+        {
+            if (_isCommandPreviewVisible == value)
+            {
+                return;
+            }
+
+            _isCommandPreviewVisible = value;
             OnPropertyChanged();
         }
     }
@@ -1423,6 +1832,21 @@ public sealed class ProfileListItem : INotifyPropertyChanged
             _invalidReason = value;
             OnPropertyChanged();
             OnPropertyChanged(nameof(HasInvalidReason));
+        }
+    }
+
+    public bool IsInvalidReasonVisible
+    {
+        get => _isInvalidReasonVisible;
+        set
+        {
+            if (_isInvalidReasonVisible == value)
+            {
+                return;
+            }
+
+            _isInvalidReasonVisible = value;
+            OnPropertyChanged();
         }
     }
 

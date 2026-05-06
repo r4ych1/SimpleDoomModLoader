@@ -40,14 +40,26 @@ Wrap the shared file library in its own right-side workspace section and allow t
 - File-library pane collapse does not change:
   - selected profile
   - current library selections
-  - command preview behavior
   - left-pane row launch availability
   - profile auto-save behavior
   - Source Port / IWAD / Mod inner section collapse state
-- Activating `New Profile` while the file library pane is collapsed is the one exception:
+- File-library pane state controls inline profile-row command preview visibility:
+  - when the file library pane is collapsed, inline profile-row command preview may be visible subject to the shared Feature 008 window-width rule
+  - when the file library pane is expanded, inline profile-row command preview is hidden for all profile rows
+- Activating `New Profile` while the file library pane is collapsed is one exception:
   - the new profile is still created and selected using existing Feature 008 rules
   - the file library pane expands immediately so the selected-profile header becomes visible
   - the expanded pane state persists immediately
+- Double-clicking a profile row while the file library pane is collapsed is the other exception:
+  - the clicked profile ends selected using existing Feature 008 rules
+  - current Source Port / IWAD / Mod selections hydrate from that profile
+  - the file library pane expands immediately so the selected-profile header becomes visible
+  - the expanded pane state persists immediately
+- Double-clicking a profile row while the file library pane is expanded is the inverse exception:
+  - the clicked profile ends selected using existing Feature 008 rules
+  - current Source Port / IWAD / Mod selections hydrate from that profile
+  - the file library pane collapses immediately
+  - the collapsed pane state persists immediately
 - Expanding the file library restores the full file-library pane body without resetting its inner section states.
 
 ### Persistence
@@ -70,6 +82,7 @@ When the expand control is activated
 Then the file library returns to its default expanded size.
 And the spacer gap between the panes returns.
 And the selected-profile header area and shared library controls become visible again.
+And inline profile-row command preview is hidden for all profile rows.
 
 ### New profile expands collapsed pane
 Given the file library is collapsed
@@ -77,6 +90,22 @@ When `New Profile` is activated from the left profile-management header
 Then the new profile is created and selected using Feature 008 rules.
 And the file library returns to its default expanded size.
 And the selected-profile header area becomes visible again.
+
+### Double-clicked profile expands collapsed pane
+Given the file library is collapsed
+And a saved profile row exists
+When that profile row is double-clicked
+Then that profile is selected using Feature 008 rules.
+And the file library returns to its default expanded size.
+And the selected-profile header area becomes visible again.
+
+### Double-clicked profile collapses expanded pane
+Given the file library is expanded
+And a saved profile row exists
+When that profile row is double-clicked
+Then that profile is selected using Feature 008 rules.
+And the file library pane is removed from view.
+And the spacer gap between the panes is removed from view.
 
 ### Collapse state persists
 Given the user collapses or expands the file library

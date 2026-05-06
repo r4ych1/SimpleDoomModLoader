@@ -17,6 +17,7 @@ This repository follows feature-scoped delivery. Behavior is only guaranteed whe
 - Feature 001: Drag-and-drop source-port, IWAD, and mod input lists.
   - Authoritative spec: `Features/001-drop-zones.md`.
 - Feature 002: Full-border drop zones and selectable IWAD/Mod rows.
+  - Current shared-library drop zones use always-visible instructional card styling and drag-over highlight states while preserving Feature 001 validation and ordering rules.
   - Authoritative spec: `Features/002-border-drop-and-row-selection.md`.
 - Feature 003: Config persistence and startup recovery.
   - Includes persisted selection state for IWAD and Mod rows.
@@ -40,15 +41,24 @@ This repository follows feature-scoped delivery. Behavior is only guaranteed whe
   - Authoritative spec: `Features/007-source-port-list-and-mod-zip.md`.
 - Feature 008: Selection-based profile workspace.
   - Adds saved profiles as the primary launch model in a two-pane workspace: a pinned profile list on the left and independently scrolling shared file library on the right, with `New Profile` in the left profile-management header.
-  - Profiles persist source port, IWAD, and ordered mod references to the shared library and are the only launchable unit.
-  - Profile rows expose explicit `Launch` and `Delete` actions plus a shared row-status badge treatment for valid and invalid states, while selected-profile rename lives in the right-pane selected-profile header and outside-click rename exit cancels rather than saves.
+  - Profiles persist source port, IWAD, and ordered mod references to the shared library, are the only launchable unit, and require one source port plus one IWAD only for profile validity.
+  - The expanded shared file-library pane renders Source Port, IWAD, and Mod drop zones as visibly interactive drag-and-drop targets with visible instructional text, section-specific accessible labels, and drag-over highlight.
+  - Each saved profile row renders its own wrapped filename-only command preview inside the profile cell, and that preview appears only while the file library is collapsed and the window width remains above the Feature 008 minimum threshold.
+  - While a profile is selected in the expanded file library, the selected-profile header keeps the profile name, shows status text with the shared amber invalid color when invalid, and renders its own wrapped filename-only command preview from the saved profile inputs.
+  - While the file library is expanded, the left `Profiles` pane uses a fixed `380 px` width, profile names wrap up to two lines, and inline invalid-reason text stays hidden while shared status badges remain visible.
+  - Profile rows expose explicit `Launch`, `Rename`, and `Delete` actions plus a shared row-status badge treatment for valid and invalid states, while profile rename is handled inline on the selected row and outside-click rename exit cancels rather than saves.
   - Profile edits auto-save immediately through file-library selection changes; row launch actions select and run that specific valid saved profile.
   - Authoritative spec: `Features/008-profile-management.md`.
 - Feature 009: Collapsible file library pane.
   - Wraps the shared file library in its own right-side section with a pane-level collapse control that lives in the left profile-management header.
   - Collapsing the file library removes the right pane from view and collapses the pane gap while the left profile pane expands to fill the remaining workspace width.
+  - Double-clicking a profile row acts as a pane shortcut: it expands the file library while collapsed and collapses it while expanded, while keeping the clicked profile selected.
   - File-library pane collapse state persists across restart without changing profile, launch, or inner library-section behavior.
   - Authoritative spec: `Features/009-file-library-pane-collapse.md`.
+- Feature 010: Profile drag reordering.
+  - Adds manual drag reordering to the left-side profile-management list using a name-only floating ghost row and a single insertion marker.
+  - Persisted profile order becomes user-managed list order while keeping profile selection, launch, rename, delete, and validity rules unchanged.
+  - Authoritative spec: `Features/010-profile-drag-reorder.md`.
 
 ## Scope Boundary For Feature 001
 Feature 001 provides in-memory state management and UI interactions only. It does not include:

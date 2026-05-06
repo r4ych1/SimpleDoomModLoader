@@ -4,6 +4,7 @@
 Introduce saved launch profiles as the primary launch model by converting the current screen into a two-pane workspace: saved profiles on the left and the shared Source Port / IWAD / Mod library on the right.
 
 Feature 009 later adds pane-level collapse for the right-side file library. Feature 008 remains authoritative for the expanded file-library workspace behavior.
+Feature 010 later adds manual drag reordering for saved profile rows. Feature 008 remains authoritative for profile selection, launch, rename, delete, validity, and auto-save behavior outside explicit ordering rules introduced there.
 
 ## In Scope
 - Saved profile list with single-select toggle behavior.
@@ -13,7 +14,7 @@ Feature 009 later adds pane-level collapse for the right-side file library. Feat
 - Profile delete with confirmation.
 - Immediate profile auto-save when editing a selected profile through library selection changes.
 - Persisted `Profiles` and `SelectedProfileId`.
-- Profile validity computation based on required launch inputs plus library membership and file existence.
+- Profile validity computation based on required Source Port and IWAD launch inputs plus their library membership and file existence, while Mods remain non-blocking saved references.
 - Backward-compatible load of existing library lists without auto-migrating a profile from legacy selected fields.
 
 ## Out Of Scope
@@ -40,6 +41,7 @@ Feature 009 later adds pane-level collapse for the right-side file library. Feat
 - The window becomes a two-pane workspace:
   - Left pane: profile management.
   - Right pane: the existing shared Source Port / IWAD / Mod library.
+- While the file library pane is expanded, the left profile pane uses a fixed width of `380 px`.
 - The left profile pane remains pinned while the right file-library pane scrolls independently.
 - The left profile list provides its own internal scrolling when saved profiles exceed available vertical space.
 - The left pane begins with a profile-management header row that contains:
@@ -48,21 +50,42 @@ Feature 009 later adds pane-level collapse for the right-side file library. Feat
   - the file-library `Expand` / `Collapse` action to the right of `New Profile`
 - `New Profile` and the file-library `Expand` / `Collapse` action are right-aligned within the profile-management header row and aligned with the `Profiles` label.
 - The right pane begins with a selected-profile header area that contains:
-  - the selected profile name or selected-profile rename input on the left
-  - the `Rename` action on the right
-- The footer command preview remains visible and reflects current library selections, even when no profile is selected.
+  - the selected profile name on the left
+  - selected-profile status text below the name
+  - selected-profile command preview text below the status text when the selected profile has one or more previewable saved launch tokens
 - The existing top message/warning area is reused for rename validation and delete confirmation.
+- While the selected profile is invalid, the selected-profile status text in the right-pane header uses the same amber invalid text color used by left-pane inline invalid text.
+- While the selected profile is valid or no profile is selected, the selected-profile status text in the right-pane header keeps the muted helper/status text color.
+- While the file library pane is expanded, the Source Port, IWAD, and Mod drop zones inside that pane use the shared visible drop-zone affordance defined by Feature 002.
+- Each expanded file-library drop zone provides a section-specific accessible label that describes the drag-and-drop affordance, for example `Source Port drop zone. Drag and drop files here.`
 
 ### Profile List And Selection
 - Left pane shows:
   - saved profile rows
+  - row-scoped command preview text
   - explicit row-level validity messaging
   - launch access
   - delete access
+- Saved profile row ordering is the current profile-list display order.
+- Feature 010 becomes authoritative for how profile row ordering is changed by drag reordering and persisted afterward.
 - Profile rows use one shared right-side status-badge slot:
-  - invalid rows show an `INVALID` badge in that slot and keep the invalid reason text under the profile name
+  - invalid rows show an `INVALID` badge in that slot and keep invalid-reason text available for the inline row message area when that text is visible
   - valid rows show a `VALID` badge in that same slot
   - valid rows do not render a separate inline valid text line under the profile name
+- Profile names in left-pane rows wrap within the row body and are capped at two rendered lines.
+- Each profile row renders its command preview in the non-interactive text area under the profile name:
+  - preview text uses wrapped display
+  - preview text uses the profile's saved launch inputs rather than current detached selections
+  - preview text uses filename-only tokens in this order: source-port filename, `-iwad`, IWAD filename, `-file`, ordered mod filenames
+  - rows with no previewable tokens omit the preview line instead of showing an empty placeholder
+  - invalid-reason text, when present, remains distinct from the preview text
+- Inline profile-row command preview is responsive:
+  - when the file library pane is collapsed and the overall window width is greater than `768 px`, row preview text is visible
+  - when the file library pane is expanded, row preview text is hidden for all profile rows regardless of width
+  - when the overall window width is less than or equal to `768 px`, row preview text is hidden for all profile rows even while the file library pane is collapsed
+- Inline invalid-reason text is also responsive:
+  - when the file library pane is expanded, inline invalid-reason text is hidden for all profile rows regardless of width
+  - when the file library pane is collapsed, invalid rows show their inline invalid-reason text under the profile name
 - Profile rows are single-select toggle rows:
   - Clicking an unselected row selects it.
   - Clicking a different selected row moves selection to that profile.
@@ -72,7 +95,17 @@ Feature 009 later adds pane-level collapse for the right-side file library. Feat
   - sets `SelectedProfileId` to `null`
   - clears current Source Port / IWAD / Mod selections
   - leaves no launchable selected profile
-- Double-clicking a profile row has no special behavior beyond the existing row-selection interaction model.
+- While the file library pane is collapsed, double-clicking a profile row is a profile-open shortcut:
+  - the clicked profile ends selected
+  - current Source Port / IWAD / Mod selections hydrate from that profile
+  - the file library pane expands immediately using Feature 009 behavior
+  - the second click does not toggle the row back off
+- While the file library pane is expanded, double-clicking a profile row is the inverse pane shortcut:
+  - the clicked profile ends selected
+  - current Source Port / IWAD / Mod selections hydrate from that profile
+  - the file library pane collapses immediately using Feature 009 behavior
+  - the second click does not toggle the row back off
+- Profile-row double-click does not launch the profile, does not start rename, and does not change Feature 010 drag-reorder rules.
 
 ### Profile Launch
 - Each profile row exposes a `Launch` action immediately to the left of `Delete`.
@@ -108,14 +141,21 @@ Feature 009 later adds pane-level collapse for the right-side file library. Feat
 - Auto-save includes transitions into invalid state.
 - There is no Save, Save As, dirty state, unsaved-changes prompt, or separate profile-name field.
 - Each profile row exposes `Launch` and `Delete` actions in that order.
-- Profile rename is available only through the selected-profile header in the right pane.
-- The selected-profile header `Rename` action is visible but disabled when no profile is selected.
-- Activating `Rename` opens inline rename mode in the selected-profile header by replacing the selected profile name text with a rename input.
+- Each profile row exposes `Launch`, `Rename`, and `Delete` actions in that order.
+- Profile rename is available only through the profile row `Rename` action.
+- Activating a row `Rename` action:
+  - selects that profile
+  - hydrates current Source Port / IWAD / Mod selections from that profile
+  - opens inline rename mode inside that same profile row by replacing the row name text with a rename input
+- The right-pane selected-profile header remains display-only and does not render a `Rename` action or rename input.
 - Rename commit behavior:
   - `Enter` saves if valid.
   - Clicking outside the rename input cancels rename and restores the prior saved name.
   - `Escape` cancels and restores the prior saved name.
 - The outside click that cancels rename is consumed and does not also activate the clicked row, button, or other control.
+- While a profile row is in rename mode:
+  - its normal row action buttons are not rendered
+  - the row does not start drag reorder from the rename editor or rename-mode body
 - Rename validity rules:
   - name is required
   - name cannot be empty or whitespace-only
@@ -141,13 +181,20 @@ Feature 009 later adds pane-level collapse for the right-side file library. Feat
   - exactly one IWAD
   - zero or more mods
   - preserved mod order
-  - every referenced path must exist on disk
-  - every referenced path must still exist in the matching shared library collection
+  - source-port path must exist on disk
+  - source-port path must still exist in the Source Port shared library collection
+  - IWAD path must exist on disk
+  - IWAD path must still exist in the IWAD shared library collection
 - Removing a library item that a profile references is allowed.
+- Removing a referenced Source Port or IWAD from its shared library invalidates the profile.
+- Removing a referenced Mod from the shared library does not invalidate the profile.
 - Profiles affected by removed or missing library items remain saved and listed.
+- Missing referenced Mod files on disk do not invalidate the profile.
+- Saved mod references remain preserved for preview text and launch argument construction even when those Mod paths are stale.
 - Invalid profiles:
   - show an explicit invalid-state indication in the shared row status slot
   - keep the invalid reason text under the profile name
+  - show the full invalid reason in the selected-profile status text when selected
   - remain selectable
   - remain renameable
   - remain editable through the shared library
@@ -155,7 +202,14 @@ Feature 009 later adds pane-level collapse for the right-side file library. Feat
   - are not launchable from their row action
 - Valid profiles:
   - show an explicit `VALID` badge in the same shared row status slot used by invalid profiles
+  - show `Selected profile is ready to launch.` in the selected-profile status text when selected
   - keep their row `Launch` action enabled
+- The selected-profile header command preview:
+  - uses the selected profile's saved launch inputs rather than current hydrated live selections
+  - uses filename-only tokens in this order: source-port filename, `-iwad`, IWAD filename, `-file`, ordered mod filenames
+  - wraps within the selected-profile header card
+  - remains visible for invalid selected profiles when one or more previewable saved tokens exist
+  - is omitted when no profile is selected or when the selected profile has no previewable saved tokens
 - Launch is available only through saved profile rows.
 - No selected profile means no currently selected launchable profile, even if current detached library selections are otherwise launch-valid.
 
@@ -195,7 +249,7 @@ Feature 009 later adds pane-level collapse for the right-side file library. Feat
 - On startup sanitation:
   - sanitize shared library collections as existing features require
   - preserve broken profiles
-  - recompute profile validity from sanitized library membership and file existence
+  - recompute profile validity from sanitized Source Port and IWAD library membership and file existence while leaving saved Mod references non-blocking
 
 ## Acceptance Criteria
 ### Create profile from current selections
@@ -216,6 +270,14 @@ Then `SelectedProfileId` becomes `null`.
 And current Source Port / IWAD / Mod selections are cleared.
 And no profile remains selected for launch.
 
+### Double-click opens collapsed file library for a profile
+Given the file library pane is collapsed and a saved profile row exists
+When that profile row is double-clicked
+Then that profile ends selected.
+And current Source Port / IWAD / Mod selections hydrate from that profile.
+And the file library pane expands using Feature 009 behavior.
+And the double-click does not launch the profile.
+
 ### Launch profile from row action
 Given a valid saved profile row exists and a different profile or no profile is currently selected
 When `Launch` is activated for that row
@@ -231,8 +293,8 @@ And those changes may place the profile into or out of invalid state.
 
 ### Explicit rename action
 Given a selected profile exists
-When `Rename` is activated in the selected-profile header
-Then inline rename mode opens in the selected-profile header for that selected profile.
+When `Rename` is activated on that profile row
+Then inline rename mode opens inside that same profile row for that selected profile.
 And `Enter` saves a valid unique non-empty name.
 And outside click or `Escape` restores the previous saved name.
 And the outside click does not also activate another control.
@@ -247,16 +309,9 @@ And the right selected-profile header does not render a second `New Profile` act
 
 ### Rename placement
 Given the workspace is rendered
-When the right-pane selected-profile header is displayed
-Then `Rename` appears in that header.
-And `Rename` is right-aligned and aligned with the selected profile name.
-And profile rows do not render a row-level `Rename` action or row-level rename input.
-
-### Rename disabled with no selection
-Given no profile is selected
-When the selected-profile header is displayed
-Then the `Rename` action remains visible.
-And the `Rename` action is disabled.
+When saved profile rows are displayed
+Then each profile row renders a row-level `Rename` action between `Launch` and `Delete`.
+And the right-pane selected-profile header does not render a `Rename` action or rename input.
 
 ### Rename validation
 Given a profile is in rename mode
@@ -272,6 +327,12 @@ Then the right pane scrolls independently.
 And the left profile pane remains pinned.
 And when the profile list exceeds available height, the profile list scrolls within the left pane.
 
+### Shared-library drop zones stay visibly interactive
+Given the file library pane is expanded
+When the Source Port, IWAD, and Mod sections are rendered
+Then each section shows a visibly interactive drop zone with visible instructional text before any drag begins.
+And each zone supports drag-over highlight and a section-specific accessible label.
+
 ### Delete selected profile
 Given a selected profile exists
 When delete is confirmed for that profile
@@ -281,19 +342,76 @@ And current Source Port / IWAD / Mod selections are cleared.
 And no neighboring profile is auto-selected.
 
 ### Invalid profile remains repairable
-Given a saved profile references a library item that is removed or a file path that no longer exists
+Given a saved profile references a Source Port or IWAD library item that is removed or a required Source Port or IWAD file path that no longer exists
 When validity is recomputed
 Then the profile remains saved and listed.
 And it is marked invalid with an explicit reason.
 And its row `Launch` action is disabled.
 And changing library selections while it is selected can repair it and restore launchability.
 
+### Removed or missing mod does not block launch
+Given a saved profile has valid saved Source Port and IWAD references and one or more saved Mod references
+When a saved Mod is removed from the shared Mod library or its file path no longer exists on disk
+Then the profile remains saved and listed.
+And the profile still recomputes as valid.
+And its row `Launch` action remains enabled.
+And its saved Mod references remain preserved for preview text and launch argument construction.
+
 ### Valid profile shows explicit valid badge
-Given a saved profile has exactly one source port, exactly one IWAD, and all referenced paths still exist in the matching shared library collections
+Given a saved profile has exactly one source port, exactly one IWAD, and its saved Source Port and IWAD paths still exist in their matching shared library collections
 When validity is recomputed
 Then the profile row shows an explicit `VALID` badge in the same status slot used by invalid profiles.
 And the profile row does not render a separate inline valid text line under the profile name.
 And its row `Launch` action remains enabled.
+
+### Profile row preview placement and wrapping
+Given a saved profile row has one or more previewable launch tokens
+When the file library pane is collapsed and the profile list is rendered at a window width greater than `768 px`
+Then that row shows its filename-only command preview directly under the profile name.
+And the preview text wraps within the profile row body.
+And the preview text does not render in a separate footer bar.
+
+### Profile row preview hides while file library is expanded
+Given one or more saved profile rows have previewable launch tokens
+When the file library pane is expanded
+Then inline command preview is hidden for all profile rows regardless of width.
+And profile name, validity messaging, badges, and row actions remain visible.
+
+### Invalid reason text hides while file library is expanded
+Given an invalid saved profile row exists
+When the file library pane is expanded
+Then the row keeps its `INVALID` badge.
+And inline invalid-reason text is hidden for that row.
+And the selected-profile header in the right pane still shows the selected profile's full status text.
+
+### Selected-profile header shows invalid amber status and saved command preview
+Given a saved profile is selected in the expanded file library
+When the selected-profile header is rendered
+Then the header shows the selected profile name.
+And the status text uses the shared amber invalid text color only when that selected profile is invalid.
+And the header shows a wrapped filename-only command preview from that selected profile's saved launch inputs when one or more previewable saved tokens exist.
+And the header omits the preview line when no selected profile exists or no previewable saved tokens exist.
+
+### Double-click collapses expanded file library for a profile
+Given the file library pane is expanded and a saved profile row exists
+When that profile row is double-clicked
+Then that profile ends selected.
+And current Source Port / IWAD / Mod selections hydrate from that profile.
+And the file library pane collapses using Feature 009 behavior.
+And the double-click does not unselect that profile.
+
+### Profile row preview hides at minimum width while collapsed
+Given one or more saved profile rows have previewable launch tokens
+When the file library pane is collapsed and the overall window width is less than or equal to `768 px`
+Then inline command preview is hidden for all profile rows.
+And profile name, validity messaging, badges, and row actions remain visible.
+
+### Profile names wrap in the expanded profile pane
+Given a saved profile row has a long name
+When the file library pane is expanded and the profile list is rendered
+Then the left profile pane uses a fixed width of `380 px`.
+And the profile name wraps within the row body.
+And the rendered profile name is capped at two lines.
 
 ### Mod ordering by profile context
 Given at least three Mod rows and one or more profiles
