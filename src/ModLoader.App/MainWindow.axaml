@@ -4,7 +4,7 @@
         x:Class="ModLoader.App.MainWindow"
         Width="1180"
         Height="820"
-        Title="ModLoader - Feature 010">
+        Title="ModLoader - Feature 012">
   <Window.Resources>
     <ResourceDictionary>
       <ResourceDictionary.ThemeDictionaries>
@@ -104,21 +104,6 @@
 
   <DockPanel>
     <Border DockPanel.Dock="Top"
-            BorderThickness="0,0,0,1"
-            BorderBrush="#374151"
-            Background="#0b1220"
-            Padding="12,10">
-      <StackPanel Spacing="2">
-        <TextBlock FontSize="20"
-                   FontWeight="Bold"
-                   Foreground="#e5e7eb"
-                   Text="Feature 010: Profile Drag Reorder" />
-        <TextBlock Foreground="#9ca3af"
-                   Text="Profiles are the only launchable unit. Select a profile on the left, then manage Source Port, IWAD, and Mods from the shared library on the right." />
-      </StackPanel>
-    </Border>
-
-    <Border DockPanel.Dock="Top"
             IsVisible="{Binding HasMessage}"
             BorderBrush="#f59e0b"
             BorderThickness="1"
@@ -162,17 +147,14 @@
               Padding="12">
         <Grid RowDefinitions="Auto,*">
           <Grid Grid.Row="0"
-                RowDefinitions="Auto,Auto"
                 ColumnDefinitions="*,Auto,Auto">
-            <TextBlock Grid.Row="0"
-                       Grid.Column="0"
+            <TextBlock Grid.Column="0"
                        FontSize="18"
                        FontWeight="Bold"
                        Foreground="#e5e7eb"
                        VerticalAlignment="Center"
                        Text="Profiles" />
-            <Button Grid.Row="0"
-                    Grid.Column="1"
+            <Button Grid.Column="1"
                     Classes="IconButton"
                     ToolTip.Tip="New Profile"
                     automation:AutomationProperties.Name="New Profile"
@@ -182,8 +164,7 @@
                         Height="16"
                         Data="{StaticResource add_square_regular}" />
             </Button>
-            <Button Grid.Row="0"
-                    Grid.Column="2"
+            <Button Grid.Column="2"
                     Classes="IconButton"
                     ToolTip.Tip="{Binding FileLibraryPaneToggleText}"
                     automation:AutomationProperties.Name="{Binding FileLibraryPaneToggleText}"
@@ -195,18 +176,12 @@
                           Height="16"
                           Data="{StaticResource folder_regular}"
                           IsVisible="{Binding IsFileLibraryPaneCollapsed}" />
-                <PathIcon Width="16"
-                          Height="16"
-                          Data="{StaticResource folder_open_regular}"
-                          IsVisible="{Binding IsFileLibraryPaneExpanded}" />
+                        <PathIcon Width="16"
+                                  Height="16"
+                                  Data="{StaticResource folder_open_regular}"
+                                  IsVisible="{Binding IsFileLibraryPaneExpanded}" />
               </Grid>
             </Button>
-            <TextBlock Grid.Row="1"
-                       Grid.Column="0"
-                       Grid.ColumnSpan="3"
-                       Foreground="#94a3b8"
-                       Margin="0,2,0,0"
-                       Text="Select, launch, or delete a launch profile from the saved profile list." />
           </Grid>
 
           <Grid Grid.Row="1"
@@ -305,6 +280,23 @@
               </ItemsControl>
             </ScrollViewer>
 
+            <PathIcon x:Name="ProfileListScrollAffordance"
+                      IsHitTestVisible="False"
+                      Width="18"
+                      Height="18"
+                      Margin="0,0,0,10"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Bottom"
+                      Foreground="#80e5e7eb"
+                      Opacity="0"
+                      Data="{StaticResource arrow_down_regular}">
+              <PathIcon.Transitions>
+                <Transitions>
+                  <DoubleTransition Property="Opacity" Duration="0:0:0.18" />
+                </Transitions>
+              </PathIcon.Transitions>
+            </PathIcon>
+
             <Canvas IsHitTestVisible="False">
               <Border IsVisible="{Binding IsProfileDropIndicatorVisible}"
                       Canvas.Left="{Binding ProfileDropIndicatorLeft}"
@@ -338,12 +330,54 @@
               Background="#0f172a"
               Padding="12">
         <Grid RowDefinitions="Auto,*">
-          <TextBlock Grid.Row="0"
-                     FontSize="18"
-                     FontWeight="Bold"
-                     Foreground="#e5e7eb"
-                     VerticalAlignment="Center"
-                     Text="File Library" />
+          <Border Grid.Row="0"
+                  BorderBrush="#374151"
+                  BorderThickness="1"
+                  CornerRadius="8"
+                  Background="#111827"
+                  Padding="12">
+            <StackPanel Spacing="4">
+              <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Grid.Column="0"
+                           FontSize="18"
+                           FontWeight="Bold"
+                           Foreground="#e5e7eb"
+                           VerticalAlignment="Center"
+                           Text="{Binding SelectedProfileName}" />
+                <StackPanel Grid.Column="1"
+                            Orientation="Horizontal"
+                            Spacing="8"
+                            Margin="8,0,0,0"
+                            HorizontalAlignment="Right"
+                            IsVisible="{Binding HasSelectedProfile}">
+                  <Button Classes="IconButton"
+                          ToolTip.Tip="Edit"
+                          automation:AutomationProperties.Name="Edit"
+                          Click="OnEditSelectedProfileClicked">
+                    <PathIcon Width="16"
+                              Height="16"
+                              Data="{StaticResource edit_regular}" />
+                  </Button>
+                  <Button Classes="IconButton"
+                          ToolTip.Tip="Delete"
+                          automation:AutomationProperties.Name="Delete"
+                          Click="OnDeleteSelectedProfileClicked">
+                    <PathIcon Width="16"
+                              Height="16"
+                              Data="{StaticResource delete_regular}" />
+                  </Button>
+                </StackPanel>
+              </Grid>
+              <TextBlock Foreground="{Binding SelectedProfileStatusForeground}"
+                         TextWrapping="Wrap"
+                         Text="{Binding SelectedProfileStatusText}" />
+              <TextBlock IsVisible="{Binding HasSelectedProfileCommandPreview}"
+                         Foreground="#94a3b8"
+                         FontFamily="Consolas"
+                         TextWrapping="Wrap"
+                         Text="{Binding SelectedProfileCommandPreviewText}" />
+            </StackPanel>
+          </Border>
 
           <Grid Grid.Row="1"
                 Margin="0,12,0,0"
@@ -351,27 +385,6 @@
             <ScrollViewer x:Name="FileLibraryScrollViewer"
                           Classes="HiddenScrollbars">
               <StackPanel Spacing="12">
-                <Border BorderBrush="#374151"
-                        BorderThickness="1"
-                        CornerRadius="8"
-                        Background="#111827"
-                        Padding="12">
-                  <StackPanel Spacing="4">
-                    <TextBlock FontSize="18"
-                               FontWeight="Bold"
-                               Foreground="#e5e7eb"
-                               Text="{Binding SelectedProfileName}" />
-                    <TextBlock Foreground="{Binding SelectedProfileStatusForeground}"
-                               TextWrapping="Wrap"
-                               Text="{Binding SelectedProfileStatusText}" />
-                    <TextBlock IsVisible="{Binding HasSelectedProfileCommandPreview}"
-                               Foreground="#94a3b8"
-                               FontFamily="Consolas"
-                               TextWrapping="Wrap"
-                               Text="{Binding SelectedProfileCommandPreviewText}" />
-                  </StackPanel>
-                </Border>
-
                 <StackPanel Spacing="8">
                   <Grid ColumnDefinitions="*,Auto">
                     <TextBlock FontWeight="SemiBold"
@@ -403,7 +416,7 @@
                           DragDrop.DragLeave="OnDropZoneDragLeave"
                           DragDrop.DragOver="OnDropZoneDragOver"
                           automation:AutomationProperties.Name="Source Port drop zone. Drag and drop files here."
-                          automation:AutomationProperties.HelpText="Allowed: .exe. Drop one or more files. Directories are ignored."
+                          automation:AutomationProperties.HelpText="Allowed: .exe. Directories are ignored."
                           DragDrop.Drop="OnSourcePortDrop">
                     <Grid Grid.IsSharedSizeScope="True" RowDefinitions="Auto,Auto">
                       <StackPanel Grid.Row="0" Spacing="2">
@@ -413,7 +426,7 @@
                                    Text="Drag and drop here" />
                         <TextBlock Foreground="{DynamicResource DropZoneHelperForegroundBrush}"
                                    TextWrapping="Wrap"
-                                   Text="Allowed: .exe. Drop one or more files. Directories are ignored." />
+                                   Text="Allowed: .exe. Directories are ignored." />
                       </StackPanel>
                       <ItemsControl Grid.Row="1"
                                     Margin="0,12,0,0"

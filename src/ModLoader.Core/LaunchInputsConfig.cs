@@ -12,6 +12,8 @@ public sealed class LaunchInputsConfig
 
     public bool IsFileLibraryPaneCollapsed { get; init; }
 
+    public double? LastExpandedWindowWidth { get; init; }
+
     public bool IsSourcePortSectionCollapsed { get; init; }
 
     public string? SelectedSourcePortPath { get; init; }

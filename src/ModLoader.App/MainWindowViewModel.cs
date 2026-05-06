@@ -33,6 +33,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private double _profileDropIndicatorLeft;
     private double _profileDropIndicatorTop;
     private double _profileDropIndicatorWidth;
+    private double? _rememberedExpandedWindowWidth;
     private double _windowWidth = double.PositiveInfinity;
     private string? _selectedIwadPath;
     private string? _selectedProfileId;
@@ -62,6 +63,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         _store = new LaunchInputsStore(loadResult.State);
         LoadProfilesFromConfig(loadResult.State);
         IsFileLibraryPaneCollapsed = loadResult.State.IsFileLibraryPaneCollapsed;
+        var windowWidthSanitized = InitializeRememberedExpandedWindowWidth(loadResult.State.LastExpandedWindowWidth);
         IsSourcePortSectionCollapsed = loadResult.State.IsSourcePortSectionCollapsed;
         IsIwadSectionCollapsed = loadResult.State.IsIwadSectionCollapsed;
         IsModSectionCollapsed = loadResult.State.IsModSectionCollapsed;
@@ -76,7 +78,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
         RefreshFromStore();
 
-        if (storeSanitized || selectedProfileSanitized)
+        if (storeSanitized || selectedProfileSanitized || windowWidthSanitized)
         {
             PersistState();
         }
@@ -233,7 +235,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     public bool IsFileLibraryPaneExpanded => !IsFileLibraryPaneCollapsed;
 
-    public string FileLibraryPaneToggleText => IsFileLibraryPaneCollapsed ? "Expand File Library" : "Collapse File Library";
+    public string FileLibraryPaneToggleText => "File Library";
 
     public GridLength ProfilePaneColumnWidth => IsFileLibraryPaneCollapsed
         ? new GridLength(1, GridUnitType.Star)
@@ -246,6 +248,10 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     public GridLength FileLibraryPaneColumnWidth => IsFileLibraryPaneCollapsed
         ? new GridLength(0)
         : new GridLength(1, GridUnitType.Star);
+
+    public double PreferredExpandedWindowWidth => WindowSizingPolicy.GetExpandedWindowWidth(_rememberedExpandedWindowWidth);
+
+    public double PreferredCollapsedWindowWidth => WindowSizingPolicy.ProfileOnlyWindowWidth;
 
     public bool IsSourcePortSectionCollapsed
     {
@@ -365,7 +371,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             var selectedProfile = GetSelectedProfile();
             if (selectedProfile is null)
             {
-                return "Select a saved profile or create one from the current library selections.";
+                return "Select a saved profile or create a new one.";
             }
 
             var validity = GetProfileValidity(selectedProfile);
@@ -566,6 +572,29 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
         _windowWidth = normalizedWidth;
         RefreshProfileRows();
+    }
+
+    public void RememberExpandedWindowWidth(double width, bool isNormalWindowState)
+    {
+        if (IsFileLibraryPaneCollapsed || !isNormalWindowState)
+        {
+            return;
+        }
+
+        var normalizedWidth = WindowSizingPolicy.NormalizeRememberedExpandedWindowWidth(width);
+        if (!normalizedWidth.HasValue)
+        {
+            return;
+        }
+
+        if (_rememberedExpandedWindowWidth.HasValue
+            && Math.Abs(_rememberedExpandedWindowWidth.Value - normalizedWidth.Value) < 0.01d)
+        {
+            return;
+        }
+
+        _rememberedExpandedWindowWidth = normalizedWidth.Value;
+        PersistState();
     }
 
     public void ProcessSourcePortDrop(IEnumerable<string> droppedPaths)
@@ -786,14 +815,16 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         {
             Id = Guid.NewGuid().ToString("N"),
             Name = GenerateDefaultProfileName(),
-            SourcePortPath = SelectedSourcePortPath,
-            IwadPath = SelectedIwadPath,
-            SelectedModPaths = [.. SelectedModPaths]
+            SourcePortPath = null,
+            IwadPath = null,
+            SelectedModPaths = []
         };
 
         _profiles.Add(profile);
         SelectedProfileId = profile.Id;
         IsFileLibraryPaneCollapsed = false;
+        HydrateSelectionsFromSelectedProfile();
+        RefreshRows();
         RefreshProfileRows();
         OnPropertyChanged(nameof(HasProfiles));
         OnPropertyChanged(nameof(CanLaunch));
@@ -972,6 +1003,17 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         _pendingDeleteProfileId = profileId;
         SetInformationalMessage($"Delete profile \"{profile.Name}\"?");
         OnPropertyChanged(nameof(HasPendingDeleteConfirmation));
+    }
+
+    public void RequestDeleteSelectedProfile()
+    {
+        var selectedProfileId = SelectedProfileId;
+        if (string.IsNullOrWhiteSpace(selectedProfileId))
+        {
+            return;
+        }
+
+        RequestDeleteProfile(selectedProfileId);
     }
 
     public void ConfirmDeleteProfile()
@@ -1255,6 +1297,14 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
         SelectedProfileId = matchingProfile.Id;
         return false;
+    }
+
+    private bool InitializeRememberedExpandedWindowWidth(double? lastExpandedWindowWidth)
+    {
+        var normalizedWidth = WindowSizingPolicy.NormalizeRememberedExpandedWindowWidth(lastExpandedWindowWidth);
+        var hadInvalidStoredWidth = lastExpandedWindowWidth.HasValue && !normalizedWidth.HasValue;
+        _rememberedExpandedWindowWidth = normalizedWidth;
+        return hadInvalidStoredWidth;
     }
 
     private bool TrySelectProfile(string profileId)
@@ -1608,6 +1658,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             Profiles = [.. _profiles.Select(CloneProfile)],
             SelectedProfileId = SelectedProfileId,
             IsFileLibraryPaneCollapsed = IsFileLibraryPaneCollapsed,
+            LastExpandedWindowWidth = _rememberedExpandedWindowWidth,
             IsSourcePortSectionCollapsed = IsSourcePortSectionCollapsed,
             SelectedSourcePortPath = null,
             Iwads = [.. snapshot.Iwads],

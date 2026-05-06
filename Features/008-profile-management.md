@@ -8,9 +8,9 @@ Feature 010 later adds manual drag reordering for saved profile rows. Feature 00
 
 ## In Scope
 - Saved profile list with single-select toggle behavior.
-- Profile creation from current live library selections using generated default names from the left-pane profile-management header.
+- Profile creation from empty launch inputs using generated default names from the left-pane profile-management header.
 - Row-scoped launch actions for saved profiles.
-- Inline selected-profile rename initiated from the right-pane selected-profile header.
+- A fixed selected-profile header in the right pane.
 - Profile delete with confirmation.
 - Immediate profile auto-save when editing a selected profile through library selection changes.
 - Persisted `Profiles` and `SelectedProfileId`.
@@ -45,20 +45,28 @@ Feature 010 later adds manual drag reordering for saved profile rows. Feature 00
 - The left profile pane remains pinned while the right file-library pane scrolls independently.
 - The left profile list provides its own internal scrolling when saved profiles exceed available vertical space.
 - When either pane's content exceeds available vertical space, the left profile list and the right file-library pane remain scrollable through mouse wheel, touchpad, keyboard, and equivalent platform scroll input while visible scrollbar chrome is not rendered in either pane.
-- While the file library pane is expanded, the right file-library pane shows a subtle bottom-centered downward chevron affordance only when additional file-library content exists below the current viewport and the pane remains scrolled at its top offset.
-- The file-library scroll affordance fades out once the user scrolls down from the top of the expanded file-library pane.
-- The file-library scroll affordance reappears when the user returns to the top of the expanded file-library pane and additional content still exists below the viewport.
-- The file-library scroll affordance is not shown when the file-library pane is collapsed or when the expanded file-library content fully fits within the viewport.
+- While the file library pane is expanded, the right pane shows a fixed selected-profile header above the independently scrolling shared library content.
+- While the file library pane is expanded, the right file-library pane shows a subtle bottom-centered downward chevron affordance only when additional scrollable file-library content exists below the current viewport beneath the fixed selected-profile header.
+- The file-library scroll affordance remains visible while additional file-library content still exists below the current viewport.
+- The file-library scroll affordance fades out only when the user reaches the bottom of that scrollable library content or when the content fully fits within the viewport.
+- The file-library scroll affordance is not shown when the file-library pane is collapsed or when the expanded scrollable library content fully fits within the viewport.
+- The left profile list shows the same subtle bottom-centered downward chevron affordance only when additional profile rows exist below the current viewport.
+- The profile-list scroll affordance remains visible while additional profile-list content still exists below the current viewport.
+- The profile-list scroll affordance fades out only when the user reaches the bottom of the profile list or when the full profile list fits within the viewport.
+- The profile-list scroll affordance is shown in both expanded two-pane mode and collapsed profile-only mode.
 - The left pane begins with a profile-management header row that contains:
   - the `Profiles` label on the left
   - the profile-creation action on the right
   - the file-library collapse / expand action to the right of the profile-creation action
 - The profile-creation action and the file-library collapse / expand action are right-aligned within the profile-management header row and aligned with the `Profiles` label.
 - Feature 011 later becomes authoritative for the visible icon presentation of those two actions while preserving their placement and behavior.
-- The right pane begins with a selected-profile header area that contains:
+- The right pane begins with a fixed selected-profile header area that contains:
   - the selected profile name on the left
-  - selected-profile status text below the name
+  - selected-profile `Edit` and `Delete` actions on the right, inline with the name row
+  - selected-profile status text below the name row
   - selected-profile command preview text below the status text when the selected profile has one or more previewable saved launch tokens
+- When no profile is selected, the selected-profile header actions are hidden.
+- The Source Port, IWAD, and Mod library sections render in a scrollable region below that fixed selected-profile header.
 - The existing top message/warning area is reused for rename validation and delete confirmation.
 - While the selected profile is invalid, the selected-profile status text in the right-pane header uses the same amber invalid text color used by left-pane inline invalid text.
 - While the selected profile is valid or no profile is selected, the selected-profile status text in the right-pane header keeps the muted helper/status text color.
@@ -127,20 +135,19 @@ Feature 010 later adds manual drag reordering for saved profile rows. Feature 00
 
 ### Profile Creation
 - The profile-creation action is always enabled.
-- The profile-creation action uses the current live library selections at activation time:
-  - zero or one selected source port
-  - zero or one selected IWAD
-  - zero or more selected Mods in current order
-- Current selected Mods, if any, are copied into the new profile in current order.
-- Activating the profile-creation action immediately creates a new saved profile from current library selections.
+- Activating the profile-creation action immediately creates a new saved profile with empty launch inputs:
+  - no selected source port
+  - no selected IWAD
+  - no selected Mods
 - New profile name uses the first available `Profile N` positive integer sequence, filling gaps from deleted profiles.
 - New profile creation:
   - generates a new stable `Id`
   - persists immediately
   - selects the new profile
+- After the new empty profile becomes selected, current Source Port / IWAD / Mod selections hydrate from that profile and become cleared.
 - Creating a new profile while the file library pane is collapsed expands the file library pane immediately and persists the expanded pane state.
 - A newly created profile may start invalid and remain repairable through later shared-library edits.
-- Creating a new profile while another profile is selected creates a second profile from the current library selections and does not overwrite the existing selected profile.
+- Creating a new profile while another profile is selected creates a second empty profile and does not overwrite the existing selected profile.
 
 ### Profile Editing And Rename
 - When a profile is selected, editing Source Port / IWAD / Mod selections changes that selected profile immediately and persists after each change.
@@ -150,11 +157,14 @@ Feature 010 later adds manual drag reordering for saved profile rows. Feature 00
 - Each profile row exposes launch, rename, and delete actions in that order.
 - Feature 011 later becomes authoritative for the visible icon presentation of those row actions while preserving their order and behavior.
 - Profile rename is available only through the profile row rename action.
+- The selected-profile header `Edit` action reuses that same rename flow:
+  - it is available only while a profile is selected
+  - activating it starts inline rename mode in the selected profile row inside the left pane
+  - the right-pane selected-profile header remains display-only and does not render a rename input
 - Activating a row rename action:
   - selects that profile
   - hydrates current Source Port / IWAD / Mod selections from that profile
   - opens inline rename mode inside that same profile row by replacing the row name text with a rename input
-- The right-pane selected-profile header remains display-only and does not render a rename action or rename input.
 - Rename commit behavior:
   - `Enter` saves if valid.
   - Clicking outside the rename input cancels rename and restores the prior saved name.
@@ -174,6 +184,8 @@ Feature 010 later adds manual drag reordering for saved profile rows. Feature 00
 
 ### Delete Behavior
 - Each profile row exposes delete access.
+- The selected-profile header exposes delete access only while a profile is selected.
+- Activating selected-profile header delete requests delete confirmation for that selected profile through the existing message area.
 - Delete requires explicit confirmation in the message area before removal.
 - Deleting an unselected profile removes only that saved profile.
 - Deleting the selected profile:
@@ -262,10 +274,11 @@ Feature 010 later adds manual drag reordering for saved profile rows. Feature 00
 ### Create profile from current selections
 Given any current live library selection state
 When the profile-creation action is activated
-Then a saved profile is created immediately from the current selections.
+Then a saved profile is created immediately with empty launch inputs.
 And the profile name uses the first available `Profile N`.
 And the new profile receives a new stable `Id`.
 And the new profile becomes the selected profile.
+And current Source Port / IWAD / Mod selections become cleared after hydration from that new profile.
 And if the file library pane was collapsed, it becomes expanded.
 
 ### Select and unselect profile
@@ -318,7 +331,16 @@ And the right selected-profile header does not render a second profile-creation 
 Given the workspace is rendered
 When saved profile rows are displayed
 Then each profile row renders a row-level rename action between the row launch and delete actions.
-And the right-pane selected-profile header does not render a rename action or rename input.
+And the right-pane selected-profile header renders an `Edit` action only while a profile is selected.
+And the right-pane selected-profile header does not render a rename input.
+
+### Selected-profile header action placement
+Given the file library pane is expanded and a profile is selected
+When the selected-profile header is rendered
+Then the selected profile name appears on the left side of the name row.
+And `Edit` and `Delete` actions appear inline on the right side of that same row.
+And when no profile is selected
+Then those selected-profile header actions are hidden.
 
 ### Rename validation
 Given a profile is in rename mode
@@ -332,6 +354,8 @@ Given the workspace is rendered
 When the file library content exceeds available vertical space
 Then the right pane scrolls independently.
 And the left profile pane remains pinned.
+And the selected-profile header remains fixed at the top of the right pane.
+And the Source Port / IWAD / Mod library content scrolls beneath that fixed header.
 And when the profile list exceeds available height, the profile list scrolls within the left pane.
 
 ### Profile list scrolls without visible scrollbar chrome
@@ -346,15 +370,30 @@ When the user scrolls the file-library pane with mouse wheel, touchpad, keyboard
 Then the right file-library pane scrolls independently.
 And visible scrollbar chrome is not rendered for that file-library pane.
 
-### File-library pane shows scroll affordance only while top-scrolled with more content below
+### File-library pane shows scroll affordance until bottom when more content remains below
 Given the file library pane is expanded and its content exceeds the available right-pane height
-When the file-library pane is rendered while its vertical scroll offset remains at the top
+When the scrollable file-library content below the fixed selected-profile header is rendered
 Then a subtle bottom-centered downward chevron affordance is visible for that pane.
-And when the user scrolls down from that top offset
+And when the user scrolls down while additional content still exists below the viewport
+Then the affordance remains visible.
+And when the user reaches the bottom of that scrollable content
 Then the affordance fades out.
-And when the user returns to the top while additional content still exists below the viewport
+And when the user scrolls back up while additional content still exists below the viewport
 Then the affordance becomes visible again.
 And when the expanded file-library content fully fits within the viewport or the file-library pane is collapsed
+Then the affordance is not shown.
+
+### Profile list shows scroll affordance until bottom when more content remains below
+Given the profile list exceeds the available left-pane height
+When the profile list is rendered in expanded two-pane mode or collapsed profile-only mode
+Then a subtle bottom-centered downward chevron affordance is visible for that pane.
+And when the user scrolls down while additional profile rows still exist below the viewport
+Then the affordance remains visible.
+And when the user reaches the bottom of the profile list
+Then the affordance fades out.
+And when the user scrolls back up while additional profile rows still exist below the viewport
+Then the affordance becomes visible again.
+And when the full profile list fits within the viewport
 Then the affordance is not shown.
 
 ### Shared-library drop zones stay visibly interactive
@@ -370,6 +409,12 @@ Then the profile is removed from saved profiles.
 And `SelectedProfileId` becomes `null`.
 And current Source Port / IWAD / Mod selections are cleared.
 And no neighboring profile is auto-selected.
+
+### Selected-profile header delete reuses existing confirmation flow
+Given a selected profile exists
+When the selected-profile header delete action is activated
+Then delete confirmation is requested in the existing message area for that selected profile.
+And no second delete workflow is introduced in the right pane.
 
 ### Invalid profile remains repairable
 Given a saved profile references a Source Port or IWAD library item that is removed or a required Source Port or IWAD file path that no longer exists
@@ -421,6 +466,12 @@ Then the header shows the selected profile name.
 And the status text uses the shared amber invalid text color only when that selected profile is invalid.
 And the header shows a wrapped filename-only command preview from that selected profile's saved launch inputs when one or more previewable saved tokens exist.
 And the header omits the preview line when no selected profile exists or no previewable saved tokens exist.
+
+### Selected-profile header stays fixed while library content scrolls
+Given the file library pane is expanded and its library content exceeds the available right-pane height
+When the user scrolls the Source Port / IWAD / Mod library content
+Then the selected-profile header remains fixed at the top of the right pane.
+And the scroll position change affects only the library content below that header.
 
 ### Double-click collapses expanded file library for a profile
 Given the file library pane is expanded and a saved profile row exists
