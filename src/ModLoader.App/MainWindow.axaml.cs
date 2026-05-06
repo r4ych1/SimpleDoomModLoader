@@ -7,7 +7,6 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
-using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using ModLoader.Core;
@@ -88,32 +87,6 @@ public partial class MainWindow : Window
         _viewModel.SetDropZoneDragActive(DropZoneKind.Mod, false);
         _viewModel.ProcessModDrop(ExtractDroppedPaths(e));
         e.Handled = true;
-    }
-
-    private async void OnDropZonePointerPressed(object? sender, PointerPressedEventArgs e)
-    {
-        if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
-            || IsFromInteractiveChild(e.Source)
-            || IsWithinInputRow(e.Source)
-            || !TryGetDropZoneKind(sender, out var kind))
-        {
-            return;
-        }
-
-        e.Handled = true;
-        await OpenDropZonePickerAsync(kind);
-    }
-
-    private async void OnDropZoneKeyDown(object? sender, KeyEventArgs e)
-    {
-        if ((e.Key != Key.Enter && e.Key != Key.Space)
-            || !TryGetDropZoneKind(sender, out var kind))
-        {
-            return;
-        }
-
-        e.Handled = true;
-        await OpenDropZonePickerAsync(kind);
     }
 
     private void OnNewProfileClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -555,29 +528,6 @@ public partial class MainWindow : Window
         return false;
     }
 
-    private static bool IsWithinInputRow(object? source)
-    {
-        if (source is Border border && border.Classes.Contains("InputRow"))
-        {
-            return true;
-        }
-
-        if (source is not Avalonia.Visual visual)
-        {
-            return false;
-        }
-
-        foreach (var ancestor in visual.GetVisualAncestors())
-        {
-            if (ancestor is Border ancestorBorder && ancestorBorder.Classes.Contains("InputRow"))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     private void UpdateProfileDrag(Point pointInHost)
     {
         _viewModel.UpdateProfileDragGhostPosition(pointInHost.X + 12d, pointInHost.Y + 12d);
@@ -705,41 +655,6 @@ public partial class MainWindow : Window
         }
 
         e.Handled = true;
-    }
-
-    private async Task OpenDropZonePickerAsync(DropZoneKind kind)
-    {
-        if (!StorageProvider.CanOpen)
-        {
-            return;
-        }
-
-        var selectedFiles = await StorageProvider.OpenFilePickerAsync(DropZonePickerOptionsFactory.Create(kind));
-        var selectedPaths = selectedFiles
-            .Select(file => file.TryGetLocalPath())
-            .Where(path => !string.IsNullOrWhiteSpace(path))
-            .Cast<string>()
-            .ToArray();
-
-        if (selectedPaths.Length == 0)
-        {
-            return;
-        }
-
-        switch (kind)
-        {
-            case DropZoneKind.SourcePort:
-                _viewModel.ProcessSourcePortDrop(selectedPaths);
-                break;
-            case DropZoneKind.Iwad:
-                _viewModel.ProcessIwadDrop(selectedPaths);
-                break;
-            case DropZoneKind.Mod:
-                _viewModel.ProcessModDrop(selectedPaths);
-                break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(kind), kind, null);
-        }
     }
 
     private static bool TryGetDropZoneKind(object? sender, out DropZoneKind kind)

@@ -17,7 +17,7 @@ This repository follows feature-scoped delivery. Behavior is only guaranteed whe
 - Feature 001: Drag-and-drop source-port, IWAD, and mod input lists.
   - Authoritative spec: `Features/001-drop-zones.md`.
 - Feature 002: Full-border drop zones and selectable IWAD/Mod rows.
-  - Current shared-library drop zones use always-visible instructional card styling, drag-over highlight states, and clickable keyboard-accessible file-picker fallback while preserving Feature 001 validation and ordering rules.
+  - Current shared-library drop zones use always-visible instructional card styling and drag-over highlight states while preserving Feature 001 validation and ordering rules.
   - Authoritative spec: `Features/002-border-drop-and-row-selection.md`.
 - Feature 003: Config persistence and startup recovery.
   - Includes persisted selection state for IWAD and Mod rows.
@@ -42,7 +42,7 @@ This repository follows feature-scoped delivery. Behavior is only guaranteed whe
 - Feature 008: Selection-based profile workspace.
   - Adds saved profiles as the primary launch model in a two-pane workspace: a pinned profile list on the left and independently scrolling shared file library on the right, with `New Profile` in the left profile-management header.
   - Profiles persist source port, IWAD, and ordered mod references to the shared library, are the only launchable unit, and require one source port plus one IWAD only for profile validity.
-  - The expanded shared file-library pane renders Source Port, IWAD, and Mod drop zones as visibly interactive upload targets with visible instructional text, section-specific accessible labels, drag-over highlight, and click / keyboard fallback to multi-select file pickers that match each zone's existing allowlist.
+  - The expanded shared file-library pane renders Source Port, IWAD, and Mod drop zones as visibly interactive drag-and-drop targets with visible instructional text, section-specific accessible labels, and drag-over highlight.
   - Each saved profile row renders its own wrapped filename-only command preview inside the profile cell, and that preview appears only while the file library is collapsed and the window width remains above the Feature 008 minimum threshold.
   - While a profile is selected in the expanded file library, the selected-profile header keeps the profile name, shows status text with the shared amber invalid color when invalid, and renders its own wrapped filename-only command preview from the saved profile inputs.
   - While the file library is expanded, the left `Profiles` pane uses a fixed `380 px` width, profile names wrap up to two lines, and inline invalid-reason text stays hidden while shared status badges remain visible.

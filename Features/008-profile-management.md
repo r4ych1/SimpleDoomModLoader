@@ -57,14 +57,7 @@ Feature 010 later adds manual drag reordering for saved profile rows. Feature 00
 - While the selected profile is invalid, the selected-profile status text in the right-pane header uses the same amber invalid text color used by left-pane inline invalid text.
 - While the selected profile is valid or no profile is selected, the selected-profile status text in the right-pane header keeps the muted helper/status text color.
 - While the file library pane is expanded, the Source Port, IWAD, and Mod drop zones inside that pane use the shared visible drop-zone affordance defined by Feature 002.
-- Each expanded file-library drop zone provides a section-specific accessible label that describes the drag-and-drop plus click-upload affordance, for example `Source Port drop zone. Drag files here or click to upload.`
-- Clicking empty instructional area inside an expanded file-library drop zone opens that section's file-picker fallback without changing existing row selection or row remove behavior.
-- Pressing `Enter` or `Space` while keyboard focus is on an expanded file-library drop zone opens that same section's file-picker fallback.
-- The click / keyboard fallback opens multi-select file pickers only:
-  - Source Port picker allows `.exe`
-  - IWAD picker allows the current IWAD allowlist
-  - Mod picker allows the current Mod allowlist including `.zip`
-- File-picker fallback does not add folder selection support; existing IWAD and Mod top-level folder ingestion remains drag-and-drop only.
+- Each expanded file-library drop zone provides a section-specific accessible label that describes the drag-and-drop affordance, for example `Source Port drop zone. Drag and drop files here.`
 
 ### Profile List And Selection
 - Left pane shows:
@@ -338,7 +331,7 @@ And when the profile list exceeds available height, the profile list scrolls wit
 Given the file library pane is expanded
 When the Source Port, IWAD, and Mod sections are rendered
 Then each section shows a visibly interactive drop zone with visible instructional text before any drag begins.
-And each zone supports drag-over highlight, click fallback, keyboard activation, and a section-specific accessible label.
+And each zone supports drag-over highlight and a section-specific accessible label.
 
 ### Delete selected profile
 Given a selected profile exists

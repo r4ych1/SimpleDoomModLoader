@@ -56,10 +56,6 @@
       <Setter Property="Padding" Value="14" />
       <Setter Property="Margin" Value="0,0,0,10" />
     </Style>
-    <Style Selector="Border.DropZone:focus">
-      <Setter Property="BorderThickness" Value="3" />
-      <Setter Property="BorderBrush" Value="{DynamicResource DropZoneFocusBorderBrush}" />
-    </Style>
     <Style Selector="Border.DropZone.dragover">
       <Setter Property="BorderThickness" Value="3" />
       <Setter Property="BorderBrush" Value="{DynamicResource DropZoneDragOverBorderBrush}" />
@@ -332,15 +328,11 @@
                         Classes.dragover="{Binding IsSourcePortDropZoneDragActive}"
                         IsVisible="{Binding AreSourcePortRowsVisible}"
                         Tag="SourcePort"
-                        Focusable="True"
-                        IsTabStop="True"
-                        PointerPressed="OnDropZonePointerPressed"
-                        KeyDown="OnDropZoneKeyDown"
                         DragDrop.AllowDrop="True"
                         DragDrop.DragEnter="OnDropZoneDragEnter"
                         DragDrop.DragLeave="OnDropZoneDragLeave"
                         DragDrop.DragOver="OnDropZoneDragOver"
-                        automation:AutomationProperties.Name="Source Port drop zone. Drag files here or click to upload."
+                        automation:AutomationProperties.Name="Source Port drop zone. Drag and drop files here."
                         automation:AutomationProperties.HelpText="Allowed: .exe. Drop one or more files. Directories are ignored."
                         DragDrop.Drop="OnSourcePortDrop">
                   <Grid Grid.IsSharedSizeScope="True" RowDefinitions="Auto,Auto">
@@ -401,15 +393,11 @@
                         Classes.dragover="{Binding IsIwadDropZoneDragActive}"
                         IsVisible="{Binding AreIwadRowsVisible}"
                         Tag="Iwad"
-                        Focusable="True"
-                        IsTabStop="True"
-                        PointerPressed="OnDropZonePointerPressed"
-                        KeyDown="OnDropZoneKeyDown"
                         DragDrop.AllowDrop="True"
                         DragDrop.DragEnter="OnDropZoneDragEnter"
                         DragDrop.DragLeave="OnDropZoneDragLeave"
                         DragDrop.DragOver="OnDropZoneDragOver"
-                        automation:AutomationProperties.Name="IWAD drop zone. Drag files here or click to upload."
+                        automation:AutomationProperties.Name="IWAD drop zone. Drag and drop files here."
                         automation:AutomationProperties.HelpText="Allowed: .wad, .pk3, .iwad, .ipk3, .ipk7, .pk7. Directories scan top-level files only."
                         DragDrop.Drop="OnIwadDrop">
                   <Grid Grid.IsSharedSizeScope="True" RowDefinitions="Auto,Auto">
@@ -470,15 +458,11 @@
                         Classes.dragover="{Binding IsModDropZoneDragActive}"
                         IsVisible="{Binding AreModRowsVisible}"
                         Tag="Mod"
-                        Focusable="True"
-                        IsTabStop="True"
-                        PointerPressed="OnDropZonePointerPressed"
-                        KeyDown="OnDropZoneKeyDown"
                         DragDrop.AllowDrop="True"
                         DragDrop.DragEnter="OnDropZoneDragEnter"
                         DragDrop.DragLeave="OnDropZoneDragLeave"
                         DragDrop.DragOver="OnDropZoneDragOver"
-                        automation:AutomationProperties.Name="Mod drop zone. Drag files here or click to upload."
+                        automation:AutomationProperties.Name="Mod drop zone. Drag and drop files here."
                         automation:AutomationProperties.HelpText="Allowed: .wad, .pwad, .pk3, .pk7, .ipk3, .ipk7, .pkz, .zip. Directories scan top-level files only."
                         DragDrop.Drop="OnModDrop">
                   <Grid Grid.IsSharedSizeScope="True" RowDefinitions="Auto,Auto">

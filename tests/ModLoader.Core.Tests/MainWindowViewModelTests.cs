@@ -1,5 +1,4 @@
 using System.Linq;
-using Avalonia.Platform.Storage;
 using ModLoader.App;
 using ModLoader.Core;
 
@@ -1564,27 +1563,7 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
-    public void DropZonePickerOptions_UseZoneSpecificAllowlists()
-    {
-        var sourcePortOptions = DropZonePickerOptionsFactory.Create(DropZoneKind.SourcePort);
-        var iwadOptions = DropZonePickerOptionsFactory.Create(DropZoneKind.Iwad);
-        var modOptions = DropZonePickerOptionsFactory.Create(DropZoneKind.Mod);
-
-        Assert.True(sourcePortOptions.AllowMultiple);
-        Assert.Equal("Select Source Port Files", sourcePortOptions.Title);
-        Assert.Equal(["*.exe"], GetPatterns(sourcePortOptions));
-
-        Assert.True(iwadOptions.AllowMultiple);
-        Assert.Equal("Select IWAD Files", iwadOptions.Title);
-        Assert.Equal(["*.wad", "*.pk3", "*.iwad", "*.ipk3", "*.ipk7", "*.pk7"], GetPatterns(iwadOptions));
-
-        Assert.True(modOptions.AllowMultiple);
-        Assert.Equal("Select Mod Files", modOptions.Title);
-        Assert.Equal(["*.wad", "*.pwad", "*.pk3", "*.pk7", "*.ipk3", "*.ipk7", "*.pkz", "*.zip"], GetPatterns(modOptions));
-    }
-
-    [Fact]
-    public void MainWindowXaml_PlacesProfileActionsAndSharedStatusBadgeInCorrectSections()
+    public void MainWindowXaml_PlacesProfileActionsAndDragOnlyDropZonesInCorrectSections()
     {
         var xamlPath = GetRepoFilePath("src", "ModLoader.App", "MainWindow.axaml");
         var xaml = File.ReadAllText(xamlPath);
@@ -1625,16 +1604,19 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("Text=\"Drag and drop here\"", xaml, StringComparison.Ordinal);
         Assert.DoesNotContain("Text=\"Drag files here or click to upload\"", xaml, StringComparison.Ordinal);
         Assert.DoesNotContain("Text=\"+\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("PointerPressed=\"OnDropZonePointerPressed\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("KeyDown=\"OnDropZoneKeyDown\"", xaml, StringComparison.Ordinal);
+        Assert.DoesNotContain("PointerPressed=\"OnDropZonePointerPressed\"", xaml, StringComparison.Ordinal);
+        Assert.DoesNotContain("KeyDown=\"OnDropZoneKeyDown\"", xaml, StringComparison.Ordinal);
+        Assert.DoesNotContain("Focusable=\"True\"", xaml, StringComparison.Ordinal);
+        Assert.DoesNotContain("IsTabStop=\"True\"", xaml, StringComparison.Ordinal);
         Assert.Contains("DragDrop.DragEnter=\"OnDropZoneDragEnter\"", xaml, StringComparison.Ordinal);
         Assert.Contains("DragDrop.DragLeave=\"OnDropZoneDragLeave\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("DragDrop.DragOver=\"OnDropZoneDragOver\"", xaml, StringComparison.Ordinal);
         Assert.Contains("Classes.dragover=\"{Binding IsSourcePortDropZoneDragActive}\"", xaml, StringComparison.Ordinal);
         Assert.Contains("Classes.dragover=\"{Binding IsIwadDropZoneDragActive}\"", xaml, StringComparison.Ordinal);
         Assert.Contains("Classes.dragover=\"{Binding IsModDropZoneDragActive}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("automation:AutomationProperties.Name=\"Source Port drop zone. Drag files here or click to upload.\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("automation:AutomationProperties.Name=\"IWAD drop zone. Drag files here or click to upload.\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("automation:AutomationProperties.Name=\"Mod drop zone. Drag files here or click to upload.\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("automation:AutomationProperties.Name=\"Source Port drop zone. Drag and drop files here.\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("automation:AutomationProperties.Name=\"IWAD drop zone. Drag and drop files here.\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("automation:AutomationProperties.Name=\"Mod drop zone. Drag and drop files here.\"", xaml, StringComparison.Ordinal);
 
         var profilesHeaderIndex = xaml.IndexOf("Text=\"Profiles\"", StringComparison.Ordinal);
         var newProfileIndex = xaml.IndexOf("Content=\"New Profile\"", StringComparison.Ordinal);
@@ -1668,8 +1650,9 @@ public sealed class MainWindowViewModelTests
         var feature010 = File.ReadAllText(GetRepoFilePath("Features", "010-profile-drag-reorder.md"));
 
         Assert.Contains("always-visible instructional card styling", spec, StringComparison.Ordinal);
-        Assert.Contains("clickable keyboard-accessible file-picker fallback", spec, StringComparison.Ordinal);
-        Assert.Contains("click / keyboard fallback to multi-select file pickers", spec, StringComparison.Ordinal);
+        Assert.DoesNotContain("clickable keyboard-accessible file-picker fallback", spec, StringComparison.Ordinal);
+        Assert.DoesNotContain("click / keyboard fallback to multi-select file pickers", spec, StringComparison.Ordinal);
+        Assert.Contains("drag-and-drop targets with visible instructional text, section-specific accessible labels, and drag-over highlight", spec, StringComparison.Ordinal);
         Assert.Contains("`Launch`, `Rename`, and `Delete` actions", spec, StringComparison.Ordinal);
         Assert.Contains("Double-clicking a profile row acts as a pane shortcut", spec, StringComparison.Ordinal);
         Assert.Contains("fixed `380 px` width", spec, StringComparison.Ordinal);
@@ -1680,12 +1663,15 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("Each drop zone renders a visible default target treatment before any drag begins", feature002, StringComparison.Ordinal);
         Assert.DoesNotContain("an always-visible empty-state icon or badge treatment", feature002, StringComparison.Ordinal);
         Assert.DoesNotContain("`Drag files here or click to upload`", feature002, StringComparison.Ordinal);
-        Assert.Contains("clicking the zone opens a multi-select file picker for that zone", feature002, StringComparison.Ordinal);
-        Assert.Contains("`Enter` and `Space` trigger the same picker flow as click", feature002, StringComparison.Ordinal);
+        Assert.DoesNotContain("clicking the zone opens a multi-select file picker for that zone", feature002, StringComparison.Ordinal);
+        Assert.DoesNotContain("`Enter` and `Space` trigger the same picker flow as click", feature002, StringComparison.Ordinal);
+        Assert.Contains("Then the zone does not open a file picker or perform any other add-files action.", feature002, StringComparison.Ordinal);
         Assert.Contains("file-library `Expand` / `Collapse` action to the right of `New Profile`", feature008, StringComparison.Ordinal);
         Assert.Contains("selected-profile command preview text below the status text when the selected profile has one or more previewable saved launch tokens", feature008, StringComparison.Ordinal);
         Assert.Contains("the Source Port, IWAD, and Mod drop zones inside that pane use the shared visible drop-zone affordance defined by Feature 002", feature008, StringComparison.Ordinal);
-        Assert.Contains("File-picker fallback does not add folder selection support", feature008, StringComparison.Ordinal);
+        Assert.DoesNotContain("File-picker fallback does not add folder selection support", feature008, StringComparison.Ordinal);
+        Assert.DoesNotContain("click-upload affordance", feature008, StringComparison.Ordinal);
+        Assert.Contains("Drag and drop files here.", feature008, StringComparison.Ordinal);
         Assert.Contains("valid rows show a `VALID` badge in that same slot", feature008, StringComparison.Ordinal);
         Assert.Contains("left profile pane uses a fixed width of `380 px`", feature008, StringComparison.Ordinal);
         Assert.Contains("Feature 010 becomes authoritative for how profile row ordering is changed by drag reordering", feature008, StringComparison.Ordinal);
@@ -1784,10 +1770,6 @@ public sealed class MainWindowViewModelTests
         };
     }
 
-    private static IReadOnlyList<string> GetPatterns(FilePickerOpenOptions options)
-    {
-        return options.FileTypeFilter?.Single().Patterns?.ToArray() ?? [];
-    }
 }
 
 internal sealed class RecordingPersistence : ILaunchInputsPersistence

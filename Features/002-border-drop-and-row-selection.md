@@ -39,14 +39,7 @@ Expand the drop interaction hit area to each section border and add deterministi
   - border contrast and/or thickness increases
   - background becomes brighter or more tinted
   - the active drop target is visually clearer than its default state
-- Each drop zone is also a clickable fallback target:
-  - clicking the zone opens a multi-select file picker for that zone
-  - the picker uses the same file-extension allowlist already defined by Feature 001 and later extension expansions
-  - clickable fallback does not change drag/drop processing behavior
-- Each clickable drop zone supports keyboard activation:
-  - the zone can receive focus
-  - `Enter` and `Space` trigger the same picker flow as click
-- Each clickable drop zone provides an accessible label describing the drag-and-drop plus click-upload affordance.
+- Each drop zone provides a section-specific accessible label describing the drag-and-drop affordance.
 
 ### IWAD Selection
 - Row click toggles selection for that row.
@@ -82,10 +75,10 @@ Then that zone shows a stronger highlighted state than its default idle styling.
 And when the drag leaves or the drop completes
 Then the zone returns to its default idle styling.
 
-### Click and keyboard fallback
-Given a drop zone is focused or clicked
-When the user activates it with click, `Enter`, or `Space`
-Then that zone opens a multi-select file picker using the same file-type allowlist as its drag/drop rules.
+### Drag-only target behavior
+Given a drop zone is rendered
+When the user clicks inside the zone without dragging files
+Then the zone does not open a file picker or perform any other add-files action.
 
 ### IWAD single-select toggle
 Given at least two IWAD rows
