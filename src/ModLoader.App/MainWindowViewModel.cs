@@ -235,7 +235,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     public bool IsFileLibraryPaneExpanded => !IsFileLibraryPaneCollapsed;
 
-    public string FileLibraryPaneToggleText => IsFileLibraryPaneCollapsed ? "Expand File Library" : "Collapse File Library";
+    public string FileLibraryPaneToggleText => "File Library";
 
     public GridLength ProfilePaneColumnWidth => IsFileLibraryPaneCollapsed
         ? new GridLength(1, GridUnitType.Star)
@@ -371,7 +371,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             var selectedProfile = GetSelectedProfile();
             if (selectedProfile is null)
             {
-                return "Select a saved profile or create one from the current library selections.";
+                return "Select a saved profile or create a new one.";
             }
 
             var validity = GetProfileValidity(selectedProfile);
@@ -815,14 +815,16 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         {
             Id = Guid.NewGuid().ToString("N"),
             Name = GenerateDefaultProfileName(),
-            SourcePortPath = SelectedSourcePortPath,
-            IwadPath = SelectedIwadPath,
-            SelectedModPaths = [.. SelectedModPaths]
+            SourcePortPath = null,
+            IwadPath = null,
+            SelectedModPaths = []
         };
 
         _profiles.Add(profile);
         SelectedProfileId = profile.Id;
         IsFileLibraryPaneCollapsed = false;
+        HydrateSelectionsFromSelectedProfile();
+        RefreshRows();
         RefreshProfileRows();
         OnPropertyChanged(nameof(HasProfiles));
         OnPropertyChanged(nameof(CanLaunch));
@@ -1001,6 +1003,17 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         _pendingDeleteProfileId = profileId;
         SetInformationalMessage($"Delete profile \"{profile.Name}\"?");
         OnPropertyChanged(nameof(HasPendingDeleteConfirmation));
+    }
+
+    public void RequestDeleteSelectedProfile()
+    {
+        var selectedProfileId = SelectedProfileId;
+        if (string.IsNullOrWhiteSpace(selectedProfileId))
+        {
+            return;
+        }
+
+        RequestDeleteProfile(selectedProfileId);
     }
 
     public void ConfirmDeleteProfile()

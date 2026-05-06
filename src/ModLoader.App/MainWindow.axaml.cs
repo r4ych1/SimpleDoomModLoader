@@ -17,7 +17,7 @@ public partial class MainWindow : Window
 {
     private const double ProfileDragStartThreshold = 6d;
     private const double ScrollAffordanceVisibilityEpsilon = 0.5d;
-    private const double FileLibraryScrollAffordanceVisibleOpacity = 0.6d;
+    private const double ScrollAffordanceVisibleOpacity = 0.72d;
     private static readonly TimeSpan CollapsedSelectedProfileToggleDelay = TimeSpan.FromMilliseconds(275);
     private readonly MainWindowViewModel _viewModel;
     private DispatcherTimer? _pendingProfileToggleTimer;
@@ -25,6 +25,7 @@ public partial class MainWindow : Window
     private Grid? _profileListHost;
     private ScrollViewer? _profileListScrollViewer;
     private ScrollViewer? _fileLibraryScrollViewer;
+    private PathIcon? _profileListScrollAffordance;
     private PathIcon? _fileLibraryScrollAffordance;
     private bool _isProfileDragActive;
     private int? _profileDropIndex;
@@ -54,11 +55,17 @@ public partial class MainWindow : Window
         _profileListHost = this.FindControl<Grid>("ProfileListHost");
         _profileListScrollViewer = this.FindControl<ScrollViewer>("ProfileListScrollViewer");
         _fileLibraryScrollViewer = this.FindControl<ScrollViewer>("FileLibraryScrollViewer");
+        _profileListScrollAffordance = this.FindControl<PathIcon>("ProfileListScrollAffordance");
         _fileLibraryScrollAffordance = this.FindControl<PathIcon>("FileLibraryScrollAffordance");
+
+        if (_profileListScrollViewer is not null)
+        {
+            _profileListScrollViewer.PropertyChanged += OnScrollViewerPropertyChanged;
+        }
 
         if (_fileLibraryScrollViewer is not null)
         {
-            _fileLibraryScrollViewer.PropertyChanged += OnFileLibraryScrollViewerPropertyChanged;
+            _fileLibraryScrollViewer.PropertyChanged += OnScrollViewerPropertyChanged;
         }
     }
 
@@ -109,7 +116,19 @@ public partial class MainWindow : Window
         var wasCollapsed = _viewModel.IsFileLibraryPaneCollapsed;
         _viewModel.CreateNewProfile();
         ApplyWindowWidthForPaneStateTransition(wasCollapsed);
-        ScheduleFileLibraryScrollAffordanceUpdate();
+        ScheduleScrollAffordanceUpdate();
+    }
+
+    private void OnEditSelectedProfileClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        CancelPendingProfileToggle();
+        _viewModel.BeginRenameSelectedProfile();
+    }
+
+    private void OnDeleteSelectedProfileClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        CancelPendingProfileToggle();
+        _viewModel.RequestDeleteSelectedProfile();
     }
 
     private void OnDeleteProfileClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -143,6 +162,7 @@ public partial class MainWindow : Window
     {
         CancelPendingProfileToggle();
         _viewModel.ConfirmDeleteProfile();
+        ScheduleScrollAffordanceUpdate();
     }
 
     private void OnCancelDeleteProfileClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -157,13 +177,13 @@ public partial class MainWindow : Window
         var wasCollapsed = _viewModel.IsFileLibraryPaneCollapsed;
         _viewModel.ToggleFileLibraryPaneCollapsed();
         ApplyWindowWidthForPaneStateTransition(wasCollapsed);
-        ScheduleFileLibraryScrollAffordanceUpdate();
+        ScheduleScrollAffordanceUpdate();
     }
 
     private void OnToggleSourcePortSectionCollapsedClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         _viewModel.ToggleSourcePortSectionCollapsed();
-        ScheduleFileLibraryScrollAffordanceUpdate();
+        ScheduleScrollAffordanceUpdate();
     }
 
     private void OnRemoveSourcePortClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -193,13 +213,13 @@ public partial class MainWindow : Window
     private void OnToggleIwadSectionCollapsedClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         _viewModel.ToggleIwadSectionCollapsed();
-        ScheduleFileLibraryScrollAffordanceUpdate();
+        ScheduleScrollAffordanceUpdate();
     }
 
     private void OnToggleModSectionCollapsedClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         _viewModel.ToggleModSectionCollapsed();
-        ScheduleFileLibraryScrollAffordanceUpdate();
+        ScheduleScrollAffordanceUpdate();
     }
 
     private void OnWindowOpened(object? sender, EventArgs e)
@@ -209,7 +229,7 @@ public partial class MainWindow : Window
             ApplyWindowWidthForCurrentPaneState();
         }
 
-        ScheduleFileLibraryScrollAffordanceUpdate();
+        ScheduleScrollAffordanceUpdate();
     }
 
     private void OnWindowClosed(object? sender, EventArgs e)
@@ -218,7 +238,12 @@ public partial class MainWindow : Window
 
         if (_fileLibraryScrollViewer is not null)
         {
-            _fileLibraryScrollViewer.PropertyChanged -= OnFileLibraryScrollViewerPropertyChanged;
+            _fileLibraryScrollViewer.PropertyChanged -= OnScrollViewerPropertyChanged;
+        }
+
+        if (_profileListScrollViewer is not null)
+        {
+            _profileListScrollViewer.PropertyChanged -= OnScrollViewerPropertyChanged;
         }
     }
 
@@ -719,7 +744,7 @@ public partial class MainWindow : Window
     {
         _viewModel.SetWindowWidth(e.NewSize.Width);
         _viewModel.RememberExpandedWindowWidth(e.NewSize.Width, WindowState == WindowState.Normal);
-        ScheduleFileLibraryScrollAffordanceUpdate();
+        ScheduleScrollAffordanceUpdate();
     }
 
     private void OnWindowPropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
@@ -759,39 +784,45 @@ public partial class MainWindow : Window
         Width = targetWidth;
     }
 
-    private void OnFileLibraryScrollViewerPropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
+    private void OnScrollViewerPropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
     {
         if (e.Property == ScrollViewer.OffsetProperty
             || e.Property == ScrollViewer.ExtentProperty
             || e.Property == ScrollViewer.ViewportProperty)
         {
-            ScheduleFileLibraryScrollAffordanceUpdate();
+            ScheduleScrollAffordanceUpdate();
         }
     }
 
-    private void ScheduleFileLibraryScrollAffordanceUpdate()
+    private void ScheduleScrollAffordanceUpdate()
     {
-        Dispatcher.UIThread.Post(UpdateFileLibraryScrollAffordance, DispatcherPriority.Background);
+        Dispatcher.UIThread.Post(UpdateScrollAffordances, DispatcherPriority.Background);
     }
 
-    private void UpdateFileLibraryScrollAffordance()
+    private void UpdateScrollAffordances()
     {
-        if (_fileLibraryScrollViewer is null || _fileLibraryScrollAffordance is null)
+        UpdateScrollAffordance(_profileListScrollViewer, _profileListScrollAffordance, requireExpandedFileLibraryPane: false);
+        UpdateScrollAffordance(_fileLibraryScrollViewer, _fileLibraryScrollAffordance, requireExpandedFileLibraryPane: true);
+    }
+
+    private void UpdateScrollAffordance(
+        ScrollViewer? scrollViewer,
+        PathIcon? affordance,
+        bool requireExpandedFileLibraryPane)
+    {
+        if (scrollViewer is null || affordance is null)
         {
             return;
         }
 
-        var isAtTop = _fileLibraryScrollViewer.Offset.Y <= ScrollAffordanceVisibilityEpsilon;
-        var overflowBelow = _fileLibraryScrollViewer.Extent.Height
-            - (_fileLibraryScrollViewer.Offset.Y + _fileLibraryScrollViewer.Viewport.Height);
+        var overflowBelow = scrollViewer.Extent.Height - (scrollViewer.Offset.Y + scrollViewer.Viewport.Height);
         var hasOverflowBelow = overflowBelow > ScrollAffordanceVisibilityEpsilon;
-        var shouldShow = _viewModel.IsFileLibraryPaneExpanded
-            && _fileLibraryScrollViewer.IsVisible
-            && isAtTop
-            && hasOverflowBelow;
+        var shouldShow = scrollViewer.IsVisible
+            && hasOverflowBelow
+            && (!requireExpandedFileLibraryPane || _viewModel.IsFileLibraryPaneExpanded);
 
-        _fileLibraryScrollAffordance.Opacity = shouldShow
-            ? FileLibraryScrollAffordanceVisibleOpacity
+        affordance.Opacity = shouldShow
+            ? ScrollAffordanceVisibleOpacity
             : 0d;
     }
 

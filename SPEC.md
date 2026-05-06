@@ -44,9 +44,10 @@ This repository follows feature-scoped delivery. Behavior is only guaranteed whe
   - Adds saved profiles as the primary launch model in a two-pane workspace: a pinned profile list on the left and independently scrolling shared file library on the right, with a profile-creation action in the left profile-management header.
   - Profiles persist source port, IWAD, and ordered mod references to the shared library, are the only launchable unit, and require one source port plus one IWAD only for profile validity.
   - The expanded shared file-library pane renders Source Port, IWAD, and Mod drop zones as visibly interactive drag-and-drop targets with visible instructional text, section-specific accessible labels, and drag-over highlight.
-  - While the expanded shared file-library pane has additional content below the viewport and remains scrolled at the top, it shows a subtle bottom-centered downward chevron affordance that fades away once the user scrolls down.
+  - While the expanded shared file-library pane has additional content below the current viewport, it shows a subtle bottom-centered downward chevron affordance that remains visible until the bottom of the scrollable content is reached.
+  - While the left profile list has additional content below the current viewport, it shows the same subtle bottom-centered downward chevron affordance in both expanded two-pane mode and collapsed profile-only mode.
   - Each saved profile row renders its own wrapped filename-only command preview inside the profile cell, and that preview appears only while the file library is collapsed and the window width remains above the Feature 008 minimum threshold.
-  - While a profile is selected in the expanded file library, the selected-profile header keeps the profile name, shows status text with the shared amber invalid color when invalid, and renders its own wrapped filename-only command preview from the saved profile inputs.
+  - While a profile is selected in the expanded file library, the selected-profile header stays fixed at the top of the file-library pane, keeps the profile name, shows right-aligned `Edit` and `Delete` actions on the same row, shows status text with the shared amber invalid color when invalid, and renders its own wrapped filename-only command preview from the saved profile inputs.
   - While the file library is expanded, the left `Profiles` pane uses a fixed `380 px` width, profile names wrap up to two lines, and inline invalid-reason text stays hidden while shared status badges remain visible.
   - The left profile list and the right file-library pane remain scrollable when their content overflows, while visible scrollbar chrome stays hidden for both panes.
   - Profile rows expose launch, rename, and delete actions plus a shared row-status badge treatment for valid and invalid states, while profile rename is handled inline on the selected row and outside-click rename exit cancels rather than saves.
@@ -56,7 +57,7 @@ This repository follows feature-scoped delivery. Behavior is only guaranteed whe
   - Wraps the shared file library in its own right-side section with a pane-level collapse control that lives in the left profile-management header.
   - Collapsing the file library removes the right pane from view and collapses the pane gap while the left profile pane remains as the only workspace pane in view.
   - Double-clicking a profile row acts as a pane shortcut: it expands the file library while collapsed and collapses it while expanded, while keeping the clicked profile selected.
-  - File-library pane collapse state persists across restart without changing profile, launch, or inner library-section behavior.
+  - File-library pane collapse state persists across restart without changing profile, launch, or inner library-section behavior, and the pane does not render a visible `File Library` title while expanded.
   - Authoritative spec: `Features/009-file-library-pane-collapse.md`.
 - Feature 010: Profile drag reordering.
   - Adds manual drag reordering to the left-side profile-management list using a name-only floating ghost row and a single insertion marker.
@@ -64,7 +65,7 @@ This repository follows feature-scoped delivery. Behavior is only guaranteed whe
   - Authoritative spec: `Features/010-profile-drag-reorder.md`.
 - Feature 011: Icon-based action controls.
   - Replaces selected text-labeled UI actions with Fluent icon-only controls while preserving profile creation, launch, rename, delete, remove, and pane-collapse behavior, and adds the shared Fluent `arrow_down_regular` geometry for the file-library scroll affordance.
-  - Shared-library Source Port, IWAD, and Mod row delete icons expose `Delete`, while the file-library pane toggle exposes `Expand File Library` or `Collapse File Library`.
+  - Shared-library Source Port, IWAD, and Mod row delete icons expose `Delete`, while the file-library pane toggle exposes `File Library` and the selected-profile header exposes `Edit` and `Delete`.
   - Keeps destructive confirmation in the message banner text-based while exposing icon-only actions through tooltip and automation name text.
   - Authoritative spec: `Features/011-icon-based-action-controls.md`.
 - Feature 012: Profile-only collapse mode and header removal.
