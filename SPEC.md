@@ -10,6 +10,7 @@ For each launch profile, users provide:
 
 Feature 005 added launch execution for the pre-profile single-selection workflow.
 Feature 008 makes saved profiles the only launchable unit while keeping Source Ports, IWADs, and Mods as shared library collections.
+Feature 012 removes the legacy fixed top header and turns collapsed file-library mode into a profile-only window mode that shrinks the native window to the profile-management section.
 
 This repository follows feature-scoped delivery. Behavior is only guaranteed when specified in feature specs under `Features/`.
 
@@ -26,8 +27,8 @@ This repository follows feature-scoped delivery. Behavior is only guaranteed whe
   - Adds generated launch-argument preview (`-iwad`, `-file`) using filenames-only with wrapped footer display, and derives Mod display ordering from current selected-mod sequence instead of persisting shared-library reorders.
   - Authoritative spec: `Features/004-fixed-command-preview-and-selection-order.md`.
 - Feature 005: Fixed header and launch execution.
-  - Adds the fixed top header shell used by later workspace features.
   - Defines launch execution using generated full-path `-iwad` / `-file` arguments from current selection state.
+  - The fixed top header introduced there is later removed by Feature 012.
   - Later profile-based features are authoritative for where launch is triggered in the UI.
   - Authoritative spec: `Features/005-fixed-header-and-launch-execution.md`.
 - Feature 006: Section collapse layout and row interaction states.
@@ -53,7 +54,7 @@ This repository follows feature-scoped delivery. Behavior is only guaranteed whe
   - Authoritative spec: `Features/008-profile-management.md`.
 - Feature 009: Collapsible file library pane.
   - Wraps the shared file library in its own right-side section with a pane-level collapse control that lives in the left profile-management header.
-  - Collapsing the file library removes the right pane from view and collapses the pane gap while the left profile pane expands to fill the remaining workspace width.
+  - Collapsing the file library removes the right pane from view and collapses the pane gap while the left profile pane remains as the only workspace pane in view.
   - Double-clicking a profile row acts as a pane shortcut: it expands the file library while collapsed and collapses it while expanded, while keeping the clicked profile selected.
   - File-library pane collapse state persists across restart without changing profile, launch, or inner library-section behavior.
   - Authoritative spec: `Features/009-file-library-pane-collapse.md`.
@@ -66,6 +67,11 @@ This repository follows feature-scoped delivery. Behavior is only guaranteed whe
   - Shared-library Source Port, IWAD, and Mod row delete icons expose `Delete`, while the file-library pane toggle exposes `Expand File Library` or `Collapse File Library`.
   - Keeps destructive confirmation in the message banner text-based while exposing icon-only actions through tooltip and automation name text.
   - Authoritative spec: `Features/011-icon-based-action-controls.md`.
+- Feature 012: Profile-only collapse mode and header removal.
+  - Removes the legacy fixed top header while preserving the existing message banner and two-pane workspace structure.
+  - Makes collapsed file-library mode a true profile-only window mode that shrinks the native window to the profile-management section and restores the remembered expanded width when reopened.
+  - Persists the last expanded normal-window width for future restore from collapsed mode, while keeping the existing `768 px` row-preview threshold unchanged.
+  - Authoritative spec: `Features/012-profile-only-collapse-mode-and-header-removal.md`.
 
 ## Scope Boundary For Feature 001
 Feature 001 provides in-memory state management and UI interactions only. It does not include:

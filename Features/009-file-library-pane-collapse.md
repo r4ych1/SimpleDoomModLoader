@@ -1,13 +1,13 @@
 # Feature 009 - Collapsible File Library Pane
 
 ## Goal
-Wrap the shared file library in its own right-side workspace section and allow that section to collapse fully out of view so the left profile pane can expand into the freed space.
+Wrap the shared file library in its own right-side workspace section and allow that section to collapse fully out of view so the left profile pane remains as the only workspace pane in view.
 
 ## In Scope
 - Pane-level collapse and expand behavior for the right-side file library section.
 - A dedicated file-library section header with title only while expanded.
 - Persistent `IsFileLibraryPaneCollapsed` state across restart.
-- Layout changes that let the left profile pane expand when the file library is collapsed.
+- Layout changes that leave the left profile pane as the only visible workspace pane when the file library is collapsed.
 
 ## Out Of Scope
 - Resizable splitters or drag-to-resize pane widths.
@@ -35,9 +35,10 @@ Wrap the shared file library in its own right-side workspace section and allow t
 - When the file library is collapsed:
   - the right file-library pane is not rendered
   - the spacer gap between the profile pane and file-library pane is not rendered
-  - the left profile pane expands to fill the remaining workspace width
+  - the left profile pane remains as the only workspace pane in view
 - Collapsing the file library does not move it to the left side and does not overlap the profile pane.
 - The collapsed state does not show a right-edge strip, a secondary expand affordance, or a duplicate `File Library` label.
+- Feature 012 later becomes authoritative for shrinking and restoring the native window width while preserving these pane-collapse semantics.
 
 ### Behavior Preservation
 - File-library pane collapse does not change:
@@ -77,7 +78,7 @@ Given the workspace is rendered with the file library expanded
 When the file-library collapse control is activated
 Then the file library pane is removed from view.
 And the spacer gap between the panes is removed from view.
-And the left profile pane expands to fill the remaining workspace width.
+And the left profile pane remains as the only workspace pane in view.
 
 ### Expand to default size
 Given the file library is collapsed

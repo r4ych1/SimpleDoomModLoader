@@ -4,7 +4,7 @@
         x:Class="ModLoader.App.MainWindow"
         Width="1180"
         Height="820"
-        Title="ModLoader - Feature 010">
+        Title="ModLoader - Feature 012">
   <Window.Resources>
     <ResourceDictionary>
       <ResourceDictionary.ThemeDictionaries>
@@ -103,21 +103,6 @@
   </Window.Styles>
 
   <DockPanel>
-    <Border DockPanel.Dock="Top"
-            BorderThickness="0,0,0,1"
-            BorderBrush="#374151"
-            Background="#0b1220"
-            Padding="12,10">
-      <StackPanel Spacing="2">
-        <TextBlock FontSize="20"
-                   FontWeight="Bold"
-                   Foreground="#e5e7eb"
-                   Text="Feature 010: Profile Drag Reorder" />
-        <TextBlock Foreground="#9ca3af"
-                   Text="Profiles are the only launchable unit. Select a profile on the left, then manage Source Port, IWAD, and Mods from the shared library on the right." />
-      </StackPanel>
-    </Border>
-
     <Border DockPanel.Dock="Top"
             IsVisible="{Binding HasMessage}"
             BorderBrush="#f59e0b"

@@ -33,6 +33,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private double _profileDropIndicatorLeft;
     private double _profileDropIndicatorTop;
     private double _profileDropIndicatorWidth;
+    private double? _rememberedExpandedWindowWidth;
     private double _windowWidth = double.PositiveInfinity;
     private string? _selectedIwadPath;
     private string? _selectedProfileId;
@@ -62,6 +63,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         _store = new LaunchInputsStore(loadResult.State);
         LoadProfilesFromConfig(loadResult.State);
         IsFileLibraryPaneCollapsed = loadResult.State.IsFileLibraryPaneCollapsed;
+        var windowWidthSanitized = InitializeRememberedExpandedWindowWidth(loadResult.State.LastExpandedWindowWidth);
         IsSourcePortSectionCollapsed = loadResult.State.IsSourcePortSectionCollapsed;
         IsIwadSectionCollapsed = loadResult.State.IsIwadSectionCollapsed;
         IsModSectionCollapsed = loadResult.State.IsModSectionCollapsed;
@@ -76,7 +78,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
         RefreshFromStore();
 
-        if (storeSanitized || selectedProfileSanitized)
+        if (storeSanitized || selectedProfileSanitized || windowWidthSanitized)
         {
             PersistState();
         }
@@ -246,6 +248,10 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     public GridLength FileLibraryPaneColumnWidth => IsFileLibraryPaneCollapsed
         ? new GridLength(0)
         : new GridLength(1, GridUnitType.Star);
+
+    public double PreferredExpandedWindowWidth => WindowSizingPolicy.GetExpandedWindowWidth(_rememberedExpandedWindowWidth);
+
+    public double PreferredCollapsedWindowWidth => WindowSizingPolicy.ProfileOnlyWindowWidth;
 
     public bool IsSourcePortSectionCollapsed
     {
@@ -566,6 +572,29 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
         _windowWidth = normalizedWidth;
         RefreshProfileRows();
+    }
+
+    public void RememberExpandedWindowWidth(double width, bool isNormalWindowState)
+    {
+        if (IsFileLibraryPaneCollapsed || !isNormalWindowState)
+        {
+            return;
+        }
+
+        var normalizedWidth = WindowSizingPolicy.NormalizeRememberedExpandedWindowWidth(width);
+        if (!normalizedWidth.HasValue)
+        {
+            return;
+        }
+
+        if (_rememberedExpandedWindowWidth.HasValue
+            && Math.Abs(_rememberedExpandedWindowWidth.Value - normalizedWidth.Value) < 0.01d)
+        {
+            return;
+        }
+
+        _rememberedExpandedWindowWidth = normalizedWidth.Value;
+        PersistState();
     }
 
     public void ProcessSourcePortDrop(IEnumerable<string> droppedPaths)
@@ -1257,6 +1286,14 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         return false;
     }
 
+    private bool InitializeRememberedExpandedWindowWidth(double? lastExpandedWindowWidth)
+    {
+        var normalizedWidth = WindowSizingPolicy.NormalizeRememberedExpandedWindowWidth(lastExpandedWindowWidth);
+        var hadInvalidStoredWidth = lastExpandedWindowWidth.HasValue && !normalizedWidth.HasValue;
+        _rememberedExpandedWindowWidth = normalizedWidth;
+        return hadInvalidStoredWidth;
+    }
+
     private bool TrySelectProfile(string profileId)
     {
         var profile = _profiles.FirstOrDefault(candidate => string.Equals(candidate.Id, profileId, StringComparison.Ordinal));
@@ -1608,6 +1645,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             Profiles = [.. _profiles.Select(CloneProfile)],
             SelectedProfileId = SelectedProfileId,
             IsFileLibraryPaneCollapsed = IsFileLibraryPaneCollapsed,
+            LastExpandedWindowWidth = _rememberedExpandedWindowWidth,
             IsSourcePortSectionCollapsed = IsSourcePortSectionCollapsed,
             SelectedSourcePortPath = null,
             Iwads = [.. snapshot.Iwads],

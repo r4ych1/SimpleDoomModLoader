@@ -1,13 +1,11 @@
 # Feature 005 - Fixed Header and Launch Execution
 
 ## Goal
-Provide the fixed top header shell used by the app and define deterministic full-path launch execution behavior.
+Define deterministic full-path launch execution behavior.
+
+Feature 005 originally introduced a fixed top header shell for the app. Feature 012 later removes that header, so Feature 005 is now authoritative only for launch execution and failure feedback behavior.
 
 ## In Scope
-- Fixed, non-scrolling top header.
-- Header content:
-  - Current title text.
-  - Current label text.
 - Launch command generation using full paths:
   - `-iwad <selectedIwadFullPath>`
   - Optional `-file <selectedModFullPath...>` in selected Mod sequence order.
@@ -18,6 +16,7 @@ Provide the fixed top header shell used by the app and define deterministic full
 - Any change to footer command preview format from Feature 004.
 - Changing selection semantics from prior features.
 - Profile management.
+- Current window header or pane layout behavior.
 - The final placement of launch controls in later profile-based workspace features.
 - Retry workflows or modal error dialogs.
 
@@ -31,9 +30,6 @@ Provide the fixed top header shell used by the app and define deterministic full
   - Argument tokens passed to process start, using full normalized absolute paths.
 
 ## Rules
-### Fixed Header Layout
-- Header remains visible while main content scrolls.
-
 ### Launch Gating
 - Before profile-based features, launch requires one selected source-port row and one selected IWAD.
 - Later profile-based features may replace that UI gate while reusing the same launch argument construction and failure feedback rules.
@@ -56,11 +52,6 @@ Provide the fixed top header shell used by the app and define deterministic full
 - Launch execution uses full paths independently from preview rendering.
 
 ## Acceptance Criteria
-### Fixed header visibility
-Given content long enough to scroll
-When user scrolls the main content area
-Then header title and label remain visible at the top.
-
 ### Launch gating
 Given no selected source-port row or no selected IWAD
 When UI is rendered

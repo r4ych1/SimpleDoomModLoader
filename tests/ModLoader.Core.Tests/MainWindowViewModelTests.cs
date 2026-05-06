@@ -294,6 +294,85 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
+    public void WindowSizingPolicy_UsesDefaultExpandedWidthAndProfileOnlyCollapsedWidth()
+    {
+        Assert.Equal(1180d, WindowSizingPolicy.GetExpandedWindowWidth(null));
+        Assert.Equal(1180d, WindowSizingPolicy.GetExpandedWindowWidth(0d));
+        Assert.Equal(1366d, WindowSizingPolicy.GetExpandedWindowWidth(1366d));
+        Assert.Equal(420d, WindowSizingPolicy.ProfileOnlyWindowWidth);
+    }
+
+    [Fact]
+    public void Constructor_WithPersistedExpandedWindowWidth_RestoresPreferredExpandedWidth()
+    {
+        var persistence = new RecordingPersistence
+        {
+            LoadResult = new LaunchInputsLoadResult
+            {
+                State = new LaunchInputsConfig
+                {
+                    LastExpandedWindowWidth = 1440d
+                }
+            }
+        };
+
+        var viewModel = new MainWindowViewModel(persistence);
+
+        Assert.Equal(1440d, viewModel.PreferredExpandedWindowWidth);
+        Assert.Equal(420d, viewModel.PreferredCollapsedWindowWidth);
+    }
+
+    [Fact]
+    public void RememberExpandedWindowWidth_WhenExpandedAndNormal_PersistsRememberedWidth()
+    {
+        var persistence = new RecordingPersistence();
+        var viewModel = new MainWindowViewModel(persistence);
+
+        viewModel.RememberExpandedWindowWidth(1366d, isNormalWindowState: true);
+
+        Assert.Equal(1366d, viewModel.PreferredExpandedWindowWidth);
+        Assert.Equal(1366d, persistence.SavedStates.Last().LastExpandedWindowWidth);
+    }
+
+    [Fact]
+    public void RememberExpandedWindowWidth_DoesNotPersistWhileCollapsedOrNotNormal()
+    {
+        var persistence = new RecordingPersistence();
+        var viewModel = new MainWindowViewModel(persistence);
+
+        viewModel.RememberExpandedWindowWidth(1366d, isNormalWindowState: false);
+        Assert.Empty(persistence.SavedStates);
+
+        viewModel.ToggleFileLibraryPaneCollapsed();
+        var savedStateCountAfterCollapse = persistence.SavedStates.Count;
+
+        viewModel.RememberExpandedWindowWidth(1440d, isNormalWindowState: true);
+
+        Assert.Equal(savedStateCountAfterCollapse, persistence.SavedStates.Count);
+        Assert.Equal(1180d, viewModel.PreferredExpandedWindowWidth);
+    }
+
+    [Fact]
+    public void Constructor_WithInvalidPersistedExpandedWindowWidth_FallsBackToDefaultAndPersistsSanitizedState()
+    {
+        var persistence = new RecordingPersistence
+        {
+            LoadResult = new LaunchInputsLoadResult
+            {
+                State = new LaunchInputsConfig
+                {
+                    LastExpandedWindowWidth = 0d
+                }
+            }
+        };
+
+        var viewModel = new MainWindowViewModel(persistence);
+
+        Assert.Equal(1180d, viewModel.PreferredExpandedWindowWidth);
+        Assert.Null(persistence.SavedStates.Last().LastExpandedWindowWidth);
+    }
+
+    [Fact]
     public void DropZoneDragState_DefaultsToInactive()
     {
         var viewModel = new MainWindowViewModel(new RecordingPersistence());
@@ -1646,6 +1725,8 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("automation:AutomationProperties.Name=\"Source Port drop zone. Drag and drop files here.\"", xaml, StringComparison.Ordinal);
         Assert.Contains("automation:AutomationProperties.Name=\"IWAD drop zone. Drag and drop files here.\"", xaml, StringComparison.Ordinal);
         Assert.Contains("automation:AutomationProperties.Name=\"Mod drop zone. Drag and drop files here.\"", xaml, StringComparison.Ordinal);
+        Assert.DoesNotContain("Text=\"Feature 010: Profile Drag Reorder\"", xaml, StringComparison.Ordinal);
+        Assert.DoesNotContain("Profiles are the only launchable unit. Select a profile on the left, then manage Source Port, IWAD, and Mods from the shared library on the right.", xaml, StringComparison.Ordinal);
 
         var profilesHeaderIndex = xaml.IndexOf("Text=\"Profiles\"", StringComparison.Ordinal);
         var newProfileIndex = xaml.IndexOf("ToolTip.Tip=\"New Profile\"", StringComparison.Ordinal);
@@ -1674,16 +1755,19 @@ public sealed class MainWindowViewModelTests
     {
         var spec = File.ReadAllText(GetRepoFilePath("SPEC.md"));
         var feature002 = File.ReadAllText(GetRepoFilePath("Features", "002-border-drop-and-row-selection.md"));
+        var feature005 = File.ReadAllText(GetRepoFilePath("Features", "005-fixed-header-and-launch-execution.md"));
         var feature008 = File.ReadAllText(GetRepoFilePath("Features", "008-profile-management.md"));
         var feature009 = File.ReadAllText(GetRepoFilePath("Features", "009-file-library-pane-collapse.md"));
         var feature010 = File.ReadAllText(GetRepoFilePath("Features", "010-profile-drag-reorder.md"));
         var feature011 = File.ReadAllText(GetRepoFilePath("Features", "011-icon-based-action-controls.md"));
+        var feature012 = File.ReadAllText(GetRepoFilePath("Features", "012-profile-only-collapse-mode-and-header-removal.md"));
 
         Assert.Contains("always-visible instructional card styling", spec, StringComparison.Ordinal);
         Assert.DoesNotContain("clickable keyboard-accessible file-picker fallback", spec, StringComparison.Ordinal);
         Assert.DoesNotContain("click / keyboard fallback to multi-select file pickers", spec, StringComparison.Ordinal);
         Assert.Contains("drag-and-drop targets with visible instructional text, section-specific accessible labels, and drag-over highlight", spec, StringComparison.Ordinal);
         Assert.Contains("Feature 011: Icon-based action controls.", spec, StringComparison.Ordinal);
+        Assert.Contains("Feature 012: Profile-only collapse mode and header removal.", spec, StringComparison.Ordinal);
         Assert.Contains("profile-creation action in the left profile-management header", spec, StringComparison.Ordinal);
         Assert.Contains("Profile rows expose launch, rename, and delete actions", spec, StringComparison.Ordinal);
         Assert.Contains("Double-clicking a profile row acts as a pane shortcut", spec, StringComparison.Ordinal);
@@ -1695,12 +1779,16 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("fades away once the user scrolls down", spec, StringComparison.Ordinal);
         Assert.Contains("selected-profile header keeps the profile name, shows status text with the shared amber invalid color when invalid, and renders its own wrapped filename-only command preview", spec, StringComparison.Ordinal);
         Assert.Contains("require one source port plus one IWAD only for profile validity", spec, StringComparison.Ordinal);
+        Assert.Contains("removes the legacy fixed top header", spec, StringComparison.Ordinal);
+        Assert.Contains("shrinks the native window to the profile-management section", spec, StringComparison.Ordinal);
         Assert.Contains("Each drop zone renders a visible default target treatment before any drag begins", feature002, StringComparison.Ordinal);
         Assert.DoesNotContain("an always-visible empty-state icon or badge treatment", feature002, StringComparison.Ordinal);
         Assert.DoesNotContain("`Drag files here or click to upload`", feature002, StringComparison.Ordinal);
         Assert.DoesNotContain("clicking the zone opens a multi-select file picker for that zone", feature002, StringComparison.Ordinal);
         Assert.DoesNotContain("`Enter` and `Space` trigger the same picker flow as click", feature002, StringComparison.Ordinal);
         Assert.Contains("Then the zone does not open a file picker or perform any other add-files action.", feature002, StringComparison.Ordinal);
+        Assert.Contains("Feature 012 later removes that header", feature005, StringComparison.Ordinal);
+        Assert.DoesNotContain("Fixed Header Layout", feature005, StringComparison.Ordinal);
         Assert.Contains("file-library collapse / expand action to the right of the profile-creation action", feature008, StringComparison.Ordinal);
         Assert.Contains("selected-profile command preview text below the status text when the selected profile has one or more previewable saved launch tokens", feature008, StringComparison.Ordinal);
         Assert.Contains("the Source Port, IWAD, and Mod drop zones inside that pane use the shared visible drop-zone affordance defined by Feature 002", feature008, StringComparison.Ordinal);
@@ -1736,7 +1824,8 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("visible scrollbar chrome is not rendered for that file-library pane", feature008, StringComparison.Ordinal);
         Assert.Contains("the right file-library pane is not rendered", feature009, StringComparison.Ordinal);
         Assert.Contains("the spacer gap between the profile pane and file-library pane is not rendered", feature009, StringComparison.Ordinal);
-        Assert.Contains("when the file library pane is expanded, inline profile-row command preview is hidden for all profile rows", feature009, StringComparison.Ordinal);
+        Assert.Contains("remains as the only workspace pane in view", feature009, StringComparison.Ordinal);
+        Assert.Contains("Feature 012 later becomes authoritative for shrinking and restoring the native window width", feature009, StringComparison.Ordinal);
         Assert.Contains("Double-clicking a profile row while the file library pane is collapsed is the other exception", feature009, StringComparison.Ordinal);
         Assert.Contains("Double-clicking a profile row while the file library pane is expanded is the inverse exception", feature009, StringComparison.Ordinal);
         Assert.Contains("The drag ghost renders only the dragged profile name.", feature010, StringComparison.Ordinal);
@@ -1749,6 +1838,9 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("visual-only and does not introduce a new command, hit target, or keyboard behavior", feature011, StringComparison.Ordinal);
         Assert.Contains("bottom-center of the expanded file-library pane", feature011, StringComparison.Ordinal);
         Assert.Contains("tooltip and automation name text", feature011, StringComparison.Ordinal);
+        Assert.Contains("The top fixed header is not rendered.", feature012, StringComparison.Ordinal);
+        Assert.Contains("restores the remembered expanded normal-window width", feature012, StringComparison.Ordinal);
+        Assert.Contains("If the window is maximized", feature012, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1847,6 +1939,7 @@ internal sealed class RecordingPersistence : ILaunchInputsPersistence
             Profiles = [.. config.Profiles.Select(CloneProfile)],
             SelectedProfileId = config.SelectedProfileId,
             IsFileLibraryPaneCollapsed = config.IsFileLibraryPaneCollapsed,
+            LastExpandedWindowWidth = config.LastExpandedWindowWidth,
             IsSourcePortSectionCollapsed = config.IsSourcePortSectionCollapsed,
             SelectedSourcePortPath = config.SelectedSourcePortPath,
             Iwads = [.. config.Iwads],

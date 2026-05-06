@@ -43,6 +43,7 @@ public partial class MainWindow : Window
         Opened += OnWindowOpened;
         Closed += OnWindowClosed;
         SizeChanged += OnWindowSizeChanged;
+        PropertyChanged += OnWindowPropertyChanged;
         _viewModel.SetWindowWidth(Width);
         DataContext = _viewModel;
     }
@@ -105,7 +106,9 @@ public partial class MainWindow : Window
     private void OnNewProfileClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         CancelPendingProfileToggle();
+        var wasCollapsed = _viewModel.IsFileLibraryPaneCollapsed;
         _viewModel.CreateNewProfile();
+        ApplyWindowWidthForPaneStateTransition(wasCollapsed);
         ScheduleFileLibraryScrollAffordanceUpdate();
     }
 
@@ -151,7 +154,9 @@ public partial class MainWindow : Window
     private void OnToggleFileLibraryPaneCollapsedClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         CancelPendingProfileToggle();
+        var wasCollapsed = _viewModel.IsFileLibraryPaneCollapsed;
         _viewModel.ToggleFileLibraryPaneCollapsed();
+        ApplyWindowWidthForPaneStateTransition(wasCollapsed);
         ScheduleFileLibraryScrollAffordanceUpdate();
     }
 
@@ -199,11 +204,18 @@ public partial class MainWindow : Window
 
     private void OnWindowOpened(object? sender, EventArgs e)
     {
+        if (_viewModel.IsFileLibraryPaneCollapsed)
+        {
+            ApplyWindowWidthForCurrentPaneState();
+        }
+
         ScheduleFileLibraryScrollAffordanceUpdate();
     }
 
     private void OnWindowClosed(object? sender, EventArgs e)
     {
+        PropertyChanged -= OnWindowPropertyChanged;
+
         if (_fileLibraryScrollViewer is not null)
         {
             _fileLibraryScrollViewer.PropertyChanged -= OnFileLibraryScrollViewerPropertyChanged;
@@ -239,12 +251,14 @@ public partial class MainWindow : Window
 
         if (e.ClickCount > 1)
         {
+            var wasCollapsed = _viewModel.IsFileLibraryPaneCollapsed;
             if (sender is Border doubleClickedBorder
                 && doubleClickedBorder.Tag is string doubleClickedProfileId
                 && _viewModel.SelectProfileAndSetFileLibraryPaneCollapsed(
                     doubleClickedProfileId,
-                    !_viewModel.IsFileLibraryPaneCollapsed))
+                    !wasCollapsed))
             {
+                ApplyWindowWidthForPaneStateTransition(wasCollapsed);
                 e.Handled = true;
             }
 
@@ -704,7 +718,45 @@ public partial class MainWindow : Window
     private void OnWindowSizeChanged(object? sender, SizeChangedEventArgs e)
     {
         _viewModel.SetWindowWidth(e.NewSize.Width);
+        _viewModel.RememberExpandedWindowWidth(e.NewSize.Width, WindowState == WindowState.Normal);
         ScheduleFileLibraryScrollAffordanceUpdate();
+    }
+
+    private void OnWindowPropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
+    {
+        if (e.Property == Window.WindowStateProperty && WindowState == WindowState.Normal)
+        {
+            ApplyWindowWidthForCurrentPaneState();
+        }
+    }
+
+    private void ApplyWindowWidthForPaneStateTransition(bool wasCollapsed)
+    {
+        if (WindowState != WindowState.Normal || wasCollapsed == _viewModel.IsFileLibraryPaneCollapsed)
+        {
+            return;
+        }
+
+        ApplyWindowWidthForCurrentPaneState();
+    }
+
+    private void ApplyWindowWidthForCurrentPaneState()
+    {
+        if (WindowState != WindowState.Normal)
+        {
+            return;
+        }
+
+        var targetWidth = _viewModel.IsFileLibraryPaneCollapsed
+            ? _viewModel.PreferredCollapsedWindowWidth
+            : _viewModel.PreferredExpandedWindowWidth;
+
+        if (Math.Abs(Width - targetWidth) < 0.01d)
+        {
+            return;
+        }
+
+        Width = targetWidth;
     }
 
     private void OnFileLibraryScrollViewerPropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
