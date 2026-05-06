@@ -44,11 +44,17 @@ Feature 010 later adds manual drag reordering for saved profile rows. Feature 00
 - While the file library pane is expanded, the left profile pane uses a fixed width of `380 px`.
 - The left profile pane remains pinned while the right file-library pane scrolls independently.
 - The left profile list provides its own internal scrolling when saved profiles exceed available vertical space.
+- When either pane's content exceeds available vertical space, the left profile list and the right file-library pane remain scrollable through mouse wheel, touchpad, keyboard, and equivalent platform scroll input while visible scrollbar chrome is not rendered in either pane.
+- While the file library pane is expanded, the right file-library pane shows a subtle bottom-centered downward chevron affordance only when additional file-library content exists below the current viewport and the pane remains scrolled at its top offset.
+- The file-library scroll affordance fades out once the user scrolls down from the top of the expanded file-library pane.
+- The file-library scroll affordance reappears when the user returns to the top of the expanded file-library pane and additional content still exists below the viewport.
+- The file-library scroll affordance is not shown when the file-library pane is collapsed or when the expanded file-library content fully fits within the viewport.
 - The left pane begins with a profile-management header row that contains:
   - the `Profiles` label on the left
-  - the `New Profile` action on the right
-  - the file-library `Expand` / `Collapse` action to the right of `New Profile`
-- `New Profile` and the file-library `Expand` / `Collapse` action are right-aligned within the profile-management header row and aligned with the `Profiles` label.
+  - the profile-creation action on the right
+  - the file-library collapse / expand action to the right of the profile-creation action
+- The profile-creation action and the file-library collapse / expand action are right-aligned within the profile-management header row and aligned with the `Profiles` label.
+- Feature 011 later becomes authoritative for the visible icon presentation of those two actions while preserving their placement and behavior.
 - The right pane begins with a selected-profile header area that contains:
   - the selected profile name on the left
   - selected-profile status text below the name
@@ -108,25 +114,25 @@ Feature 010 later adds manual drag reordering for saved profile rows. Feature 00
 - Profile-row double-click does not launch the profile, does not start rename, and does not change Feature 010 drag-reorder rules.
 
 ### Profile Launch
-- Each profile row exposes a `Launch` action immediately to the left of `Delete`.
-- Row `Launch` is available only while the row is in normal display mode.
-- Row `Launch` is enabled only when that row's profile is valid.
-- Activating `Launch` for a row:
+- Each profile row exposes a launch action immediately to the left of delete.
+- Row launch is available only while the row is in normal display mode.
+- Row launch is enabled only when that row's profile is valid.
+- Activating the launch action for a row:
   - selects that profile
   - hydrates current Source Port / IWAD / Mod selections from that profile
   - launches that profile through the existing launcher flow
-- Row `Launch` does not require the profile to already be selected.
-- Invalid profiles remain listed and selectable but their row `Launch` action is disabled.
+- Row launch does not require the profile to already be selected.
+- Invalid profiles remain listed and selectable but their row launch action is disabled.
 - Valid profiles show an explicit `VALID` badge in the shared row status slot.
 
 ### Profile Creation
-- `New Profile` is always enabled.
-- `New Profile` uses the current live library selections at activation time:
+- The profile-creation action is always enabled.
+- The profile-creation action uses the current live library selections at activation time:
   - zero or one selected source port
   - zero or one selected IWAD
   - zero or more selected Mods in current order
 - Current selected Mods, if any, are copied into the new profile in current order.
-- Clicking `New Profile` immediately creates a new saved profile from current library selections.
+- Activating the profile-creation action immediately creates a new saved profile from current library selections.
 - New profile name uses the first available `Profile N` positive integer sequence, filling gaps from deleted profiles.
 - New profile creation:
   - generates a new stable `Id`
@@ -140,14 +146,15 @@ Feature 010 later adds manual drag reordering for saved profile rows. Feature 00
 - When a profile is selected, editing Source Port / IWAD / Mod selections changes that selected profile immediately and persists after each change.
 - Auto-save includes transitions into invalid state.
 - There is no Save, Save As, dirty state, unsaved-changes prompt, or separate profile-name field.
-- Each profile row exposes `Launch` and `Delete` actions in that order.
-- Each profile row exposes `Launch`, `Rename`, and `Delete` actions in that order.
-- Profile rename is available only through the profile row `Rename` action.
-- Activating a row `Rename` action:
+- Each profile row exposes launch and delete actions in that order.
+- Each profile row exposes launch, rename, and delete actions in that order.
+- Feature 011 later becomes authoritative for the visible icon presentation of those row actions while preserving their order and behavior.
+- Profile rename is available only through the profile row rename action.
+- Activating a row rename action:
   - selects that profile
   - hydrates current Source Port / IWAD / Mod selections from that profile
   - opens inline rename mode inside that same profile row by replacing the row name text with a rename input
-- The right-pane selected-profile header remains display-only and does not render a `Rename` action or rename input.
+- The right-pane selected-profile header remains display-only and does not render a rename action or rename input.
 - Rename commit behavior:
   - `Enter` saves if valid.
   - Clicking outside the rename input cancels rename and restores the prior saved name.
@@ -203,7 +210,7 @@ Feature 010 later adds manual drag reordering for saved profile rows. Feature 00
 - Valid profiles:
   - show an explicit `VALID` badge in the same shared row status slot used by invalid profiles
   - show `Selected profile is ready to launch.` in the selected-profile status text when selected
-  - keep their row `Launch` action enabled
+  - keep their row launch action enabled
 - The selected-profile header command preview:
   - uses the selected profile's saved launch inputs rather than current hydrated live selections
   - uses filename-only tokens in this order: source-port filename, `-iwad`, IWAD filename, `-file`, ordered mod filenames
@@ -254,7 +261,7 @@ Feature 010 later adds manual drag reordering for saved profile rows. Feature 00
 ## Acceptance Criteria
 ### Create profile from current selections
 Given any current live library selection state
-When `New Profile` is activated
+When the profile-creation action is activated
 Then a saved profile is created immediately from the current selections.
 And the profile name uses the first available `Profile N`.
 And the new profile receives a new stable `Id`.
@@ -280,7 +287,7 @@ And the double-click does not launch the profile.
 
 ### Launch profile from row action
 Given a valid saved profile row exists and a different profile or no profile is currently selected
-When `Launch` is activated for that row
+When the row launch action is activated for that row
 Then that row's profile becomes the selected profile.
 And current Source Port / IWAD / Mod selections hydrate from that profile.
 And launch executes for that profile's saved Source Port, IWAD, and ordered Mods.
@@ -293,7 +300,7 @@ And those changes may place the profile into or out of invalid state.
 
 ### Explicit rename action
 Given a selected profile exists
-When `Rename` is activated on that profile row
+When the row rename action is activated on that profile row
 Then inline rename mode opens inside that same profile row for that selected profile.
 And `Enter` saves a valid unique non-empty name.
 And outside click or `Escape` restores the previous saved name.
@@ -302,16 +309,16 @@ And the outside click does not also activate another control.
 ### New profile placement
 Given the workspace is rendered
 When the left profile-management header is displayed
-Then `New Profile` appears in that header.
-And `New Profile` is right-aligned and aligned with the `Profiles` label.
-And the file-library `Expand` / `Collapse` action appears to the right of `New Profile`.
-And the right selected-profile header does not render a second `New Profile` action.
+Then the profile-creation action appears in that header.
+And the profile-creation action is right-aligned and aligned with the `Profiles` label.
+And the file-library collapse / expand action appears to the right of the profile-creation action.
+And the right selected-profile header does not render a second profile-creation action.
 
 ### Rename placement
 Given the workspace is rendered
 When saved profile rows are displayed
-Then each profile row renders a row-level `Rename` action between `Launch` and `Delete`.
-And the right-pane selected-profile header does not render a `Rename` action or rename input.
+Then each profile row renders a row-level rename action between the row launch and delete actions.
+And the right-pane selected-profile header does not render a rename action or rename input.
 
 ### Rename validation
 Given a profile is in rename mode
@@ -326,6 +333,29 @@ When the file library content exceeds available vertical space
 Then the right pane scrolls independently.
 And the left profile pane remains pinned.
 And when the profile list exceeds available height, the profile list scrolls within the left pane.
+
+### Profile list scrolls without visible scrollbar chrome
+Given the workspace is rendered and saved profiles exceed the available left-pane height
+When the user scrolls the profile list with mouse wheel, touchpad, keyboard, or equivalent platform scroll input
+Then the left profile list scrolls within the left pane.
+And visible scrollbar chrome is not rendered for that profile list.
+
+### File-library pane scrolls without visible scrollbar chrome
+Given the workspace is rendered and file-library content exceeds the available right-pane height
+When the user scrolls the file-library pane with mouse wheel, touchpad, keyboard, or equivalent platform scroll input
+Then the right file-library pane scrolls independently.
+And visible scrollbar chrome is not rendered for that file-library pane.
+
+### File-library pane shows scroll affordance only while top-scrolled with more content below
+Given the file library pane is expanded and its content exceeds the available right-pane height
+When the file-library pane is rendered while its vertical scroll offset remains at the top
+Then a subtle bottom-centered downward chevron affordance is visible for that pane.
+And when the user scrolls down from that top offset
+Then the affordance fades out.
+And when the user returns to the top while additional content still exists below the viewport
+Then the affordance becomes visible again.
+And when the expanded file-library content fully fits within the viewport or the file-library pane is collapsed
+Then the affordance is not shown.
 
 ### Shared-library drop zones stay visibly interactive
 Given the file library pane is expanded
@@ -346,7 +376,7 @@ Given a saved profile references a Source Port or IWAD library item that is remo
 When validity is recomputed
 Then the profile remains saved and listed.
 And it is marked invalid with an explicit reason.
-And its row `Launch` action is disabled.
+And its row launch action is disabled.
 And changing library selections while it is selected can repair it and restore launchability.
 
 ### Removed or missing mod does not block launch
@@ -354,7 +384,7 @@ Given a saved profile has valid saved Source Port and IWAD references and one or
 When a saved Mod is removed from the shared Mod library or its file path no longer exists on disk
 Then the profile remains saved and listed.
 And the profile still recomputes as valid.
-And its row `Launch` action remains enabled.
+And its row launch action remains enabled.
 And its saved Mod references remain preserved for preview text and launch argument construction.
 
 ### Valid profile shows explicit valid badge
@@ -362,7 +392,7 @@ Given a saved profile has exactly one source port, exactly one IWAD, and its sav
 When validity is recomputed
 Then the profile row shows an explicit `VALID` badge in the same status slot used by invalid profiles.
 And the profile row does not render a separate inline valid text line under the profile name.
-And its row `Launch` action remains enabled.
+And its row launch action remains enabled.
 
 ### Profile row preview placement and wrapping
 Given a saved profile row has one or more previewable launch tokens

@@ -16,12 +16,16 @@ namespace ModLoader.App;
 public partial class MainWindow : Window
 {
     private const double ProfileDragStartThreshold = 6d;
+    private const double ScrollAffordanceVisibilityEpsilon = 0.5d;
+    private const double FileLibraryScrollAffordanceVisibleOpacity = 0.6d;
     private static readonly TimeSpan CollapsedSelectedProfileToggleDelay = TimeSpan.FromMilliseconds(275);
     private readonly MainWindowViewModel _viewModel;
     private DispatcherTimer? _pendingProfileToggleTimer;
     private string? _pendingToggleProfileId;
     private Grid? _profileListHost;
     private ScrollViewer? _profileListScrollViewer;
+    private ScrollViewer? _fileLibraryScrollViewer;
+    private PathIcon? _fileLibraryScrollAffordance;
     private bool _isProfileDragActive;
     private int? _profileDropIndex;
     private string? _pressedProfileId;
@@ -36,6 +40,8 @@ public partial class MainWindow : Window
 
         InitializeComponent();
         AddHandler(InputElement.PointerPressedEvent, OnWindowPointerPressed, Avalonia.Interactivity.RoutingStrategies.Tunnel);
+        Opened += OnWindowOpened;
+        Closed += OnWindowClosed;
         SizeChanged += OnWindowSizeChanged;
         _viewModel.SetWindowWidth(Width);
         DataContext = _viewModel;
@@ -46,6 +52,13 @@ public partial class MainWindow : Window
         AvaloniaXamlLoader.Load(this);
         _profileListHost = this.FindControl<Grid>("ProfileListHost");
         _profileListScrollViewer = this.FindControl<ScrollViewer>("ProfileListScrollViewer");
+        _fileLibraryScrollViewer = this.FindControl<ScrollViewer>("FileLibraryScrollViewer");
+        _fileLibraryScrollAffordance = this.FindControl<PathIcon>("FileLibraryScrollAffordance");
+
+        if (_fileLibraryScrollViewer is not null)
+        {
+            _fileLibraryScrollViewer.PropertyChanged += OnFileLibraryScrollViewerPropertyChanged;
+        }
     }
 
     private void OnDropZoneDragEnter(object? sender, DragEventArgs e)
@@ -93,6 +106,7 @@ public partial class MainWindow : Window
     {
         CancelPendingProfileToggle();
         _viewModel.CreateNewProfile();
+        ScheduleFileLibraryScrollAffordanceUpdate();
     }
 
     private void OnDeleteProfileClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -138,11 +152,13 @@ public partial class MainWindow : Window
     {
         CancelPendingProfileToggle();
         _viewModel.ToggleFileLibraryPaneCollapsed();
+        ScheduleFileLibraryScrollAffordanceUpdate();
     }
 
     private void OnToggleSourcePortSectionCollapsedClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         _viewModel.ToggleSourcePortSectionCollapsed();
+        ScheduleFileLibraryScrollAffordanceUpdate();
     }
 
     private void OnRemoveSourcePortClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -172,11 +188,26 @@ public partial class MainWindow : Window
     private void OnToggleIwadSectionCollapsedClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         _viewModel.ToggleIwadSectionCollapsed();
+        ScheduleFileLibraryScrollAffordanceUpdate();
     }
 
     private void OnToggleModSectionCollapsedClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         _viewModel.ToggleModSectionCollapsed();
+        ScheduleFileLibraryScrollAffordanceUpdate();
+    }
+
+    private void OnWindowOpened(object? sender, EventArgs e)
+    {
+        ScheduleFileLibraryScrollAffordanceUpdate();
+    }
+
+    private void OnWindowClosed(object? sender, EventArgs e)
+    {
+        if (_fileLibraryScrollViewer is not null)
+        {
+            _fileLibraryScrollViewer.PropertyChanged -= OnFileLibraryScrollViewerPropertyChanged;
+        }
     }
 
     private void OnWindowPointerPressed(object? sender, PointerPressedEventArgs e)
@@ -673,6 +704,43 @@ public partial class MainWindow : Window
     private void OnWindowSizeChanged(object? sender, SizeChangedEventArgs e)
     {
         _viewModel.SetWindowWidth(e.NewSize.Width);
+        ScheduleFileLibraryScrollAffordanceUpdate();
+    }
+
+    private void OnFileLibraryScrollViewerPropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
+    {
+        if (e.Property == ScrollViewer.OffsetProperty
+            || e.Property == ScrollViewer.ExtentProperty
+            || e.Property == ScrollViewer.ViewportProperty)
+        {
+            ScheduleFileLibraryScrollAffordanceUpdate();
+        }
+    }
+
+    private void ScheduleFileLibraryScrollAffordanceUpdate()
+    {
+        Dispatcher.UIThread.Post(UpdateFileLibraryScrollAffordance, DispatcherPriority.Background);
+    }
+
+    private void UpdateFileLibraryScrollAffordance()
+    {
+        if (_fileLibraryScrollViewer is null || _fileLibraryScrollAffordance is null)
+        {
+            return;
+        }
+
+        var isAtTop = _fileLibraryScrollViewer.Offset.Y <= ScrollAffordanceVisibilityEpsilon;
+        var overflowBelow = _fileLibraryScrollViewer.Extent.Height
+            - (_fileLibraryScrollViewer.Offset.Y + _fileLibraryScrollViewer.Viewport.Height);
+        var hasOverflowBelow = overflowBelow > ScrollAffordanceVisibilityEpsilon;
+        var shouldShow = _viewModel.IsFileLibraryPaneExpanded
+            && _fileLibraryScrollViewer.IsVisible
+            && isAtTop
+            && hasOverflowBelow;
+
+        _fileLibraryScrollAffordance.Opacity = shouldShow
+            ? FileLibraryScrollAffordanceVisibleOpacity
+            : 0d;
     }
 
     private void ClearProfilePointerInteraction()
