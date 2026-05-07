@@ -31,8 +31,6 @@ Feature 010 later adds manual drag reordering for saved profile rows. Feature 00
   - A saved record with stable `Id`, unique display `Name`, one source-port path, one IWAD path, and ordered selected mod paths.
 - Selected profile:
   - The nullable saved profile identified by `SelectedProfileId`.
-- Detached library state:
-  - Current library selections shown when no profile is selected. Detached state is temporary UI state only and is not restored on restart.
 - Invalid profile:
   - A saved profile whose current references cannot produce valid launch arguments.
 
@@ -67,6 +65,8 @@ Feature 010 later adds manual drag reordering for saved profile rows. Feature 00
   - selected-profile command preview text below the status text when the selected profile has one or more previewable saved launch tokens
 - When no profile is selected, the selected-profile header actions are hidden.
 - The Source Port, IWAD, and Mod library sections render in a scrollable region below that fixed selected-profile header.
+- When no profile is selected, Source Port, IWAD, and Mod rows remain visible but are not selectable.
+- When no profile is selected, Source Port, IWAD, and Mod rows render a disabled visual treatment that suppresses selection affordance while leaving row delete actions available.
 - The existing top message/warning area is reused for rename validation and delete confirmation.
 - While the selected profile is invalid, the selected-profile status text in the right-pane header uses the same amber invalid text color used by left-pane inline invalid text.
 - While the selected profile is valid or no profile is selected, the selected-profile status text in the right-pane header keeps the muted helper/status text color.
@@ -109,6 +109,7 @@ Feature 010 later adds manual drag reordering for saved profile rows. Feature 00
   - sets `SelectedProfileId` to `null`
   - clears current Source Port / IWAD / Mod selections
   - leaves no launchable selected profile
+  - leaves the shared file library visible but non-selectable until a profile is selected again
 - While the file library pane is collapsed, double-clicking a profile row is a profile-open shortcut:
   - the clicked profile ends selected
   - current Source Port / IWAD / Mod selections hydrate from that profile
@@ -151,6 +152,7 @@ Feature 010 later adds manual drag reordering for saved profile rows. Feature 00
 
 ### Profile Editing And Rename
 - When a profile is selected, editing Source Port / IWAD / Mod selections changes that selected profile immediately and persists after each change.
+- Source Port, IWAD, and Mod row selection rules inherited from earlier features apply only while a profile is selected.
 - Auto-save includes transitions into invalid state.
 - There is no Save, Save As, dirty state, unsaved-changes prompt, or separate profile-name field.
 - Each profile row exposes launch and delete actions in that order.
@@ -230,15 +232,13 @@ Feature 010 later adds manual drag reordering for saved profile rows. Feature 00
   - remains visible for invalid selected profiles when one or more previewable saved tokens exist
   - is omitted when no profile is selected or when the selected profile has no previewable saved tokens
 - Launch is available only through saved profile rows.
-- No selected profile means no currently selected launchable profile, even if current detached library selections are otherwise launch-valid.
+- No selected profile means no currently selected launchable profile and no selectable shared-library launch inputs.
 
 ### Mod Ordering Context
 - Mod row ordering is derived UI state and does not rewrite the shared library collection order during selection toggles.
 - When no profile is selected:
   - Mod rows default to alphabetical filename order
-  - selected Mods temporarily move to the top in detached selected sequence order
-  - remaining unselected Mods stay in alphabetical filename order
-  - detached selected-mod ordering is not restored on restart
+  - attempted selection input does not change selection state
 - When a profile is selected:
   - selected Mods appear first in that profile's `SelectedModPaths` order
   - remaining unselected Mods appear afterward in alphabetical filename order
@@ -264,7 +264,6 @@ Feature 010 later adds manual drag reordering for saved profile rows. Feature 00
   - old selected source-port / IWAD / mod fields do not auto-create a saved profile
   - old configs with no profiles load with zero profiles
   - startup with no valid selected profile begins with no selected profile, cleared library selections, and Launch disabled
-- Detached no-profile library selections created during runtime are not restored on restart.
 - On startup sanitation:
   - sanitize shared library collections as existing features require
   - preserve broken profiles
@@ -310,6 +309,20 @@ Given a saved profile is selected
 When Source Port / IWAD / Mod selections change in the shared library
 Then the selected profile persists those changes immediately.
 And those changes may place the profile into or out of invalid state.
+
+### Shared library is non-selectable without a profile
+Given no profile is selected and shared Source Port, IWAD, and Mod rows exist
+When selection input is applied to any of those rows
+Then current Source Port / IWAD / Mod selections remain unchanged.
+And no profile is auto-created or auto-selected.
+And the visible row ordering remains unchanged.
+
+### Shared library rows show disabled treatment without a profile
+Given no profile is selected and shared Source Port, IWAD, and Mod rows exist
+When the shared library is rendered
+Then those rows remain visible.
+And those rows render a disabled visual treatment.
+And their row delete actions remain available.
 
 ### Explicit rename action
 Given a selected profile exists
@@ -498,7 +511,7 @@ And the rendered profile name is capped at two lines.
 Given at least three Mod rows and one or more profiles
 When no profile is selected
 Then Mod rows start in alphabetical filename order.
-And when Mods are selected, selected Mods move to the top in detached selected sequence order without changing restart state.
+And attempted Mod selection does not change that ordering.
 And when a saved profile is selected, Mod rows are ordered by that profile's selected sequence first and alphabetical remainder second.
 
 ### Legacy startup without profiles

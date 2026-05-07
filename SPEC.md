@@ -43,6 +43,7 @@ This repository follows feature-scoped delivery. Behavior is only guaranteed whe
 - Feature 008: Selection-based profile workspace.
   - Adds saved profiles as the primary launch model in a two-pane workspace: a pinned profile list on the left and independently scrolling shared file library on the right, with a profile-creation action in the left profile-management header.
   - Profiles persist source port, IWAD, and ordered mod references to the shared library, are the only launchable unit, and require one source port plus one IWAD only for profile validity.
+  - Shared-library Source Port, IWAD, and Mod selection is profile-scoped; when no profile is selected, those rows remain visible but are not selectable.
   - The expanded shared file-library pane renders Source Port, IWAD, and Mod drop zones as visibly interactive drag-and-drop targets with visible instructional text, section-specific accessible labels, and drag-over highlight.
   - While the expanded shared file-library pane has additional content below the current viewport, it shows a subtle bottom-centered downward chevron affordance that remains visible until the bottom of the scrollable content is reached.
   - While the left profile list has additional content below the current viewport, it shows the same subtle bottom-centered downward chevron affordance in both expanded two-pane mode and collapsed profile-only mode.

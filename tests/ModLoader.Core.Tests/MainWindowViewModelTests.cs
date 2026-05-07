@@ -130,7 +130,7 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
-    public void CreateNewProfile_WithPartialSelections_CreatesEmptyProfileAndClearsCurrentSelections()
+    public void CreateNewProfile_AfterIgnoredNoProfileSelectionAttempts_CreatesEmptyProfileAndKeepsSelectionsCleared()
     {
         using var temp = new TempDirectory();
         var source = temp.CreateFile("gzdoom.exe");
@@ -462,7 +462,7 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
-    public void DetachedSelections_DoNotPersistAsCanonicalSelectionState()
+    public void ToggleSelections_WhenNoProfileSelected_DoNothingAndDoNotPersistSelectionState()
     {
         using var temp = new TempDirectory();
         var source = temp.CreateFile("gzdoom.exe");
@@ -479,7 +479,10 @@ public sealed class MainWindowViewModelTests
         viewModel.ToggleIwadSelection(iwad);
         viewModel.ToggleModSelection(mod);
 
-        Assert.Equal("gzdoom.exe -iwad doom2.wad -file mod-a.pk3", viewModel.CommandPreviewArguments);
+        Assert.Null(viewModel.SelectedSourcePortPath);
+        Assert.Null(viewModel.SelectedIwadPath);
+        Assert.Empty(viewModel.SelectedModPaths);
+        Assert.Equal(string.Empty, viewModel.CommandPreviewArguments);
         Assert.Null(persistence.SavedStates.Last().SelectedProfileId);
         Assert.Null(persistence.SavedStates.Last().SelectedSourcePortPath);
         Assert.Null(persistence.SavedStates.Last().SelectedIwadPath);
@@ -693,7 +696,7 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
-    public void DetachedModRows_DefaultToAlphabeticalFilenameOrder_AndTemporarilyReorderSelectedMods()
+    public void ModRows_WhenNoProfileSelected_StayAlphabeticalAfterIgnoredToggleAttempts()
     {
         using var temp = new TempDirectory();
         var modBeta = temp.CreateFile("beta.pk3");
@@ -721,11 +724,73 @@ public sealed class MainWindowViewModelTests
         viewModel.ToggleModSelection(modAlpha);
 
         Assert.Equal(
-            ["gamma.pk3", "alpha.pk3", "beta.pk3"],
+            ["alpha.pk3", "beta.pk3", "gamma.pk3"],
             viewModel.ModRows.Select(row => Path.GetFileName(row.Path)).ToArray());
-        Assert.Equal(
-            [Path.GetFullPath(modBeta), Path.GetFullPath(modGamma), Path.GetFullPath(modAlpha)],
-            persistence.SavedStates.Last().Mods);
+        Assert.Empty(viewModel.SelectedModPaths);
+        Assert.Equal(0, persistence.SaveCallCount);
+    }
+
+    [Fact]
+    public void LibraryRows_RequireSelectedProfileForSelectionAndReflectDisabledStateOtherwise()
+    {
+        using var temp = new TempDirectory();
+        var source1 = temp.CreateFile("gzdoom.exe");
+        var source2 = temp.CreateFile("vkdoom.exe");
+        var iwad1 = temp.CreateFile("doom.wad");
+        var iwad2 = temp.CreateFile("doom2.wad");
+        var mod1 = temp.CreateFile("alpha.pk3");
+        var mod2 = temp.CreateFile("beta.pk3");
+
+        var persistence = new RecordingPersistence
+        {
+            LoadResult = new LaunchInputsLoadResult
+            {
+                State = new LaunchInputsConfig
+                {
+                    SourcePorts = [source1, source2],
+                    Iwads = [iwad1, iwad2],
+                    Mods = [mod2, mod1],
+                    Profiles = [CreateProfile("p1", "Profile 1", source1, iwad1, mod1)]
+                }
+            }
+        };
+
+        var viewModel = new MainWindowViewModel(persistence);
+
+        Assert.All(viewModel.SourcePortRows, row => Assert.True(row.IsSelectionDisabled));
+        Assert.All(viewModel.IwadRows, row => Assert.True(row.IsSelectionDisabled));
+        Assert.All(viewModel.ModRows, row => Assert.True(row.IsSelectionDisabled));
+
+        viewModel.ToggleSourcePortSelection(source2);
+        viewModel.ToggleIwadSelection(iwad2);
+        viewModel.ToggleModSelection(mod2);
+
+        Assert.Null(viewModel.SelectedSourcePortPath);
+        Assert.Null(viewModel.SelectedIwadPath);
+        Assert.Empty(viewModel.SelectedModPaths);
+
+        viewModel.ToggleProfileSelection("p1");
+
+        Assert.All(viewModel.SourcePortRows, row => Assert.True(row.IsSelectionEnabled));
+        Assert.All(viewModel.IwadRows, row => Assert.True(row.IsSelectionEnabled));
+        Assert.All(viewModel.ModRows, row => Assert.True(row.IsSelectionEnabled));
+
+        viewModel.ToggleProfileSelection("p1");
+
+        Assert.Null(viewModel.SelectedSourcePortPath);
+        Assert.Null(viewModel.SelectedIwadPath);
+        Assert.Empty(viewModel.SelectedModPaths);
+        Assert.All(viewModel.SourcePortRows, row => Assert.True(row.IsSelectionDisabled));
+        Assert.All(viewModel.IwadRows, row => Assert.True(row.IsSelectionDisabled));
+        Assert.All(viewModel.ModRows, row => Assert.True(row.IsSelectionDisabled));
+
+        viewModel.ToggleSourcePortSelection(source2);
+        viewModel.ToggleIwadSelection(iwad2);
+        viewModel.ToggleModSelection(mod2);
+
+        Assert.Null(viewModel.SelectedSourcePortPath);
+        Assert.Null(viewModel.SelectedIwadPath);
+        Assert.Empty(viewModel.SelectedModPaths);
     }
 
     [Fact]
@@ -1840,6 +1905,7 @@ public sealed class MainWindowViewModelTests
     {
         var spec = File.ReadAllText(GetRepoFilePath("SPEC.md"));
         var feature002 = File.ReadAllText(GetRepoFilePath("Features", "002-border-drop-and-row-selection.md"));
+        var feature004 = File.ReadAllText(GetRepoFilePath("Features", "004-fixed-command-preview-and-selection-order.md"));
         var feature005 = File.ReadAllText(GetRepoFilePath("Features", "005-fixed-header-and-launch-execution.md"));
         var feature008 = File.ReadAllText(GetRepoFilePath("Features", "008-profile-management.md"));
         var feature009 = File.ReadAllText(GetRepoFilePath("Features", "009-file-library-pane-collapse.md"));
@@ -1865,6 +1931,7 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("left profile list has additional content below the current viewport", spec, StringComparison.Ordinal);
         Assert.Contains("selected-profile header stays fixed at the top of the file-library pane, keeps the profile name, shows right-aligned `Edit` and `Delete` actions on the same row, shows status text with the shared amber invalid color when invalid, and renders its own wrapped filename-only command preview", spec, StringComparison.Ordinal);
         Assert.Contains("require one source port plus one IWAD only for profile validity", spec, StringComparison.Ordinal);
+        Assert.Contains("Shared-library Source Port, IWAD, and Mod selection is profile-scoped; when no profile is selected, those rows remain visible but are not selectable.", spec, StringComparison.Ordinal);
         Assert.Contains("removes the legacy fixed top header", spec, StringComparison.Ordinal);
         Assert.Contains("shrinks the native window to the profile-management section", spec, StringComparison.Ordinal);
         Assert.Contains("Each drop zone renders a visible default target treatment before any drag begins", feature002, StringComparison.Ordinal);
@@ -1873,6 +1940,10 @@ public sealed class MainWindowViewModelTests
         Assert.DoesNotContain("clicking the zone opens a multi-select file picker for that zone", feature002, StringComparison.Ordinal);
         Assert.DoesNotContain("`Enter` and `Space` trigger the same picker flow as click", feature002, StringComparison.Ordinal);
         Assert.Contains("Then the zone does not open a file picker or perform any other add-files action.", feature002, StringComparison.Ordinal);
+        Assert.Contains("profile-scoped selection changes are unavailable", feature004, StringComparison.Ordinal);
+        Assert.Contains("### No-profile Mod ordering stays alphabetical", feature004, StringComparison.Ordinal);
+        Assert.DoesNotContain("selection toggles may temporarily move selected Mods to the top for the current session", feature004, StringComparison.Ordinal);
+        Assert.DoesNotContain("### Detached-state temporary reordering", feature004, StringComparison.Ordinal);
         Assert.Contains("Feature 012 later removes that header", feature005, StringComparison.Ordinal);
         Assert.DoesNotContain("Fixed Header Layout", feature005, StringComparison.Ordinal);
         Assert.Contains("file-library collapse / expand action to the right of the profile-creation action", feature008, StringComparison.Ordinal);
@@ -1885,6 +1956,8 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("the selected-profile header actions are hidden", feature008, StringComparison.Ordinal);
         Assert.Contains("right pane shows a fixed selected-profile header above the independently scrolling shared library content", feature008, StringComparison.Ordinal);
         Assert.Contains("scrollable region below that fixed selected-profile header", feature008, StringComparison.Ordinal);
+        Assert.Contains("When no profile is selected, Source Port, IWAD, and Mod rows remain visible but are not selectable.", feature008, StringComparison.Ordinal);
+        Assert.Contains("render a disabled visual treatment that suppresses selection affordance while leaving row delete actions available", feature008, StringComparison.Ordinal);
         Assert.Contains("valid rows show a `VALID` badge in that same slot", feature008, StringComparison.Ordinal);
         Assert.Contains("left profile pane uses a fixed width of `380 px`", feature008, StringComparison.Ordinal);
         Assert.Contains("Feature 010 becomes authoritative for how profile row ordering is changed by drag reordering", feature008, StringComparison.Ordinal);
@@ -1914,8 +1987,13 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("Removing a referenced Mod from the shared library does not invalidate the profile.", feature008, StringComparison.Ordinal);
         Assert.Contains("Missing referenced Mod files on disk do not invalidate the profile.", feature008, StringComparison.Ordinal);
         Assert.Contains("its saved Mod references remain preserved for preview text and launch argument construction", feature008, StringComparison.Ordinal);
+        Assert.Contains("leaves the shared file library visible but non-selectable until a profile is selected again", feature008, StringComparison.Ordinal);
+        Assert.Contains("attempted selection input does not change selection state", feature008, StringComparison.Ordinal);
         Assert.Contains("visible scrollbar chrome is not rendered for that profile list", feature008, StringComparison.Ordinal);
         Assert.Contains("visible scrollbar chrome is not rendered for that file-library pane", feature008, StringComparison.Ordinal);
+        Assert.DoesNotContain("Detached library state:", feature008, StringComparison.Ordinal);
+        Assert.DoesNotContain("selected Mods temporarily move to the top in detached selected sequence order", feature008, StringComparison.Ordinal);
+        Assert.DoesNotContain("Detached no-profile library selections created during runtime are not restored on restart.", feature008, StringComparison.Ordinal);
         Assert.Contains("fixed selected-profile header plus the scrollable Source Port, IWAD, and Mod library controls", feature009, StringComparison.Ordinal);
         Assert.Contains("selected-profile header as a fixed top region and the shared library controls as a scrollable region beneath it", feature009, StringComparison.Ordinal);
         Assert.Contains("the right file-library pane is not rendered", feature009, StringComparison.Ordinal);

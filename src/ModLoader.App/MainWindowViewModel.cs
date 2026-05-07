@@ -693,6 +693,11 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     public void ToggleSourcePortSelection(string path)
     {
+        if (!HasSelectedProfile)
+        {
+            return;
+        }
+
         var normalizedPath = PathNormalizer.NormalizeAbsolutePath(path);
 
         if (string.Equals(SelectedSourcePortPath, normalizedPath, StringComparison.OrdinalIgnoreCase))
@@ -715,6 +720,11 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     public void ToggleIwadSelection(string path)
     {
+        if (!HasSelectedProfile)
+        {
+            return;
+        }
+
         var normalizedPath = PathNormalizer.NormalizeAbsolutePath(path);
 
         if (string.Equals(SelectedIwadPath, normalizedPath, StringComparison.OrdinalIgnoreCase))
@@ -737,6 +747,11 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     public void ToggleModSelection(string path)
     {
+        if (!HasSelectedProfile)
+        {
+            return;
+        }
+
         var normalizedPath = PathNormalizer.NormalizeAbsolutePath(path);
         var existingIndex = FindPathIndex(SelectedModPaths, normalizedPath);
 
@@ -1165,20 +1180,25 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     private void RefreshRows()
     {
+        var isLibrarySelectionEnabled = HasSelectedProfile;
+
         CopyRows(
             SourcePorts,
             SourcePortRows,
-            path => string.Equals(path, SelectedSourcePortPath, StringComparison.OrdinalIgnoreCase));
+            path => string.Equals(path, SelectedSourcePortPath, StringComparison.OrdinalIgnoreCase),
+            isLibrarySelectionEnabled);
 
         CopyRows(
             Iwads,
             IwadRows,
-            path => string.Equals(path, SelectedIwadPath, StringComparison.OrdinalIgnoreCase));
+            path => string.Equals(path, SelectedIwadPath, StringComparison.OrdinalIgnoreCase),
+            isLibrarySelectionEnabled);
 
         CopyRows(
             GetOrderedModPaths(),
             ModRows,
-            path => FindPathIndex(SelectedModPaths, path) >= 0);
+            path => FindPathIndex(SelectedModPaths, path) >= 0,
+            isLibrarySelectionEnabled);
     }
 
     private void RefreshProfileRows()
@@ -1226,12 +1246,13 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private static void CopyRows(
         IReadOnlyList<string> paths,
         ObservableCollection<SelectablePathRow> destination,
-        Func<string, bool> isSelected)
+        Func<string, bool> isSelected,
+        bool isSelectionEnabled)
     {
         destination.Clear();
         foreach (var path in paths)
         {
-            destination.Add(new SelectablePathRow(path, isSelected(path)));
+            destination.Add(new SelectablePathRow(path, isSelected(path), isSelectionEnabled));
         }
     }
 
@@ -1480,6 +1501,16 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     private IReadOnlyList<string> GetOrderedModPaths()
     {
+        if (!HasSelectedProfile)
+        {
+            return
+            [
+                .. Mods
+                    .OrderBy(path => Path.GetFileName(path), StringComparer.OrdinalIgnoreCase)
+                    .ThenBy(path => path, StringComparer.OrdinalIgnoreCase)
+            ];
+        }
+
         var orderedSelectedPaths = new List<string>();
         var selectedPathSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
@@ -1719,15 +1750,20 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
 public sealed class SelectablePathRow
 {
-    public SelectablePathRow(string path, bool isSelected)
+    public SelectablePathRow(string path, bool isSelected, bool isSelectionEnabled)
     {
         Path = path;
         IsSelected = isSelected;
+        IsSelectionEnabled = isSelectionEnabled;
     }
 
     public string Path { get; }
 
     public bool IsSelected { get; }
+
+    public bool IsSelectionEnabled { get; }
+
+    public bool IsSelectionDisabled => !IsSelectionEnabled;
 }
 
 public sealed class ProfileListItem : INotifyPropertyChanged
