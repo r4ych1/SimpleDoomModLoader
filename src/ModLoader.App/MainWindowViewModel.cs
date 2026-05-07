@@ -3,7 +3,6 @@ using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using Avalonia.Controls;
 using ModLoader.Core;
 
 namespace ModLoader.App;
@@ -23,14 +22,14 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private readonly ILaunchInputsPersistence _persistence;
     private readonly LaunchInputsStore _store;
     private readonly List<ProfileConfig> _profiles = [];
-    private bool _isFileLibraryPaneCollapsed;
+    private bool _isFileLibraryViewActive;
     private bool _isIwadDropZoneDragActive;
     private bool _isProfileDragGhostVisible;
     private bool _isProfileDropIndicatorVisible;
     private bool _isIwadSectionCollapsed;
     private bool _isModSectionCollapsed;
     private bool _isModDropZoneDragActive;
-    private bool _isSelectedProfileRenameVisible;
+    private ProfileRenameMode _profileRenameMode;
     private bool _isSourcePortDropZoneDragActive;
     private bool _isSourcePortSectionCollapsed;
     private string? _pendingDeleteProfileId;
@@ -40,7 +39,6 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private double _profileDropIndicatorLeft;
     private double _profileDropIndicatorTop;
     private double _profileDropIndicatorWidth;
-    private double? _rememberedExpandedWindowWidth;
     private double _windowWidth = double.PositiveInfinity;
     private string? _selectedIwadPath;
     private string? _selectedProfileId;
@@ -73,8 +71,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         var loadResult = _persistence.Load();
         _store = new LaunchInputsStore(loadResult.State);
         LoadProfilesFromConfig(loadResult.State);
-        IsFileLibraryPaneCollapsed = loadResult.State.IsFileLibraryPaneCollapsed;
-        var windowWidthSanitized = InitializeRememberedExpandedWindowWidth(loadResult.State.LastExpandedWindowWidth);
+        IsFileLibraryViewActive = loadResult.State.IsFileLibraryViewActive;
         IsSourcePortSectionCollapsed = loadResult.State.IsSourcePortSectionCollapsed;
         IsIwadSectionCollapsed = loadResult.State.IsIwadSectionCollapsed;
         IsModSectionCollapsed = loadResult.State.IsModSectionCollapsed;
@@ -89,7 +86,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
         RefreshFromStore();
 
-        if (storeSanitized || selectedProfileSanitized || windowWidthSanitized)
+        if (storeSanitized || selectedProfileSanitized)
         {
             PersistState();
         }
@@ -123,9 +120,9 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     public bool HasSelectedProfile => !string.IsNullOrWhiteSpace(SelectedProfileId);
 
-    public bool HasActiveProfileRename => IsSelectedProfileRenameVisible;
+    public bool HasActiveProfileRename => _profileRenameMode != ProfileRenameMode.None;
 
-    public string? RenamingProfileId => IsSelectedProfileRenameVisible ? SelectedProfileId : null;
+    public string? RenamingProfileId => HasActiveProfileRename ? SelectedProfileId : null;
 
     public bool CanCreateProfile => true;
 
@@ -197,7 +194,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(CanLaunch));
             OnSelectedProfilePresentationChanged();
 
-            if (!IsSelectedProfileRenameVisible)
+            if (!HasActiveProfileRename)
             {
                 SelectedProfileRenameText = GetSelectedProfile()?.Name ?? string.Empty;
             }
@@ -242,45 +239,32 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     public int ToastSequence => _toastSequence;
 
-    public bool IsFileLibraryPaneCollapsed
+    public bool IsFileLibraryViewActive
     {
-        get => _isFileLibraryPaneCollapsed;
+        get => _isFileLibraryViewActive;
         private set
         {
-            if (_isFileLibraryPaneCollapsed == value)
+            if (_isFileLibraryViewActive == value)
             {
                 return;
             }
 
-            _isFileLibraryPaneCollapsed = value;
+            _isFileLibraryViewActive = value;
             OnPropertyChanged();
-            OnPropertyChanged(nameof(IsFileLibraryPaneExpanded));
-            OnPropertyChanged(nameof(FileLibraryPaneToggleText));
-            OnPropertyChanged(nameof(ProfilePaneColumnWidth));
-            OnPropertyChanged(nameof(PaneSpacerColumnWidth));
-            OnPropertyChanged(nameof(FileLibraryPaneColumnWidth));
+            OnPropertyChanged(nameof(IsProfilesViewActive));
+            OnPropertyChanged(nameof(OpenFileLibraryViewText));
+            OnPropertyChanged(nameof(ReturnToProfilesViewText));
+            OnPropertyChanged(nameof(AreProfileCommandPreviewsVisible));
+            OnPropertyChanged(nameof(IsSelectedProfileHeaderRenameVisible));
+            OnPropertyChanged(nameof(IsSelectedProfileRowRenameVisible));
         }
     }
 
-    public bool IsFileLibraryPaneExpanded => !IsFileLibraryPaneCollapsed;
+    public bool IsProfilesViewActive => !IsFileLibraryViewActive;
 
-    public string FileLibraryPaneToggleText => "File Library";
+    public string OpenFileLibraryViewText => "File Library";
 
-    public GridLength ProfilePaneColumnWidth => IsFileLibraryPaneCollapsed
-        ? new GridLength(1, GridUnitType.Star)
-        : new GridLength(380);
-
-    public GridLength PaneSpacerColumnWidth => IsFileLibraryPaneCollapsed
-        ? new GridLength(0)
-        : new GridLength(16);
-
-    public GridLength FileLibraryPaneColumnWidth => IsFileLibraryPaneCollapsed
-        ? new GridLength(0)
-        : new GridLength(1, GridUnitType.Star);
-
-    public double PreferredExpandedWindowWidth => WindowSizingPolicy.GetExpandedWindowWidth(_rememberedExpandedWindowWidth);
-
-    public double PreferredCollapsedWindowWidth => WindowSizingPolicy.ProfileOnlyWindowWidth;
+    public string ReturnToProfilesViewText => "Profiles";
 
     public bool IsSourcePortSectionCollapsed
     {
@@ -373,25 +357,30 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         }
     }
 
-    public bool IsSelectedProfileDisplayVisible => !IsSelectedProfileRenameVisible;
+    public bool IsSelectedProfileDisplayVisible => _profileRenameMode != ProfileRenameMode.Header;
 
-    public bool IsSelectedProfileRenameVisible
+    public bool IsSelectedProfileHeaderRenameVisible
     {
-        get => _isSelectedProfileRenameVisible;
+        get => _profileRenameMode == ProfileRenameMode.Header;
         private set
         {
-            if (_isSelectedProfileRenameVisible == value)
+            var newMode = value ? ProfileRenameMode.Header : ProfileRenameMode.None;
+            if (_profileRenameMode == newMode)
             {
                 return;
             }
 
-            _isSelectedProfileRenameVisible = value;
+            _profileRenameMode = newMode;
             OnPropertyChanged();
             OnPropertyChanged(nameof(IsSelectedProfileDisplayVisible));
             OnPropertyChanged(nameof(HasActiveProfileRename));
             OnPropertyChanged(nameof(RenamingProfileId));
+            OnPropertyChanged(nameof(IsSelectedProfileHeaderRenameVisible));
+            OnPropertyChanged(nameof(IsSelectedProfileRowRenameVisible));
         }
     }
+
+    public bool IsSelectedProfileRowRenameVisible => _profileRenameMode == ProfileRenameMode.Row;
 
     public string SelectedProfileStatusText
     {
@@ -544,7 +533,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     public string CommandPreviewArguments => BuildCommandPreviewArguments();
 
-    public bool AreProfileCommandPreviewsVisible => IsFileLibraryPaneCollapsed && _windowWidth > ProfileCommandPreviewHideWidthThreshold;
+    public bool AreProfileCommandPreviewsVisible => IsProfilesViewActive && _windowWidth > ProfileCommandPreviewHideWidthThreshold;
 
     public bool IsSourcePortDropZoneDragActive
     {
@@ -603,29 +592,6 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         RefreshProfileRows();
     }
 
-    public void RememberExpandedWindowWidth(double width, bool isNormalWindowState)
-    {
-        if (IsFileLibraryPaneCollapsed || !isNormalWindowState)
-        {
-            return;
-        }
-
-        var normalizedWidth = WindowSizingPolicy.NormalizeRememberedExpandedWindowWidth(width);
-        if (!normalizedWidth.HasValue)
-        {
-            return;
-        }
-
-        if (_rememberedExpandedWindowWidth.HasValue
-            && Math.Abs(_rememberedExpandedWindowWidth.Value - normalizedWidth.Value) < 0.01d)
-        {
-            return;
-        }
-
-        _rememberedExpandedWindowWidth = normalizedWidth.Value;
-        PersistState();
-    }
-
     public void ProcessSourcePortDrop(IEnumerable<string> droppedPaths)
     {
         ResetDropZoneDragStates();
@@ -677,9 +643,18 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         PersistState();
     }
 
-    public void ToggleFileLibraryPaneCollapsed()
+    public void ShowFileLibraryView()
     {
-        IsFileLibraryPaneCollapsed = !IsFileLibraryPaneCollapsed;
+        CancelRename();
+        IsFileLibraryViewActive = true;
+        RefreshProfileRows();
+        PersistState();
+    }
+
+    public void ShowProfilesView()
+    {
+        CancelRename();
+        IsFileLibraryViewActive = false;
         RefreshProfileRows();
         PersistState();
     }
@@ -825,12 +800,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         PersistState();
     }
 
-    public bool SelectProfileAndExpandFileLibraryPane(string profileId)
-    {
-        return SelectProfileAndSetFileLibraryPaneCollapsed(profileId, false);
-    }
-
-    public bool SelectProfileAndSetFileLibraryPaneCollapsed(string profileId, bool isCollapsed)
+    public bool SelectProfileAndOpenFileLibraryView(string profileId)
     {
         CancelRename();
 
@@ -840,7 +810,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         }
 
         HydrateSelectionsFromSelectedProfile();
-        IsFileLibraryPaneCollapsed = isCollapsed;
+        IsFileLibraryViewActive = true;
         ClearPendingDeleteConfirmation();
         RefreshRows();
         RefreshProfileRows();
@@ -866,7 +836,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
         _profiles.Add(profile);
         SelectedProfileId = profile.Id;
-        IsFileLibraryPaneCollapsed = false;
+        IsFileLibraryViewActive = true;
         HydrateSelectionsFromSelectedProfile();
         RefreshRows();
         RefreshProfileRows();
@@ -928,7 +898,23 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             return;
         }
 
-        BeginRenameProfile(selectedProfileId);
+        CancelRename();
+        ClearPendingDeleteConfirmation();
+
+        if (!TrySelectProfile(selectedProfileId))
+        {
+            return;
+        }
+
+        HydrateSelectionsFromSelectedProfile();
+        SelectedProfileRenameText = GetSelectedProfile()?.Name ?? string.Empty;
+        ClearPassiveToast();
+        IsSelectedProfileHeaderRenameVisible = true;
+        RefreshRows();
+        RefreshProfileRows();
+        OnPropertyChanged(nameof(CanLaunch));
+        OnSelectedProfilePresentationChanged();
+        PersistState();
     }
 
     public void BeginRenameProfile(string profileId)
@@ -951,7 +937,12 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             return;
         }
 
-        IsSelectedProfileRenameVisible = true;
+        _profileRenameMode = ProfileRenameMode.Row;
+        OnPropertyChanged(nameof(HasActiveProfileRename));
+        OnPropertyChanged(nameof(RenamingProfileId));
+        OnPropertyChanged(nameof(IsSelectedProfileDisplayVisible));
+        OnPropertyChanged(nameof(IsSelectedProfileHeaderRenameVisible));
+        OnPropertyChanged(nameof(IsSelectedProfileRowRenameVisible));
         SelectedProfileRenameText = row.Name;
         RefreshProfileRows();
         ClearPassiveToast();
@@ -962,7 +953,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     public void UpdateRenameText(string profileId, string? text)
     {
-        if (!IsSelectedProfileRenameVisible
+        if (!HasActiveProfileRename
             || !string.Equals(profileId, SelectedProfileId, StringComparison.Ordinal))
         {
             return;
@@ -975,7 +966,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     {
         var row = FindProfileRow(profileId);
         if (row is null
-            || !IsSelectedProfileRenameVisible
+            || !HasActiveProfileRename
             || !string.Equals(profileId, SelectedProfileId, StringComparison.Ordinal))
         {
             return;
@@ -1012,7 +1003,12 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             SelectedModPaths = [.. existingProfile.SelectedModPaths]
         };
 
-        IsSelectedProfileRenameVisible = false;
+        _profileRenameMode = ProfileRenameMode.None;
+        OnPropertyChanged(nameof(HasActiveProfileRename));
+        OnPropertyChanged(nameof(RenamingProfileId));
+        OnPropertyChanged(nameof(IsSelectedProfileDisplayVisible));
+        OnPropertyChanged(nameof(IsSelectedProfileHeaderRenameVisible));
+        OnPropertyChanged(nameof(IsSelectedProfileRowRenameVisible));
         SelectedProfileRenameText = proposedName;
         ClearPassiveToast();
         RefreshProfileRows();
@@ -1022,12 +1018,17 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     public bool CancelRename()
     {
-        if (!IsSelectedProfileRenameVisible)
+        if (!HasActiveProfileRename)
         {
             return false;
         }
 
-        IsSelectedProfileRenameVisible = false;
+        _profileRenameMode = ProfileRenameMode.None;
+        OnPropertyChanged(nameof(HasActiveProfileRename));
+        OnPropertyChanged(nameof(RenamingProfileId));
+        OnPropertyChanged(nameof(IsSelectedProfileDisplayVisible));
+        OnPropertyChanged(nameof(IsSelectedProfileHeaderRenameVisible));
+        OnPropertyChanged(nameof(IsSelectedProfileRowRenameVisible));
         SelectedProfileRenameText = GetSelectedProfile()?.Name ?? string.Empty;
         ClearPassiveToast();
         RefreshProfileRows();
@@ -1225,6 +1226,9 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(SelectedProfileStatusForeground));
         OnPropertyChanged(nameof(SelectedProfileCommandPreviewText));
         OnPropertyChanged(nameof(HasSelectedProfileCommandPreview));
+        OnPropertyChanged(nameof(IsSelectedProfileDisplayVisible));
+        OnPropertyChanged(nameof(IsSelectedProfileHeaderRenameVisible));
+        OnPropertyChanged(nameof(IsSelectedProfileRowRenameVisible));
     }
 
     private void RefreshRows()
@@ -1266,13 +1270,13 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
             row.Name = profile.Name;
             row.IsSelected = string.Equals(profile.Id, SelectedProfileId, StringComparison.Ordinal);
-            row.IsRenameVisible = IsSelectedProfileRenameVisible && row.IsSelected;
+            row.IsRenameVisible = IsSelectedProfileRowRenameVisible && row.IsSelected;
             row.IsInvalid = !validity.IsValid;
             row.CanLaunchProfile = row.IsDisplayVisible;
             row.ValidMessage = validity.IsValid ? "VALID" : string.Empty;
             row.InvalidReason = validity.Reason;
             row.IsInvalidReasonVisible = !validity.IsValid
-                && IsFileLibraryPaneCollapsed
+                && IsProfilesViewActive
                 && !string.IsNullOrWhiteSpace(validity.Reason);
             row.CommandPreviewText = BuildCommandPreviewArguments(profile);
             row.IsCommandPreviewVisible = AreProfileCommandPreviewsVisible && !string.IsNullOrWhiteSpace(row.CommandPreviewText);
@@ -1367,14 +1371,6 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
         SelectedProfileId = matchingProfile.Id;
         return false;
-    }
-
-    private bool InitializeRememberedExpandedWindowWidth(double? lastExpandedWindowWidth)
-    {
-        var normalizedWidth = WindowSizingPolicy.NormalizeRememberedExpandedWindowWidth(lastExpandedWindowWidth);
-        var hadInvalidStoredWidth = lastExpandedWindowWidth.HasValue && !normalizedWidth.HasValue;
-        _rememberedExpandedWindowWidth = normalizedWidth;
-        return hadInvalidStoredWidth;
     }
 
     private bool TrySelectProfile(string profileId)
@@ -1737,8 +1733,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             SourcePorts = [.. snapshot.SourcePorts],
             Profiles = [.. _profiles.Select(CloneProfile)],
             SelectedProfileId = SelectedProfileId,
-            IsFileLibraryPaneCollapsed = IsFileLibraryPaneCollapsed,
-            LastExpandedWindowWidth = _rememberedExpandedWindowWidth,
+            IsFileLibraryViewActive = IsFileLibraryViewActive,
             IsSourcePortSectionCollapsed = IsSourcePortSectionCollapsed,
             SelectedSourcePortPath = null,
             Iwads = [.. snapshot.Iwads],
@@ -2088,3 +2083,10 @@ public sealed class ProfileListItem : INotifyPropertyChanged
 }
 
 internal readonly record struct ProfileValidity(bool IsValid, string Reason);
+
+internal enum ProfileRenameMode
+{
+    None,
+    Row,
+    Header
+}

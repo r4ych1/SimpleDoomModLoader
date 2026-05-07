@@ -20,8 +20,7 @@ public sealed class JsonLaunchInputsPersistenceTests
         Assert.Empty(result.State.SourcePorts);
         Assert.Empty(result.State.Profiles);
         Assert.Null(result.State.SelectedProfileId);
-        Assert.False(result.State.IsFileLibraryPaneCollapsed);
-        Assert.Null(result.State.LastExpandedWindowWidth);
+        Assert.False(result.State.IsFileLibraryViewActive);
         Assert.False(result.State.IsSourcePortSectionCollapsed);
         Assert.Null(result.State.SelectedSourcePortPath);
         Assert.Empty(result.State.Iwads);
@@ -54,8 +53,7 @@ public sealed class JsonLaunchInputsPersistenceTests
                 }
             ],
             SelectedProfileId = "p1",
-            IsFileLibraryPaneCollapsed = true,
-            LastExpandedWindowWidth = 1366d,
+            IsFileLibraryViewActive = true,
             IsSourcePortSectionCollapsed = true,
             SelectedSourcePortPath = null,
             Iwads = [Path.Combine(temp.Path, "doom.wad"), Path.Combine(temp.Path, "doom2.wad")],
@@ -71,8 +69,7 @@ public sealed class JsonLaunchInputsPersistenceTests
 
         Assert.Equal(state.SourcePorts, result.State.SourcePorts);
         Assert.Equal(state.SelectedProfileId, result.State.SelectedProfileId);
-        Assert.Equal(state.IsFileLibraryPaneCollapsed, result.State.IsFileLibraryPaneCollapsed);
-        Assert.Equal(state.LastExpandedWindowWidth, result.State.LastExpandedWindowWidth);
+        Assert.Equal(state.IsFileLibraryViewActive, result.State.IsFileLibraryViewActive);
         Assert.Equal(state.IsSourcePortSectionCollapsed, result.State.IsSourcePortSectionCollapsed);
         Assert.Equal(state.Iwads, result.State.Iwads);
         Assert.Equal(state.IsIwadSectionCollapsed, result.State.IsIwadSectionCollapsed);
@@ -112,8 +109,7 @@ public sealed class JsonLaunchInputsPersistenceTests
         Assert.Equal(legacySourcePort, result.State.SelectedSourcePortPath);
         Assert.Empty(result.State.Profiles);
         Assert.Null(result.State.SelectedProfileId);
-        Assert.False(result.State.IsFileLibraryPaneCollapsed);
-        Assert.Null(result.State.LastExpandedWindowWidth);
+        Assert.False(result.State.IsFileLibraryViewActive);
         Assert.False(result.State.IsSourcePortSectionCollapsed);
         Assert.False(result.State.IsIwadSectionCollapsed);
         Assert.False(result.State.IsModSectionCollapsed);
@@ -140,8 +136,7 @@ public sealed class JsonLaunchInputsPersistenceTests
         var persistence = new JsonLaunchInputsPersistence(configPath);
         var result = persistence.Load();
 
-        Assert.False(result.State.IsFileLibraryPaneCollapsed);
-        Assert.Null(result.State.LastExpandedWindowWidth);
+        Assert.False(result.State.IsFileLibraryViewActive);
         Assert.False(result.State.IsSourcePortSectionCollapsed);
         Assert.False(result.State.IsIwadSectionCollapsed);
         Assert.False(result.State.IsModSectionCollapsed);
@@ -163,8 +158,7 @@ public sealed class JsonLaunchInputsPersistenceTests
         Assert.Empty(result.State.SourcePorts);
         Assert.Empty(result.State.Profiles);
         Assert.Null(result.State.SelectedProfileId);
-        Assert.False(result.State.IsFileLibraryPaneCollapsed);
-        Assert.Null(result.State.LastExpandedWindowWidth);
+        Assert.False(result.State.IsFileLibraryViewActive);
         Assert.False(result.State.IsSourcePortSectionCollapsed);
         Assert.Null(result.State.SelectedSourcePortPath);
         Assert.Empty(result.State.Iwads);
@@ -184,8 +178,7 @@ public sealed class JsonLaunchInputsPersistenceTests
         Assert.Empty(replacementState.SourcePorts);
         Assert.Empty(replacementState.Profiles);
         Assert.Null(replacementState.SelectedProfileId);
-        Assert.False(replacementState.IsFileLibraryPaneCollapsed);
-        Assert.Null(replacementState.LastExpandedWindowWidth);
+        Assert.False(replacementState.IsFileLibraryViewActive);
         Assert.False(replacementState.IsSourcePortSectionCollapsed);
         Assert.Null(replacementState.SelectedSourcePortPath);
         Assert.Empty(replacementState.Iwads);
