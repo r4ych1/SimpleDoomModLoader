@@ -836,7 +836,6 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
         _profiles.Add(profile);
         SelectedProfileId = profile.Id;
-        IsFileLibraryViewActive = true;
         HydrateSelectionsFromSelectedProfile();
         RefreshRows();
         RefreshProfileRows();

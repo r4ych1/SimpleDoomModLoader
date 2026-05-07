@@ -180,16 +180,16 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
-    public void CreateNewProfile_FromProfilesView_ActivatesFileLibraryView()
+    public void CreateNewProfile_FromProfilesView_KeepsProfilesViewActive()
     {
         var persistence = new RecordingPersistence();
         var viewModel = new MainWindowViewModel(persistence);
 
         viewModel.CreateNewProfile();
 
-        Assert.True(viewModel.IsFileLibraryViewActive);
-        Assert.False(viewModel.IsProfilesViewActive);
-        Assert.True(persistence.SavedStates.Last().IsFileLibraryViewActive);
+        Assert.True(viewModel.IsProfilesViewActive);
+        Assert.False(viewModel.IsFileLibraryViewActive);
+        Assert.False(persistence.SavedStates.Last().IsFileLibraryViewActive);
     }
 
     [Fact]
@@ -2093,6 +2093,7 @@ public sealed class MainWindowViewModelTests
 
         Assert.Contains("Replace the two-pane workspace with one shared workspace that shows either `Profiles` or `File Library`.", feature014, StringComparison.Ordinal);
         Assert.Contains("Remove persisted pane-collapse and remembered-width state.", feature014, StringComparison.Ordinal);
+        Assert.Contains("Creating a new profile selects it and keeps Profiles view active.", feature014, StringComparison.Ordinal);
         Assert.Contains("Double-clicking a profile row selects that profile and opens File Library view.", feature014, StringComparison.Ordinal);
         Assert.Contains("The File Library header exposes a `Profiles` view-swap action.", feature014, StringComparison.Ordinal);
         Assert.Contains("The selected-profile header `Edit` action opens rename inline in that header.", feature014, StringComparison.Ordinal);

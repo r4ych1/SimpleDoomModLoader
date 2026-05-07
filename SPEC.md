@@ -11,7 +11,7 @@ For each launch profile, users provide:
 Feature 008 makes saved profiles the only launchable unit while keeping Source Ports, IWADs, and Mods as shared library collections.
 Feature 012 removes the legacy fixed top header.
 Feature 013 replaces the old in-window message section with a shared top-centered toast overlay.
-Feature 014 replaces the old pane-collapse model with a single shared workspace that swaps between `Profiles` and `File Library`, and removes the old pane-collapse model and fixed default window sizes.
+Feature 014 replaces the old pane-collapse model with a single shared workspace that swaps between `Profiles` and `File Library`, keeps `New Profile` in `Profiles` view, and removes the old pane-collapse model and fixed default window sizes.
 
 This repository follows feature-scoped delivery. Behavior is only guaranteed when specified in feature specs under `Features/`.
 
@@ -59,6 +59,7 @@ This repository follows feature-scoped delivery. Behavior is only guaranteed whe
   - Authoritative spec: `Features/013-toast-message-overlay.md`.
 - Feature 014: Single-view profile/library workspace swap.
   - Replaces the two-pane workspace with one single shared workspace that shows either `Profiles` or `File Library`.
+  - Creating a new profile keeps Profiles view active; double-clicking a profile opens File Library view.
   - Persists the last active workspace view, keeps File Library accessible without a selected profile, and removes the old pane-collapse model and fixed default window sizes.
   - Authoritative spec: `Features/014-single-view-profile-library-swap.md`.
 

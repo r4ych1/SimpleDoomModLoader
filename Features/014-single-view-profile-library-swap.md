@@ -48,7 +48,7 @@ Replace the two-pane workspace with one shared workspace that shows either `Prof
 - Switching views cancels any active rename session.
 
 ### Profile interactions
-- Creating a new profile selects it and opens File Library view immediately.
+- Creating a new profile selects it and keeps Profiles view active.
 - Double-clicking a profile row selects that profile and opens File Library view.
 - Single-click profile selection behavior remains unchanged.
 - Opening File Library view does not require a selected profile.
@@ -87,11 +87,11 @@ When the File-Library-header `Profiles` action is activated
 Then Profiles view becomes visible.
 And the new active view persists immediately.
 
-### New profile opens File Library view
+### New profile keeps Profiles view active
 Given Profiles view is visible
 When the user creates a new profile
 Then the new profile is created and selected using Feature 008 rules.
-And File Library view becomes visible immediately.
+And Profiles view remains visible.
 
 ### Double-clicked profile opens File Library view
 Given Profiles view is visible and a saved profile row exists
