@@ -5,7 +5,7 @@ Remove the legacy fixed top header and make collapsed file-library mode a true p
 
 ## In Scope
 - Removing the old fixed top header banner from the main window.
-- Preserving the existing warning/message banner and workspace content below it.
+- Preserving the existing toast overlay and workspace content below it.
 - Shrinking the native window to the profile-management section when the file library collapses in a normal window state.
 - Restoring the remembered expanded normal-window width when the file library expands again.
 - Applying the same width behavior to pane-toggle, double-click pane-shortcut, startup-collapsed, and new-profile auto-expand flows.
@@ -28,8 +28,9 @@ Remove the legacy fixed top header and make collapsed file-library mode a true p
 ## Rules
 ### Header Removal
 - The top fixed header is not rendered.
-- The warning/message banner remains and continues to appear above the workspace when visible.
-- When no warning/message banner is visible, the workspace becomes the first main visual block in the window.
+- Toast messages render as an overlay and do not reserve layout space above the workspace.
+- The toast overlay is anchored to the top-center of the window above the workspace content.
+- The workspace remains the first main layout block in the window.
 
 ### Profile-Only Collapse Mode
 - Collapsing the file library keeps the existing Feature 009 pane rules:
@@ -68,7 +69,14 @@ Remove the legacy fixed top header and make collapsed file-library mode a true p
 Given the main window is rendered
 When the top-level layout is shown
 Then the old title/helper header banner is absent.
-And the warning/message banner remains available when needed.
+And toast messages remain available when needed without pushing the workspace down.
+And visible toast messages are aligned to the top-center of the window above the workspace content.
+
+### Toast overlay stays top-centered across workspace modes
+Given a toast message is visible
+When the file library pane is expanded or collapsed
+Then the toast remains aligned to the top-center of the window.
+And it remains an overlay above the workspace content.
 
 ### Collapse shrinks to profile-only window mode
 Given the file library is expanded and the window state is normal

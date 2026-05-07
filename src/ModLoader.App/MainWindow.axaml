@@ -109,36 +109,7 @@
     </Style>
   </Window.Styles>
 
-  <DockPanel>
-    <Border DockPanel.Dock="Top"
-            IsVisible="{Binding HasMessage}"
-            BorderBrush="#f59e0b"
-            BorderThickness="1"
-            Background="#1af59e0b"
-            Padding="10"
-            Margin="20,12,20,0">
-      <Grid ColumnDefinitions="*,Auto,Auto">
-        <TextBlock Grid.Column="0"
-                   Foreground="#92400e"
-                   FontWeight="SemiBold"
-                   TextWrapping="Wrap"
-                   VerticalAlignment="Center"
-                   Text="{Binding MessageText}" />
-        <Button Grid.Column="1"
-                Content="Delete"
-                IsVisible="{Binding HasPendingDeleteConfirmation}"
-                Margin="8,0,0,0"
-                VerticalAlignment="Center"
-                Click="OnConfirmDeleteProfileClicked" />
-        <Button Grid.Column="2"
-                Content="Cancel"
-                IsVisible="{Binding HasPendingDeleteConfirmation}"
-                Margin="8,0,0,0"
-                VerticalAlignment="Center"
-                Click="OnCancelDeleteProfileClicked" />
-      </Grid>
-    </Border>
-
+  <Grid>
     <Grid Margin="20">
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="{Binding ProfilePaneColumnWidth}" />
@@ -254,7 +225,6 @@
                                     ToolTip.Tip="Launch"
                                     automation:AutomationProperties.Name="Launch"
                                     Tag="{Binding Id}"
-                                    IsEnabled="{Binding CanLaunchProfile}"
                                     Click="OnLaunchProfileClicked">
                               <PathIcon Width="16"
                                         Height="16"
@@ -670,5 +640,39 @@
         </Grid>
       </Border>
     </Grid>
-  </DockPanel>
+
+    <Border x:Name="ToastHost"
+            IsVisible="{Binding HasToast}"
+            ZIndex="20"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Top"
+            MaxWidth="420"
+            Margin="20"
+            Padding="12"
+            BorderThickness="1"
+            CornerRadius="10"
+            Background="{Binding ToastBackground}"
+            BorderBrush="{Binding ToastBorderBrush}">
+      <Grid ColumnDefinitions="*,Auto,Auto">
+        <TextBlock Grid.Column="0"
+                   Foreground="{Binding ToastForeground}"
+                   FontWeight="SemiBold"
+                   TextWrapping="Wrap"
+                   VerticalAlignment="Center"
+                   Text="{Binding ToastMessageText}" />
+        <Button Grid.Column="1"
+                Content="Delete"
+                IsVisible="{Binding HasToastActions}"
+                Margin="8,0,0,0"
+                VerticalAlignment="Center"
+                Click="OnConfirmDeleteProfileClicked" />
+        <Button Grid.Column="2"
+                Content="Cancel"
+                IsVisible="{Binding HasToastActions}"
+                Margin="8,0,0,0"
+                VerticalAlignment="Center"
+                Click="OnCancelDeleteProfileClicked" />
+      </Grid>
+    </Border>
+  </Grid>
 </Window>

@@ -10,7 +10,7 @@ Replace selected text-labeled UI action buttons with icon-based controls so the 
 
 ## Out Of Scope
 - Changes to launch rules, profile validity, persistence, drag behavior, or rename behavior.
-- Changes to the amber confirmation-message `Delete` and `Cancel` buttons.
+- Changes to the toast-based confirmation `Delete` and `Cancel` buttons.
 - New keyboard shortcuts, context menus, or alternate action placements.
 
 ## Definitions

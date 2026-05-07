@@ -112,6 +112,26 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
+    public void Constructor_WithLoadWarning_ShowsWarningToast()
+    {
+        var persistence = new RecordingPersistence
+        {
+            LoadResult = new LaunchInputsLoadResult
+            {
+                State = new LaunchInputsConfig(),
+                WarningMessage = "Config file was invalid and was reset to an empty state."
+            }
+        };
+
+        var viewModel = new MainWindowViewModel(persistence);
+
+        Assert.True(viewModel.HasToast);
+        Assert.True(viewModel.IsPassiveToast);
+        Assert.Equal(ToastKind.Warning, viewModel.CurrentToastKind);
+        Assert.Equal("Config file was invalid and was reset to an empty state.", viewModel.ToastMessageText);
+    }
+
+    [Fact]
     public void CreateNewProfile_WithoutSelections_CreatesSelectedInvalidProfile()
     {
         var persistence = new RecordingPersistence();
@@ -458,7 +478,7 @@ public sealed class MainWindowViewModelTests
         Assert.Null(viewModel.SelectedIwadPath);
         Assert.Null(persistence.SavedStates.Last().Profiles.Single().IwadPath);
         Assert.True(viewModel.ProfileRows.Single().IsInvalid);
-        Assert.False(viewModel.ProfileRows.Single().CanLaunchProfile);
+        Assert.True(viewModel.ProfileRows.Single().CanLaunchProfile);
     }
 
     [Fact]
@@ -931,6 +951,7 @@ public sealed class MainWindowViewModelTests
         viewModel.ConfirmDeleteProfile();
 
         Assert.False(viewModel.HasProfiles);
+        Assert.False(viewModel.HasToast);
         Assert.Equal("No Profile Selected", viewModel.SelectedProfileName);
         Assert.Null(viewModel.SelectedSourcePortPath);
         Assert.Null(viewModel.SelectedIwadPath);
@@ -1411,7 +1432,7 @@ public sealed class MainWindowViewModelTests
         Assert.False(viewModel.ProfileRows.Single().IsRenameVisible);
         Assert.Equal("Ultra-Violence", viewModel.SelectedProfileName);
         Assert.Equal("Ultra-Violence", persistence.SavedStates.Last().Profiles.Single().Name);
-        Assert.False(viewModel.HasMessage);
+        Assert.False(viewModel.HasToast);
     }
 
     [Fact]
@@ -1492,7 +1513,45 @@ public sealed class MainWindowViewModelTests
         Assert.True(viewModel.IsSelectedProfileRenameVisible);
         Assert.True(viewModel.ProfileRows.Single(row => row.Id == "p1").IsRenameVisible);
         Assert.Equal("Profile 1", viewModel.SelectedProfileName);
-        Assert.Equal("Profile name must be unique.", viewModel.MessageText);
+        Assert.True(viewModel.HasToast);
+        Assert.True(viewModel.IsPassiveToast);
+        Assert.Equal(ToastKind.Warning, viewModel.CurrentToastKind);
+        Assert.Equal("Profile name must be unique.", viewModel.ToastMessageText);
+    }
+
+    [Fact]
+    public void CommitRename_EmptyName_ShowsWarningToastAndKeepsRenameOpen()
+    {
+        using var temp = new TempDirectory();
+        var source = temp.CreateFile("gzdoom.exe");
+        var iwad = temp.CreateFile("doom2.wad");
+
+        var persistence = new RecordingPersistence
+        {
+            LoadResult = new LaunchInputsLoadResult
+            {
+                State = new LaunchInputsConfig
+                {
+                    SourcePorts = [source],
+                    Iwads = [iwad],
+                    Profiles = [CreateProfile("p1", "Profile 1", source, iwad)]
+                }
+            }
+        };
+
+        var viewModel = new MainWindowViewModel(persistence);
+
+        viewModel.BeginRenameProfile("p1");
+        viewModel.SelectedProfileRenameText = "   ";
+
+        viewModel.CommitRename("p1");
+
+        Assert.True(viewModel.IsSelectedProfileRenameVisible);
+        Assert.True(viewModel.ProfileRows.Single().IsRenameVisible);
+        Assert.True(viewModel.HasToast);
+        Assert.True(viewModel.IsPassiveToast);
+        Assert.Equal(ToastKind.Warning, viewModel.CurrentToastKind);
+        Assert.Equal("Profile name is required.", viewModel.ToastMessageText);
     }
 
     [Fact]
@@ -1601,7 +1660,42 @@ public sealed class MainWindowViewModelTests
         viewModel.RequestDeleteSelectedProfile();
 
         Assert.True(viewModel.HasPendingDeleteConfirmation);
-        Assert.Equal("Delete profile \"Profile 1\"?", viewModel.MessageText);
+        Assert.True(viewModel.HasToast);
+        Assert.True(viewModel.HasToastActions);
+        Assert.Equal(ToastKind.Confirmation, viewModel.CurrentToastKind);
+        Assert.Equal("Delete profile \"Profile 1\"?", viewModel.ToastMessageText);
+        Assert.Equal("p1", viewModel.SelectedProfileId);
+    }
+
+    [Fact]
+    public void CancelDeleteConfirmation_DismissesConfirmationToastWithoutDeleting()
+    {
+        using var temp = new TempDirectory();
+        var source = temp.CreateFile("gzdoom.exe");
+        var iwad = temp.CreateFile("doom2.wad");
+
+        var persistence = new RecordingPersistence
+        {
+            LoadResult = new LaunchInputsLoadResult
+            {
+                State = new LaunchInputsConfig
+                {
+                    SourcePorts = [source],
+                    Iwads = [iwad],
+                    Profiles = [CreateProfile("p1", "Profile 1", source, iwad)],
+                    SelectedProfileId = "p1"
+                }
+            }
+        };
+
+        var viewModel = new MainWindowViewModel(persistence);
+
+        viewModel.RequestDeleteSelectedProfile();
+        viewModel.CancelDeleteConfirmation();
+
+        Assert.False(viewModel.HasPendingDeleteConfirmation);
+        Assert.False(viewModel.HasToast);
+        Assert.Single(viewModel.ProfileRows);
         Assert.Equal("p1", viewModel.SelectedProfileId);
     }
 
@@ -1741,7 +1835,42 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
-    public void LaunchProfile_WhenTargetProfileInvalid_DoesNotInvokeLauncher()
+    public void LaunchSourcePort_WhenLauncherFails_ShowsWarningToast()
+    {
+        using var temp = new TempDirectory();
+        var source = temp.CreateFile("gzdoom.exe");
+        var iwad = temp.CreateFile("doom2.wad");
+
+        var persistence = new RecordingPersistence
+        {
+            LoadResult = new LaunchInputsLoadResult
+            {
+                State = new LaunchInputsConfig
+                {
+                    SourcePorts = [source],
+                    Iwads = [iwad],
+                    Profiles = [CreateProfile("p1", "Profile 1", source, iwad)],
+                    SelectedProfileId = "p1"
+                }
+            }
+        };
+
+        var launcher = new RecordingLauncher
+        {
+            ExceptionToThrow = new InvalidOperationException("boom")
+        };
+        var viewModel = new MainWindowViewModel(persistence, launcher);
+
+        viewModel.LaunchSourcePort();
+
+        Assert.True(viewModel.HasToast);
+        Assert.True(viewModel.IsPassiveToast);
+        Assert.Equal(ToastKind.Warning, viewModel.CurrentToastKind);
+        Assert.Equal("Launch failed: boom", viewModel.ToastMessageText);
+    }
+
+    [Fact]
+    public void LaunchProfile_WhenTargetProfileInvalid_ShowsWarningToastWithoutInvokingLauncher()
     {
         using var temp = new TempDirectory();
         var source = temp.CreateFile("gzdoom.exe");
@@ -1764,12 +1893,115 @@ public sealed class MainWindowViewModelTests
 
         var row = viewModel.ProfileRows.Single();
         Assert.True(row.IsInvalid);
-        Assert.False(row.CanLaunchProfile);
+        Assert.True(row.CanLaunchProfile);
 
         viewModel.LaunchProfile("p1");
 
         Assert.Equal("p1", viewModel.SelectedProfileId);
         Assert.Equal(0, launcher.LaunchCallCount);
+        Assert.True(viewModel.HasToast);
+        Assert.True(viewModel.IsPassiveToast);
+        Assert.Equal(ToastKind.Warning, viewModel.CurrentToastKind);
+        Assert.Equal("IWAD file is missing: missing.wad", viewModel.ToastMessageText);
+    }
+
+    [Fact]
+    public void LaunchProfile_WhenSameInvalidWarningAlreadyVisible_DoesNotReplaceToast()
+    {
+        using var temp = new TempDirectory();
+        var source = temp.CreateFile("gzdoom.exe");
+        var missingIwad = Path.Combine(temp.Path, "missing.wad");
+
+        var persistence = new RecordingPersistence
+        {
+            LoadResult = new LaunchInputsLoadResult
+            {
+                State = new LaunchInputsConfig
+                {
+                    SourcePorts = [source],
+                    Profiles = [CreateProfile("p1", "Profile 1", source, missingIwad)]
+                }
+            }
+        };
+
+        var launcher = new RecordingLauncher();
+        var viewModel = new MainWindowViewModel(persistence, launcher);
+
+        viewModel.LaunchProfile("p1");
+        var toastSequence = viewModel.ToastSequence;
+
+        viewModel.LaunchProfile("p1");
+
+        Assert.Equal(toastSequence, viewModel.ToastSequence);
+        Assert.Equal(0, launcher.LaunchCallCount);
+        Assert.Equal("IWAD file is missing: missing.wad", viewModel.ToastMessageText);
+    }
+
+    [Fact]
+    public void LaunchProfile_WhenInvalidWarningDismissed_CanShowSameWarningAgain()
+    {
+        using var temp = new TempDirectory();
+        var source = temp.CreateFile("gzdoom.exe");
+        var missingIwad = Path.Combine(temp.Path, "missing.wad");
+
+        var persistence = new RecordingPersistence
+        {
+            LoadResult = new LaunchInputsLoadResult
+            {
+                State = new LaunchInputsConfig
+                {
+                    SourcePorts = [source],
+                    Profiles = [CreateProfile("p1", "Profile 1", source, missingIwad)]
+                }
+            }
+        };
+
+        var launcher = new RecordingLauncher();
+        var viewModel = new MainWindowViewModel(persistence, launcher);
+
+        viewModel.LaunchProfile("p1");
+        viewModel.DismissPassiveToast();
+        var toastSequenceAfterDismiss = viewModel.ToastSequence;
+
+        viewModel.LaunchProfile("p1");
+
+        Assert.True(viewModel.HasToast);
+        Assert.True(viewModel.ToastSequence > toastSequenceAfterDismiss);
+        Assert.Equal(0, launcher.LaunchCallCount);
+        Assert.Equal("IWAD file is missing: missing.wad", viewModel.ToastMessageText);
+    }
+
+    [Fact]
+    public void LaunchProfile_WhenInvalidReasonChanges_ShowsUpdatedWarningToast()
+    {
+        using var temp = new TempDirectory();
+        var source = temp.CreateFile("gzdoom.exe");
+        var missingIwad = Path.Combine(temp.Path, "missing.wad");
+
+        var persistence = new RecordingPersistence
+        {
+            LoadResult = new LaunchInputsLoadResult
+            {
+                State = new LaunchInputsConfig
+                {
+                    SourcePorts = [source],
+                    Profiles = [CreateProfile("p1", "Profile 1", source, missingIwad)]
+                }
+            }
+        };
+
+        var launcher = new RecordingLauncher();
+        var viewModel = new MainWindowViewModel(persistence, launcher);
+
+        viewModel.LaunchProfile("p1");
+        var firstToastSequence = viewModel.ToastSequence;
+
+        viewModel.ToggleSourcePortSelection(source);
+        viewModel.LaunchProfile("p1");
+
+        Assert.True(viewModel.ToastSequence > firstToastSequence);
+        Assert.Equal(0, launcher.LaunchCallCount);
+        Assert.Equal("Source Port is required. IWAD is required.", viewModel.ToastMessageText);
     }
 
     [Fact]
@@ -1780,6 +2012,17 @@ public sealed class MainWindowViewModelTests
 
         Assert.DoesNotContain("Click=\"OnLaunchClicked\"", xaml, StringComparison.Ordinal);
         Assert.Contains("Click=\"OnLaunchProfileClicked\"", xaml, StringComparison.Ordinal);
+        Assert.DoesNotContain("IsEnabled=\"{Binding CanLaunchProfile}\"", xaml, StringComparison.Ordinal);
+        Assert.DoesNotContain("IsVisible=\"{Binding HasMessage}\"", xaml, StringComparison.Ordinal);
+        Assert.DoesNotContain("Text=\"{Binding MessageText}\"", xaml, StringComparison.Ordinal);
+        Assert.DoesNotContain("DockPanel.Dock=\"Top\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("x:Name=\"ToastHost\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding HasToast}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding ToastMessageText}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding HasToastActions}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("Background=\"{Binding ToastBackground}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("BorderBrush=\"{Binding ToastBorderBrush}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("Foreground=\"{Binding ToastForeground}\"", xaml, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding DataContext.SelectedProfileRenameText, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}\"", xaml, StringComparison.Ordinal);
         Assert.DoesNotContain("Text=\"{Binding RenameText, Mode=TwoWay}\"", xaml, StringComparison.Ordinal);
         Assert.DoesNotContain("Text=\"{Binding SelectedProfileRenameText, Mode=TwoWay}\"", xaml, StringComparison.Ordinal);
@@ -1873,6 +2116,17 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("Click=\"OnDeleteSelectedProfileClicked\"", xaml, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding HasSelectedProfile}\"", xaml, StringComparison.Ordinal);
 
+        var toastHostIndex = xaml.IndexOf("x:Name=\"ToastHost\"", StringComparison.Ordinal);
+        Assert.True(toastHostIndex >= 0);
+
+        var toastHostEndIndex = xaml.IndexOf("</Border>", toastHostIndex, StringComparison.Ordinal);
+        Assert.True(toastHostEndIndex > toastHostIndex);
+
+        var toastHostBlock = xaml.Substring(toastHostIndex, toastHostEndIndex - toastHostIndex);
+        Assert.Contains("HorizontalAlignment=\"Center\"", toastHostBlock, StringComparison.Ordinal);
+        Assert.DoesNotContain("HorizontalAlignment=\"Right\"", toastHostBlock, StringComparison.Ordinal);
+        Assert.Contains("VerticalAlignment=\"Top\"", toastHostBlock, StringComparison.Ordinal);
+
         var profilesHeaderIndex = xaml.IndexOf("Text=\"Profiles\"", StringComparison.Ordinal);
         var newProfileIndex = xaml.IndexOf("ToolTip.Tip=\"New Profile\"", StringComparison.Ordinal);
         var fileLibraryToggleIndex = xaml.IndexOf("ToolTip.Tip=\"{Binding FileLibraryPaneToggleText}\"", StringComparison.Ordinal);
@@ -1933,6 +2187,10 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("require one source port plus one IWAD only for profile validity", spec, StringComparison.Ordinal);
         Assert.Contains("Shared-library Source Port, IWAD, and Mod selection is profile-scoped; when no profile is selected, those rows remain visible but are not selectable.", spec, StringComparison.Ordinal);
         Assert.Contains("removes the legacy fixed top header", spec, StringComparison.Ordinal);
+        Assert.Contains("keeps the toast overlay top-centered above the workspace", spec, StringComparison.Ordinal);
+        Assert.Contains("toast overlay", spec, StringComparison.Ordinal);
+        Assert.Contains("destructive confirmation actions text-based inside the toast", spec, StringComparison.Ordinal);
+        Assert.Contains("row launch actions stay clickable in normal display mode", spec, StringComparison.Ordinal);
         Assert.Contains("shrinks the native window to the profile-management section", spec, StringComparison.Ordinal);
         Assert.Contains("Each drop zone renders a visible default target treatment before any drag begins", feature002, StringComparison.Ordinal);
         Assert.DoesNotContain("an always-visible empty-state icon or badge treatment", feature002, StringComparison.Ordinal);
@@ -1945,6 +2203,7 @@ public sealed class MainWindowViewModelTests
         Assert.DoesNotContain("selection toggles may temporarily move selected Mods to the top for the current session", feature004, StringComparison.Ordinal);
         Assert.DoesNotContain("### Detached-state temporary reordering", feature004, StringComparison.Ordinal);
         Assert.Contains("Feature 012 later removes that header", feature005, StringComparison.Ordinal);
+        Assert.Contains("non-blocking warning toast", feature005, StringComparison.Ordinal);
         Assert.DoesNotContain("Fixed Header Layout", feature005, StringComparison.Ordinal);
         Assert.Contains("file-library collapse / expand action to the right of the profile-creation action", feature008, StringComparison.Ordinal);
         Assert.Contains("selected-profile command preview text below the status text when the selected profile has one or more previewable saved launch tokens", feature008, StringComparison.Ordinal);
@@ -1983,6 +2242,10 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("The selected-profile header `Edit` action reuses that same rename flow", feature008, StringComparison.Ordinal);
         Assert.Contains("the right-pane selected-profile header remains display-only and does not render a rename input", feature008, StringComparison.Ordinal);
         Assert.Contains("Activating selected-profile header delete requests delete confirmation", feature008, StringComparison.Ordinal);
+        Assert.Contains("visible warning toast", feature008, StringComparison.Ordinal);
+        Assert.Contains("confirmation toast", feature008, StringComparison.Ordinal);
+        Assert.Contains("repeated row-launch clicks do not replace or restart that toast", feature008, StringComparison.Ordinal);
+        Assert.Contains("Invalid profiles remain listed, selectable, and row-launch-clickable", feature008, StringComparison.Ordinal);
         Assert.Contains("Then the selected-profile header remains fixed at the top of the right pane.", feature008, StringComparison.Ordinal);
         Assert.Contains("Removing a referenced Mod from the shared library does not invalidate the profile.", feature008, StringComparison.Ordinal);
         Assert.Contains("Missing referenced Mod files on disk do not invalidate the profile.", feature008, StringComparison.Ordinal);
@@ -2020,7 +2283,11 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("visual-only and do not introduce a new command, hit target, or keyboard behavior", feature011, StringComparison.Ordinal);
         Assert.Contains("bottom-center of their panes", feature011, StringComparison.Ordinal);
         Assert.Contains("tooltip and automation name text", feature011, StringComparison.Ordinal);
+        Assert.Contains("toast-based confirmation `Delete` and `Cancel` buttons", feature011, StringComparison.Ordinal);
         Assert.Contains("The top fixed header is not rendered.", feature012, StringComparison.Ordinal);
+        Assert.Contains("Toast messages render as an overlay and do not reserve layout space above the workspace.", feature012, StringComparison.Ordinal);
+        Assert.Contains("The toast overlay is anchored to the top-center of the window above the workspace content.", feature012, StringComparison.Ordinal);
+        Assert.DoesNotContain("The toast overlay is anchored to the top-right of the window above the workspace content.", feature012, StringComparison.Ordinal);
         Assert.Contains("restores the remembered expanded normal-window width", feature012, StringComparison.Ordinal);
         Assert.Contains("If the window is maximized", feature012, StringComparison.Ordinal);
     }
