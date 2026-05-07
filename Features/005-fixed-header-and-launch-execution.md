@@ -3,14 +3,14 @@
 ## Goal
 Define deterministic full-path launch execution behavior.
 
-Feature 005 originally introduced a fixed top header shell for the app. Feature 012 later removes that header, so Feature 005 is now authoritative only for launch execution and failure feedback behavior.
+Feature 005 originally introduced a fixed top header shell for the app. Feature 012 later removes that header, and Feature 013 becomes authoritative for toast presentation, so Feature 005 is now authoritative only for launch execution and when launch failure feedback is triggered.
 
 ## In Scope
 - Launch command generation using full paths:
   - `-iwad <selectedIwadFullPath>`
   - Optional `-file <selectedModFullPath...>` in selected Mod sequence order.
 - Launch execution through a testable process-launch abstraction.
-- Non-blocking warning banner when launch fails.
+- Launch failure feedback routed through Feature 013.
 
 ## Out Of Scope
 - Any change to footer command preview format from Feature 004.
@@ -43,7 +43,7 @@ Feature 005 originally introduced a fixed top header shell for the app. Feature 
 - Selected Mod argument order must match selected Mod sequence exactly.
 
 ### Launch Failure Feedback
-- If launch execution fails, show a non-blocking warning banner in the window.
+- If launch execution fails, show launch failure feedback using the Feature 013 passive warning toast behavior.
 - Failure warning does not block further interaction.
 
 ### Preview Compatibility
@@ -75,5 +75,5 @@ And no `-file` segment is included.
 ### Non-blocking failure warning
 Given launch is triggered and process start fails
 When failure is raised by launcher
-Then warning banner is shown with a failure message.
+Then the Feature 013 passive warning toast is shown with a failure message.
 And the app remains interactive.

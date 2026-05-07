@@ -5,7 +5,7 @@ Remove the legacy fixed top header and make collapsed file-library mode a true p
 
 ## In Scope
 - Removing the old fixed top header banner from the main window.
-- Preserving the existing warning/message banner and workspace content below it.
+- Preserving the workspace content below it while visible workspace toast behavior follows Feature 013.
 - Shrinking the native window to the profile-management section when the file library collapses in a normal window state.
 - Restoring the remembered expanded normal-window width when the file library expands again.
 - Applying the same width behavior to pane-toggle, double-click pane-shortcut, startup-collapsed, and new-profile auto-expand flows.
@@ -28,8 +28,8 @@ Remove the legacy fixed top header and make collapsed file-library mode a true p
 ## Rules
 ### Header Removal
 - The top fixed header is not rendered.
-- The warning/message banner remains and continues to appear above the workspace when visible.
-- When no warning/message banner is visible, the workspace becomes the first main visual block in the window.
+- The workspace remains the first main layout block in the window.
+- Any visible workspace toast follows Feature 013 placement and overlay behavior.
 
 ### Profile-Only Collapse Mode
 - Collapsing the file library keeps the existing Feature 009 pane rules:
@@ -68,7 +68,7 @@ Remove the legacy fixed top header and make collapsed file-library mode a true p
 Given the main window is rendered
 When the top-level layout is shown
 Then the old title/helper header banner is absent.
-And the warning/message banner remains available when needed.
+And any visible workspace toast follows Feature 013 placement and overlay behavior.
 
 ### Collapse shrinks to profile-only window mode
 Given the file library is expanded and the window state is normal

@@ -8,6 +8,14 @@ using ModLoader.Core;
 
 namespace ModLoader.App;
 
+public enum ToastKind
+{
+    None,
+    Informational,
+    Warning,
+    Confirmation
+}
+
 public sealed class MainWindowViewModel : INotifyPropertyChanged
 {
     private const double ProfileCommandPreviewHideWidthThreshold = 768d;
@@ -25,7 +33,6 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private bool _isSelectedProfileRenameVisible;
     private bool _isSourcePortDropZoneDragActive;
     private bool _isSourcePortSectionCollapsed;
-    private string? _messageText;
     private string? _pendingDeleteProfileId;
     private string _profileDragGhostText = string.Empty;
     private double _profileDragGhostLeft;
@@ -39,6 +46,10 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private string? _selectedProfileId;
     private string _selectedProfileRenameText = string.Empty;
     private string? _selectedSourcePortPath;
+    private bool _isInvalidLaunchToastVisible;
+    private string? _toastMessageText;
+    private int _toastSequence;
+    private ToastKind _toastKind;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -73,7 +84,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
         if (!string.IsNullOrWhiteSpace(loadResult.WarningMessage))
         {
-            SetInformationalMessage(loadResult.WarningMessage);
+            ShowToast(loadResult.WarningMessage, ToastKind.Warning);
         }
 
         RefreshFromStore();
@@ -193,25 +204,43 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         }
     }
 
-    public string? MessageText
-    {
-        get => _messageText;
-        private set
-        {
-            if (_messageText == value)
-            {
-                return;
-            }
-
-            _messageText = value;
-            OnPropertyChanged();
-            OnPropertyChanged(nameof(HasMessage));
-        }
-    }
-
-    public bool HasMessage => !string.IsNullOrWhiteSpace(MessageText);
-
     public bool HasPendingDeleteConfirmation => !string.IsNullOrWhiteSpace(_pendingDeleteProfileId);
+
+    public string? ToastMessageText => _toastMessageText;
+
+    public ToastKind CurrentToastKind => _toastKind;
+
+    public bool HasToast => !string.IsNullOrWhiteSpace(_toastMessageText) && _toastKind != ToastKind.None;
+
+    public bool HasToastActions => HasToast && CurrentToastKind == ToastKind.Confirmation;
+
+    public bool IsPassiveToast => HasToast && !HasToastActions;
+
+    public string ToastBackground => CurrentToastKind switch
+    {
+        ToastKind.Informational => "#172554",
+        ToastKind.Warning => "#2b1a08",
+        ToastKind.Confirmation => "#2b1a08",
+        _ => "#00000000"
+    };
+
+    public string ToastBorderBrush => CurrentToastKind switch
+    {
+        ToastKind.Informational => "#60a5fa",
+        ToastKind.Warning => "#f59e0b",
+        ToastKind.Confirmation => "#f59e0b",
+        _ => "#00000000"
+    };
+
+    public string ToastForeground => CurrentToastKind switch
+    {
+        ToastKind.Informational => "#dbeafe",
+        ToastKind.Warning => "#fde68a",
+        ToastKind.Confirmation => "#fde68a",
+        _ => "#e5e7eb"
+    };
+
+    public int ToastSequence => _toastSequence;
 
     public bool IsFileLibraryPaneCollapsed
     {
@@ -693,6 +722,11 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     public void ToggleSourcePortSelection(string path)
     {
+        if (!HasSelectedProfile)
+        {
+            return;
+        }
+
         var normalizedPath = PathNormalizer.NormalizeAbsolutePath(path);
 
         if (string.Equals(SelectedSourcePortPath, normalizedPath, StringComparison.OrdinalIgnoreCase))
@@ -715,6 +749,11 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     public void ToggleIwadSelection(string path)
     {
+        if (!HasSelectedProfile)
+        {
+            return;
+        }
+
         var normalizedPath = PathNormalizer.NormalizeAbsolutePath(path);
 
         if (string.Equals(SelectedIwadPath, normalizedPath, StringComparison.OrdinalIgnoreCase))
@@ -737,6 +776,11 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     public void ToggleModSelection(string path)
     {
+        if (!HasSelectedProfile)
+        {
+            return;
+        }
+
         var normalizedPath = PathNormalizer.NormalizeAbsolutePath(path);
         var existingIndex = FindPathIndex(SelectedModPaths, normalizedPath);
 
@@ -910,7 +954,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         IsSelectedProfileRenameVisible = true;
         SelectedProfileRenameText = row.Name;
         RefreshProfileRows();
-        ClearInformationalMessage();
+        ClearPassiveToast();
         OnPropertyChanged(nameof(CanLaunch));
         OnSelectedProfilePresentationChanged();
         PersistState();
@@ -940,7 +984,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         var proposedName = SelectedProfileRenameText.Trim();
         if (string.IsNullOrWhiteSpace(proposedName))
         {
-            SetInformationalMessage("Profile name is required.");
+            ShowToast("Profile name is required.", ToastKind.Warning);
             return;
         }
 
@@ -948,7 +992,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
                 profile => !string.Equals(profile.Id, profileId, StringComparison.Ordinal)
                     && string.Equals(profile.Name, proposedName, StringComparison.OrdinalIgnoreCase)))
         {
-            SetInformationalMessage("Profile name must be unique.");
+            ShowToast("Profile name must be unique.", ToastKind.Warning);
             return;
         }
 
@@ -970,7 +1014,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
         IsSelectedProfileRenameVisible = false;
         SelectedProfileRenameText = proposedName;
-        ClearInformationalMessage();
+        ClearPassiveToast();
         RefreshProfileRows();
         OnSelectedProfilePresentationChanged();
         PersistState();
@@ -985,7 +1029,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
         IsSelectedProfileRenameVisible = false;
         SelectedProfileRenameText = GetSelectedProfile()?.Name ?? string.Empty;
-        ClearInformationalMessage();
+        ClearPassiveToast();
         RefreshProfileRows();
         return true;
     }
@@ -1001,7 +1045,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         }
 
         _pendingDeleteProfileId = profileId;
-        SetInformationalMessage($"Delete profile \"{profile.Name}\"?");
+        ShowToast($"Delete profile \"{profile.Name}\"?", ToastKind.Confirmation);
         OnPropertyChanged(nameof(HasPendingDeleteConfirmation));
     }
 
@@ -1060,13 +1104,33 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             return;
         }
 
-        ClearPendingDeleteConfirmation();
         HydrateSelectionsFromSelectedProfile();
         RefreshRows();
         RefreshProfileRows();
         OnPropertyChanged(nameof(CanLaunch));
         OnSelectedProfilePresentationChanged();
         PersistState();
+
+        var selectedProfile = GetSelectedProfile();
+        if (selectedProfile is null)
+        {
+            return;
+        }
+
+        var validity = GetProfileValidity(selectedProfile);
+        if (!validity.IsValid)
+        {
+            if (ShouldSuppressInvalidLaunchToast(validity.Reason))
+            {
+                return;
+            }
+
+            ClearPendingDeleteConfirmation();
+            ShowInvalidLaunchToast(validity.Reason);
+            return;
+        }
+
+        ClearPendingDeleteConfirmation();
         LaunchSourcePort();
     }
 
@@ -1123,7 +1187,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-            SetInformationalMessage($"Launch failed: {ex.Message}");
+            ShowToast($"Launch failed: {ex.Message}", ToastKind.Warning);
         }
     }
 
@@ -1165,20 +1229,25 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     private void RefreshRows()
     {
+        var isLibrarySelectionEnabled = HasSelectedProfile;
+
         CopyRows(
             SourcePorts,
             SourcePortRows,
-            path => string.Equals(path, SelectedSourcePortPath, StringComparison.OrdinalIgnoreCase));
+            path => string.Equals(path, SelectedSourcePortPath, StringComparison.OrdinalIgnoreCase),
+            isLibrarySelectionEnabled);
 
         CopyRows(
             Iwads,
             IwadRows,
-            path => string.Equals(path, SelectedIwadPath, StringComparison.OrdinalIgnoreCase));
+            path => string.Equals(path, SelectedIwadPath, StringComparison.OrdinalIgnoreCase),
+            isLibrarySelectionEnabled);
 
         CopyRows(
             GetOrderedModPaths(),
             ModRows,
-            path => FindPathIndex(SelectedModPaths, path) >= 0);
+            path => FindPathIndex(SelectedModPaths, path) >= 0,
+            isLibrarySelectionEnabled);
     }
 
     private void RefreshProfileRows()
@@ -1199,7 +1268,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             row.IsSelected = string.Equals(profile.Id, SelectedProfileId, StringComparison.Ordinal);
             row.IsRenameVisible = IsSelectedProfileRenameVisible && row.IsSelected;
             row.IsInvalid = !validity.IsValid;
-            row.CanLaunchProfile = validity.IsValid;
+            row.CanLaunchProfile = row.IsDisplayVisible;
             row.ValidMessage = validity.IsValid ? "VALID" : string.Empty;
             row.InvalidReason = validity.Reason;
             row.IsInvalidReasonVisible = !validity.IsValid
@@ -1226,12 +1295,13 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private static void CopyRows(
         IReadOnlyList<string> paths,
         ObservableCollection<SelectablePathRow> destination,
-        Func<string, bool> isSelected)
+        Func<string, bool> isSelected,
+        bool isSelectionEnabled)
     {
         destination.Clear();
         foreach (var path in paths)
         {
-            destination.Add(new SelectablePathRow(path, isSelected(path)));
+            destination.Add(new SelectablePathRow(path, isSelected(path), isSelectionEnabled));
         }
     }
 
@@ -1480,6 +1550,16 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     private IReadOnlyList<string> GetOrderedModPaths()
     {
+        if (!HasSelectedProfile)
+        {
+            return
+            [
+                .. Mods
+                    .OrderBy(path => Path.GetFileName(path), StringComparer.OrdinalIgnoreCase)
+                    .ThenBy(path => path, StringComparer.OrdinalIgnoreCase)
+            ];
+        }
+
         var orderedSelectedPaths = new List<string>();
         var selectedPathSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
@@ -1684,31 +1764,94 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         };
     }
 
-    private void SetInformationalMessage(string? message)
+    public void DismissPassiveToast()
     {
-        MessageText = message;
+        if (!IsPassiveToast)
+        {
+            return;
+        }
+
+        ClearToast();
     }
 
-    private void ClearInformationalMessage()
+    private void ClearPassiveToast()
     {
         if (HasPendingDeleteConfirmation)
         {
             return;
         }
 
-        MessageText = null;
+        ClearToast();
     }
 
     private void ClearPendingDeleteConfirmation()
     {
         var hadPendingDelete = HasPendingDeleteConfirmation;
         _pendingDeleteProfileId = null;
-        MessageText = null;
+        ClearToast();
 
         if (hadPendingDelete)
         {
             OnPropertyChanged(nameof(HasPendingDeleteConfirmation));
         }
+    }
+
+    private void ShowToast(string? message, ToastKind kind)
+    {
+        SetToast(message, kind, isInvalidLaunchToast: false);
+    }
+
+    private void ShowInvalidLaunchToast(string? message)
+    {
+        if (string.IsNullOrWhiteSpace(message))
+        {
+            return;
+        }
+
+        SetToast(message, ToastKind.Warning, isInvalidLaunchToast: true);
+    }
+
+    private bool ShouldSuppressInvalidLaunchToast(string? message)
+    {
+        return _isInvalidLaunchToastVisible
+            && !string.IsNullOrWhiteSpace(message)
+            && string.Equals(_toastMessageText, message, StringComparison.Ordinal);
+    }
+
+    private void SetToast(string? message, ToastKind kind, bool isInvalidLaunchToast)
+    {
+        _toastMessageText = string.IsNullOrWhiteSpace(message) ? null : message;
+        _toastKind = _toastMessageText is null ? ToastKind.None : kind;
+        _isInvalidLaunchToastVisible = isInvalidLaunchToast && _toastMessageText is not null;
+        _toastSequence++;
+        OnToastPresentationChanged();
+    }
+
+    private void ClearToast()
+    {
+        if (_toastKind == ToastKind.None && string.IsNullOrWhiteSpace(_toastMessageText))
+        {
+            return;
+        }
+
+        _toastMessageText = null;
+        _toastKind = ToastKind.None;
+        _isInvalidLaunchToastVisible = false;
+        _toastSequence++;
+        OnToastPresentationChanged();
+    }
+
+    private void OnToastPresentationChanged()
+    {
+        OnPropertyChanged(nameof(ToastMessageText));
+        OnPropertyChanged(nameof(CurrentToastKind));
+        OnPropertyChanged(nameof(HasToast));
+        OnPropertyChanged(nameof(HasToastActions));
+        OnPropertyChanged(nameof(IsPassiveToast));
+        OnPropertyChanged(nameof(ToastBackground));
+        OnPropertyChanged(nameof(ToastBorderBrush));
+        OnPropertyChanged(nameof(ToastForeground));
+        OnPropertyChanged(nameof(ToastSequence));
     }
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
@@ -1719,15 +1862,20 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
 public sealed class SelectablePathRow
 {
-    public SelectablePathRow(string path, bool isSelected)
+    public SelectablePathRow(string path, bool isSelected, bool isSelectionEnabled)
     {
         Path = path;
         IsSelected = isSelected;
+        IsSelectionEnabled = isSelectionEnabled;
     }
 
     public string Path { get; }
 
     public bool IsSelected { get; }
+
+    public bool IsSelectionEnabled { get; }
+
+    public bool IsSelectionDisabled => !IsSelectionEnabled;
 }
 
 public sealed class ProfileListItem : INotifyPropertyChanged

@@ -74,9 +74,8 @@ Provide a fixed footer that shows a live generated launch-argument preview and k
   - all selected Mod paths in selected sequence order
   - then all non-selected Mod paths sorted by filename case-insensitively, with full path as deterministic tie-breaker
 - When no profile is selected:
-  - detached Mod rows start in alphabetical filename order
-  - selection toggles may temporarily move selected Mods to the top for the current session
-  - detached selected-mod ordering is not restored on restart
+  - Mod rows remain in alphabetical filename order
+  - profile-scoped selection changes are unavailable
 - When a profile is selected:
   - selected-mod order persists through that profile's `SelectedModPaths`
   - selection toggles do not rewrite top-level shared-library `Mods` ordering
@@ -130,12 +129,12 @@ Then that row is removed from selected sequence.
 And remaining selected Mod order is unchanged.
 And Mod list remains continuous without gaps.
 
-### Detached-state temporary reordering
+### No-profile Mod ordering stays alphabetical
 Given no profile is selected and Mod rows exist
-When selection toggle is applied
-Then selected Mod rows move to the top in current selection sequence.
-And unselected Mod rows remain alphabetized afterward.
-And persisted config does not store detached selected Mod ordering for restart.
+When Mod rows are rendered and selection input is attempted
+Then Mod rows remain in alphabetical filename order.
+And no Mod selection is applied.
+And persisted config does not store any no-profile selected Mod ordering for restart.
 
 ### Profile-backed selected-mod persistence
 Given a selected profile with Mod rows

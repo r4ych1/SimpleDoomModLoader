@@ -5,6 +5,7 @@ Introduce saved launch profiles as the primary launch model by converting the cu
 
 Feature 009 later adds pane-level collapse for the right-side file library. Feature 008 remains authoritative for the expanded file-library workspace behavior.
 Feature 010 later adds manual drag reordering for saved profile rows. Feature 008 remains authoritative for profile selection, launch, rename, delete, validity, and auto-save behavior outside explicit ordering rules introduced there.
+Feature 013 later becomes authoritative for shared toast mechanics, placement, and timing. Feature 008 remains authoritative for which profile workflows invoke those toasts.
 
 ## In Scope
 - Saved profile list with single-select toggle behavior.
@@ -31,8 +32,6 @@ Feature 010 later adds manual drag reordering for saved profile rows. Feature 00
   - A saved record with stable `Id`, unique display `Name`, one source-port path, one IWAD path, and ordered selected mod paths.
 - Selected profile:
   - The nullable saved profile identified by `SelectedProfileId`.
-- Detached library state:
-  - Current library selections shown when no profile is selected. Detached state is temporary UI state only and is not restored on restart.
 - Invalid profile:
   - A saved profile whose current references cannot produce valid launch arguments.
 
@@ -67,7 +66,9 @@ Feature 010 later adds manual drag reordering for saved profile rows. Feature 00
   - selected-profile command preview text below the status text when the selected profile has one or more previewable saved launch tokens
 - When no profile is selected, the selected-profile header actions are hidden.
 - The Source Port, IWAD, and Mod library sections render in a scrollable region below that fixed selected-profile header.
-- The existing top message/warning area is reused for rename validation and delete confirmation.
+- When no profile is selected, Source Port, IWAD, and Mod rows remain visible but are not selectable.
+- When no profile is selected, Source Port, IWAD, and Mod rows render a disabled visual treatment that suppresses selection affordance while leaving row delete actions available.
+- Rename validation, invalid-profile row launch feedback, and selected-profile delete confirmation use Feature 013 toast behavior.
 - While the selected profile is invalid, the selected-profile status text in the right-pane header uses the same amber invalid text color used by left-pane inline invalid text.
 - While the selected profile is valid or no profile is selected, the selected-profile status text in the right-pane header keeps the muted helper/status text color.
 - While the file library pane is expanded, the Source Port, IWAD, and Mod drop zones inside that pane use the shared visible drop-zone affordance defined by Feature 002.
@@ -83,7 +84,7 @@ Feature 010 later adds manual drag reordering for saved profile rows. Feature 00
 - Saved profile row ordering is the current profile-list display order.
 - Feature 010 becomes authoritative for how profile row ordering is changed by drag reordering and persisted afterward.
 - Profile rows use one shared right-side status-badge slot:
-  - invalid rows show an `INVALID` badge in that slot and keep invalid-reason text available for the inline row message area when that text is visible
+  - invalid rows show an `INVALID` badge in that slot and keep invalid-reason text available for the inline row invalid-reason area when that text is visible
   - valid rows show a `VALID` badge in that same slot
   - valid rows do not render a separate inline valid text line under the profile name
 - Profile names in left-pane rows wrap within the row body and are capped at two rendered lines.
@@ -109,6 +110,7 @@ Feature 010 later adds manual drag reordering for saved profile rows. Feature 00
   - sets `SelectedProfileId` to `null`
   - clears current Source Port / IWAD / Mod selections
   - leaves no launchable selected profile
+  - leaves the shared file library visible but non-selectable until a profile is selected again
 - While the file library pane is collapsed, double-clicking a profile row is a profile-open shortcut:
   - the clicked profile ends selected
   - current Source Port / IWAD / Mod selections hydrate from that profile
@@ -124,13 +126,15 @@ Feature 010 later adds manual drag reordering for saved profile rows. Feature 00
 ### Profile Launch
 - Each profile row exposes a launch action immediately to the left of delete.
 - Row launch is available only while the row is in normal display mode.
-- Row launch is enabled only when that row's profile is valid.
+- Row launch remains clickable while the row is in normal display mode, even when that row's profile is invalid.
 - Activating the launch action for a row:
   - selects that profile
   - hydrates current Source Port / IWAD / Mod selections from that profile
-  - launches that profile through the existing launcher flow
+  - launches that profile through the existing launcher flow when that profile is valid
+  - does not invoke launch when that profile is invalid
+  - shows a Feature 013 passive warning toast with that profile's current invalid reason when that profile is invalid
 - Row launch does not require the profile to already be selected.
-- Invalid profiles remain listed and selectable but their row launch action is disabled.
+- Invalid profiles remain listed, selectable, and row-launch-clickable while still blocked from actual launch execution.
 - Valid profiles show an explicit `VALID` badge in the shared row status slot.
 
 ### Profile Creation
@@ -151,6 +155,7 @@ Feature 010 later adds manual drag reordering for saved profile rows. Feature 00
 
 ### Profile Editing And Rename
 - When a profile is selected, editing Source Port / IWAD / Mod selections changes that selected profile immediately and persists after each change.
+- Source Port, IWAD, and Mod row selection rules inherited from earlier features apply only while a profile is selected.
 - Auto-save includes transitions into invalid state.
 - There is no Save, Save As, dirty state, unsaved-changes prompt, or separate profile-name field.
 - Each profile row exposes launch and delete actions in that order.
@@ -180,13 +185,13 @@ Feature 010 later adds manual drag reordering for saved profile rows. Feature 00
 - Invalid rename attempts:
   - do not change the saved name
   - keep rename mode open for that row
-  - show a visible validation message in the message/warning area
+  - show a Feature 013 passive warning toast
 
 ### Delete Behavior
 - Each profile row exposes delete access.
 - The selected-profile header exposes delete access only while a profile is selected.
-- Activating selected-profile header delete requests delete confirmation for that selected profile through the existing message area.
-- Delete requires explicit confirmation in the message area before removal.
+- Activating selected-profile header delete requests delete confirmation for that selected profile through the Feature 013 confirmation toast.
+- Delete requires explicit confirmation inside that Feature 013 confirmation toast before removal.
 - Deleting an unselected profile removes only that saved profile.
 - Deleting the selected profile:
   - removes that saved profile
@@ -218,7 +223,9 @@ Feature 010 later adds manual drag reordering for saved profile rows. Feature 00
   - remain renameable
   - remain editable through the shared library
   - remain auto-saveable
-  - are not launchable from their row action
+  - keep their row launch action clickable in normal display mode
+  - do not launch when their row launch action is activated
+  - show their current invalid reason in a Feature 013 passive warning toast when their row launch action is activated
 - Valid profiles:
   - show an explicit `VALID` badge in the same shared row status slot used by invalid profiles
   - show `Selected profile is ready to launch.` in the selected-profile status text when selected
@@ -230,15 +237,13 @@ Feature 010 later adds manual drag reordering for saved profile rows. Feature 00
   - remains visible for invalid selected profiles when one or more previewable saved tokens exist
   - is omitted when no profile is selected or when the selected profile has no previewable saved tokens
 - Launch is available only through saved profile rows.
-- No selected profile means no currently selected launchable profile, even if current detached library selections are otherwise launch-valid.
+- No selected profile means no currently selected launchable profile and no selectable shared-library launch inputs.
 
 ### Mod Ordering Context
 - Mod row ordering is derived UI state and does not rewrite the shared library collection order during selection toggles.
 - When no profile is selected:
   - Mod rows default to alphabetical filename order
-  - selected Mods temporarily move to the top in detached selected sequence order
-  - remaining unselected Mods stay in alphabetical filename order
-  - detached selected-mod ordering is not restored on restart
+  - attempted selection input does not change selection state
 - When a profile is selected:
   - selected Mods appear first in that profile's `SelectedModPaths` order
   - remaining unselected Mods appear afterward in alphabetical filename order
@@ -264,7 +269,6 @@ Feature 010 later adds manual drag reordering for saved profile rows. Feature 00
   - old selected source-port / IWAD / mod fields do not auto-create a saved profile
   - old configs with no profiles load with zero profiles
   - startup with no valid selected profile begins with no selected profile, cleared library selections, and Launch disabled
-- Detached no-profile library selections created during runtime are not restored on restart.
 - On startup sanitation:
   - sanitize shared library collections as existing features require
   - preserve broken profiles
@@ -311,6 +315,20 @@ When Source Port / IWAD / Mod selections change in the shared library
 Then the selected profile persists those changes immediately.
 And those changes may place the profile into or out of invalid state.
 
+### Shared library is non-selectable without a profile
+Given no profile is selected and shared Source Port, IWAD, and Mod rows exist
+When selection input is applied to any of those rows
+Then current Source Port / IWAD / Mod selections remain unchanged.
+And no profile is auto-created or auto-selected.
+And the visible row ordering remains unchanged.
+
+### Shared library rows show disabled treatment without a profile
+Given no profile is selected and shared Source Port, IWAD, and Mod rows exist
+When the shared library is rendered
+Then those rows remain visible.
+And those rows render a disabled visual treatment.
+And their row delete actions remain available.
+
 ### Explicit rename action
 Given a selected profile exists
 When the row rename action is activated on that profile row
@@ -347,7 +365,7 @@ Given a profile is in rename mode
 When the entered name is empty, whitespace-only, or duplicates another profile name case-insensitively
 Then the saved name remains unchanged.
 And rename mode stays open.
-And a visible validation message is shown in the message area.
+And a Feature 013 passive warning toast is shown.
 
 ### Pinned workspace panes
 Given the workspace is rendered
@@ -413,7 +431,7 @@ And no neighboring profile is auto-selected.
 ### Selected-profile header delete reuses existing confirmation flow
 Given a selected profile exists
 When the selected-profile header delete action is activated
-Then delete confirmation is requested in the existing message area for that selected profile.
+Then delete confirmation is requested in the Feature 013 confirmation toast for that selected profile.
 And no second delete workflow is introduced in the right pane.
 
 ### Invalid profile remains repairable
@@ -421,8 +439,16 @@ Given a saved profile references a Source Port or IWAD library item that is remo
 When validity is recomputed
 Then the profile remains saved and listed.
 And it is marked invalid with an explicit reason.
-And its row launch action is disabled.
+And its row launch action remains clickable in normal display mode.
 And changing library selections while it is selected can repair it and restore launchability.
+
+### Invalid profile launch shows warning toast without launching
+Given an invalid saved profile row exists
+When the row launch action is activated for that row
+Then that row's profile becomes the selected profile.
+And current Source Port / IWAD / Mod selections hydrate from that profile.
+And launch does not execute for that profile.
+And a Feature 013 passive warning toast shows that profile's current invalid reason.
 
 ### Removed or missing mod does not block launch
 Given a saved profile has valid saved Source Port and IWAD references and one or more saved Mod references
@@ -498,7 +524,7 @@ And the rendered profile name is capped at two lines.
 Given at least three Mod rows and one or more profiles
 When no profile is selected
 Then Mod rows start in alphabetical filename order.
-And when Mods are selected, selected Mods move to the top in detached selected sequence order without changing restart state.
+And attempted Mod selection does not change that ordering.
 And when a saved profile is selected, Mod rows are ordered by that profile's selected sequence first and alphabetical remainder second.
 
 ### Legacy startup without profiles

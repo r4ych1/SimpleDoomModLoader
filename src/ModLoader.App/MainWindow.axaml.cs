@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using Avalonia;
@@ -16,11 +17,13 @@ namespace ModLoader.App;
 public partial class MainWindow : Window
 {
     private const double ProfileDragStartThreshold = 6d;
+    private static readonly TimeSpan PassiveToastDuration = TimeSpan.FromSeconds(5);
     private const double ScrollAffordanceVisibilityEpsilon = 0.5d;
     private const double ScrollAffordanceVisibleOpacity = 0.72d;
     private static readonly TimeSpan CollapsedSelectedProfileToggleDelay = TimeSpan.FromMilliseconds(275);
     private readonly MainWindowViewModel _viewModel;
     private DispatcherTimer? _pendingProfileToggleTimer;
+    private DispatcherTimer? _toastDismissTimer;
     private string? _pendingToggleProfileId;
     private Grid? _profileListHost;
     private ScrollViewer? _profileListScrollViewer;
@@ -45,8 +48,10 @@ public partial class MainWindow : Window
         Closed += OnWindowClosed;
         SizeChanged += OnWindowSizeChanged;
         PropertyChanged += OnWindowPropertyChanged;
+        _viewModel.PropertyChanged += OnViewModelPropertyChanged;
         _viewModel.SetWindowWidth(Width);
         DataContext = _viewModel;
+        UpdateToastDismissTimer();
     }
 
     private void InitializeComponent()
@@ -235,6 +240,7 @@ public partial class MainWindow : Window
     private void OnWindowClosed(object? sender, EventArgs e)
     {
         PropertyChanged -= OnWindowPropertyChanged;
+        _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
 
         if (_fileLibraryScrollViewer is not null)
         {
@@ -244,6 +250,12 @@ public partial class MainWindow : Window
         if (_profileListScrollViewer is not null)
         {
             _profileListScrollViewer.PropertyChanged -= OnScrollViewerPropertyChanged;
+        }
+
+        if (_toastDismissTimer is not null)
+        {
+            _toastDismissTimer.Stop();
+            _toastDismissTimer.Tick -= OnToastDismissTimerTick;
         }
     }
 
@@ -755,6 +767,14 @@ public partial class MainWindow : Window
         }
     }
 
+    private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (string.Equals(e.PropertyName, nameof(MainWindowViewModel.ToastSequence), StringComparison.Ordinal))
+        {
+            UpdateToastDismissTimer();
+        }
+    }
+
     private void ApplyWindowWidthForPaneStateTransition(bool wasCollapsed)
     {
         if (WindowState != WindowState.Normal || wasCollapsed == _viewModel.IsFileLibraryPaneCollapsed)
@@ -797,6 +817,33 @@ public partial class MainWindow : Window
     private void ScheduleScrollAffordanceUpdate()
     {
         Dispatcher.UIThread.Post(UpdateScrollAffordances, DispatcherPriority.Background);
+    }
+
+    private void UpdateToastDismissTimer()
+    {
+        if (!_viewModel.IsPassiveToast)
+        {
+            _toastDismissTimer?.Stop();
+            return;
+        }
+
+        if (_toastDismissTimer is null)
+        {
+            _toastDismissTimer = new DispatcherTimer
+            {
+                Interval = PassiveToastDuration
+            };
+            _toastDismissTimer.Tick += OnToastDismissTimerTick;
+        }
+
+        _toastDismissTimer.Stop();
+        _toastDismissTimer.Start();
+    }
+
+    private void OnToastDismissTimerTick(object? sender, EventArgs e)
+    {
+        _toastDismissTimer?.Stop();
+        _viewModel.DismissPassiveToast();
     }
 
     private void UpdateScrollAffordances()
