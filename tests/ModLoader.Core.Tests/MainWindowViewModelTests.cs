@@ -2166,6 +2166,7 @@ public sealed class MainWindowViewModelTests
         var feature010 = File.ReadAllText(GetRepoFilePath("Features", "010-profile-drag-reorder.md"));
         var feature011 = File.ReadAllText(GetRepoFilePath("Features", "011-icon-based-action-controls.md"));
         var feature012 = File.ReadAllText(GetRepoFilePath("Features", "012-profile-only-collapse-mode-and-header-removal.md"));
+        var feature013 = File.ReadAllText(GetRepoFilePath("Features", "013-toast-message-overlay.md"));
 
         Assert.Contains("always-visible instructional card styling", spec, StringComparison.Ordinal);
         Assert.DoesNotContain("clickable keyboard-accessible file-picker fallback", spec, StringComparison.Ordinal);
@@ -2173,6 +2174,7 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("drag-and-drop targets with visible instructional text, section-specific accessible labels, and drag-over highlight", spec, StringComparison.Ordinal);
         Assert.Contains("Feature 011: Icon-based action controls.", spec, StringComparison.Ordinal);
         Assert.Contains("Feature 012: Profile-only collapse mode and header removal.", spec, StringComparison.Ordinal);
+        Assert.Contains("Feature 013: Toast message overlay.", spec, StringComparison.Ordinal);
         Assert.Contains("profile-creation action in the left profile-management header", spec, StringComparison.Ordinal);
         Assert.Contains("Profile rows expose launch, rename, and delete actions", spec, StringComparison.Ordinal);
         Assert.Contains("Double-clicking a profile row acts as a pane shortcut", spec, StringComparison.Ordinal);
@@ -2187,9 +2189,9 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("require one source port plus one IWAD only for profile validity", spec, StringComparison.Ordinal);
         Assert.Contains("Shared-library Source Port, IWAD, and Mod selection is profile-scoped; when no profile is selected, those rows remain visible but are not selectable.", spec, StringComparison.Ordinal);
         Assert.Contains("removes the legacy fixed top header", spec, StringComparison.Ordinal);
-        Assert.Contains("keeps the toast overlay top-centered above the workspace", spec, StringComparison.Ordinal);
-        Assert.Contains("toast overlay", spec, StringComparison.Ordinal);
-        Assert.Contains("destructive confirmation actions text-based inside the toast", spec, StringComparison.Ordinal);
+        Assert.Contains("shared top-centered toast overlay", spec, StringComparison.Ordinal);
+        Assert.Contains("does not reserve layout space above the workspace", spec, StringComparison.Ordinal);
+        Assert.Contains("destructive confirmation actions text-based inside the Feature 013 confirmation toast", spec, StringComparison.Ordinal);
         Assert.Contains("row launch actions stay clickable in normal display mode", spec, StringComparison.Ordinal);
         Assert.Contains("shrinks the native window to the profile-management section", spec, StringComparison.Ordinal);
         Assert.Contains("Each drop zone renders a visible default target treatment before any drag begins", feature002, StringComparison.Ordinal);
@@ -2203,7 +2205,7 @@ public sealed class MainWindowViewModelTests
         Assert.DoesNotContain("selection toggles may temporarily move selected Mods to the top for the current session", feature004, StringComparison.Ordinal);
         Assert.DoesNotContain("### Detached-state temporary reordering", feature004, StringComparison.Ordinal);
         Assert.Contains("Feature 012 later removes that header", feature005, StringComparison.Ordinal);
-        Assert.Contains("non-blocking warning toast", feature005, StringComparison.Ordinal);
+        Assert.Contains("Feature 013 passive warning toast behavior", feature005, StringComparison.Ordinal);
         Assert.DoesNotContain("Fixed Header Layout", feature005, StringComparison.Ordinal);
         Assert.Contains("file-library collapse / expand action to the right of the profile-creation action", feature008, StringComparison.Ordinal);
         Assert.Contains("selected-profile command preview text below the status text when the selected profile has one or more previewable saved launch tokens", feature008, StringComparison.Ordinal);
@@ -2239,12 +2241,12 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("the second click does not toggle the row back off", feature008, StringComparison.Ordinal);
         Assert.Contains("Each profile row exposes launch, rename, and delete actions in that order.", feature008, StringComparison.Ordinal);
         Assert.Contains("Feature 011 later becomes authoritative for the visible icon presentation of those row actions", feature008, StringComparison.Ordinal);
+        Assert.Contains("Feature 013 later becomes authoritative for shared toast mechanics", feature008, StringComparison.Ordinal);
         Assert.Contains("The selected-profile header `Edit` action reuses that same rename flow", feature008, StringComparison.Ordinal);
         Assert.Contains("the right-pane selected-profile header remains display-only and does not render a rename input", feature008, StringComparison.Ordinal);
         Assert.Contains("Activating selected-profile header delete requests delete confirmation", feature008, StringComparison.Ordinal);
-        Assert.Contains("visible warning toast", feature008, StringComparison.Ordinal);
-        Assert.Contains("confirmation toast", feature008, StringComparison.Ordinal);
-        Assert.Contains("repeated row-launch clicks do not replace or restart that toast", feature008, StringComparison.Ordinal);
+        Assert.Contains("Feature 013 passive warning toast", feature008, StringComparison.Ordinal);
+        Assert.Contains("Feature 013 confirmation toast", feature008, StringComparison.Ordinal);
         Assert.Contains("Invalid profiles remain listed, selectable, and row-launch-clickable", feature008, StringComparison.Ordinal);
         Assert.Contains("Then the selected-profile header remains fixed at the top of the right pane.", feature008, StringComparison.Ordinal);
         Assert.Contains("Removing a referenced Mod from the shared library does not invalidate the profile.", feature008, StringComparison.Ordinal);
@@ -2283,13 +2285,18 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("visual-only and do not introduce a new command, hit target, or keyboard behavior", feature011, StringComparison.Ordinal);
         Assert.Contains("bottom-center of their panes", feature011, StringComparison.Ordinal);
         Assert.Contains("tooltip and automation name text", feature011, StringComparison.Ordinal);
-        Assert.Contains("toast-based confirmation `Delete` and `Cancel` buttons", feature011, StringComparison.Ordinal);
+        Assert.Contains("Feature 013 confirmation toast behavior", feature011, StringComparison.Ordinal);
         Assert.Contains("The top fixed header is not rendered.", feature012, StringComparison.Ordinal);
-        Assert.Contains("Toast messages render as an overlay and do not reserve layout space above the workspace.", feature012, StringComparison.Ordinal);
-        Assert.Contains("The toast overlay is anchored to the top-center of the window above the workspace content.", feature012, StringComparison.Ordinal);
-        Assert.DoesNotContain("The toast overlay is anchored to the top-right of the window above the workspace content.", feature012, StringComparison.Ordinal);
+        Assert.Contains("visible workspace toast behavior follows Feature 013", feature012, StringComparison.Ordinal);
+        Assert.Contains("Any visible workspace toast follows Feature 013 placement and overlay behavior.", feature012, StringComparison.Ordinal);
         Assert.Contains("restores the remembered expanded normal-window width", feature012, StringComparison.Ordinal);
         Assert.Contains("If the window is maximized", feature012, StringComparison.Ordinal);
+        Assert.Contains("Feature 013 is the authoritative source for toast behavior.", feature013, StringComparison.Ordinal);
+        Assert.Contains("Only one toast is visible at a time.", feature013, StringComparison.Ordinal);
+        Assert.Contains("Passive warning toasts auto-dismiss after `5` seconds.", feature013, StringComparison.Ordinal);
+        Assert.Contains("Confirmation toasts expose text `Delete` and `Cancel` actions.", feature013, StringComparison.Ordinal);
+        Assert.Contains("do not replace or restart that toast", feature013, StringComparison.Ordinal);
+        Assert.Contains("top-center of the window above the workspace content", feature013, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -5,6 +5,7 @@ Introduce saved launch profiles as the primary launch model by converting the cu
 
 Feature 009 later adds pane-level collapse for the right-side file library. Feature 008 remains authoritative for the expanded file-library workspace behavior.
 Feature 010 later adds manual drag reordering for saved profile rows. Feature 008 remains authoritative for profile selection, launch, rename, delete, validity, and auto-save behavior outside explicit ordering rules introduced there.
+Feature 013 later becomes authoritative for shared toast mechanics, placement, and timing. Feature 008 remains authoritative for which profile workflows invoke those toasts.
 
 ## In Scope
 - Saved profile list with single-select toggle behavior.
@@ -67,8 +68,7 @@ Feature 010 later adds manual drag reordering for saved profile rows. Feature 00
 - The Source Port, IWAD, and Mod library sections render in a scrollable region below that fixed selected-profile header.
 - When no profile is selected, Source Port, IWAD, and Mod rows remain visible but are not selectable.
 - When no profile is selected, Source Port, IWAD, and Mod rows render a disabled visual treatment that suppresses selection affordance while leaving row delete actions available.
-- Rename validation and delete confirmation use an in-window toast overlay.
-- The toast system shows only one toast at a time; a new toast replaces the current toast.
+- Rename validation, invalid-profile row launch feedback, and selected-profile delete confirmation use Feature 013 toast behavior.
 - While the selected profile is invalid, the selected-profile status text in the right-pane header uses the same amber invalid text color used by left-pane inline invalid text.
 - While the selected profile is valid or no profile is selected, the selected-profile status text in the right-pane header keeps the muted helper/status text color.
 - While the file library pane is expanded, the Source Port, IWAD, and Mod drop zones inside that pane use the shared visible drop-zone affordance defined by Feature 002.
@@ -132,10 +132,8 @@ Feature 010 later adds manual drag reordering for saved profile rows. Feature 00
   - hydrates current Source Port / IWAD / Mod selections from that profile
   - launches that profile through the existing launcher flow when that profile is valid
   - does not invoke launch when that profile is invalid
-  - shows a warning toast with that profile's current invalid reason when that profile is invalid
+  - shows a Feature 013 passive warning toast with that profile's current invalid reason when that profile is invalid
 - Row launch does not require the profile to already be selected.
-- Invalid-launch warning toasts use the shared passive warning-toast behavior and auto-dismiss after `5` seconds.
-- While the same invalid-launch warning toast is already visible for the current invalid reason, repeated row-launch clicks do not replace or restart that toast.
 - Invalid profiles remain listed, selectable, and row-launch-clickable while still blocked from actual launch execution.
 - Valid profiles show an explicit `VALID` badge in the shared row status slot.
 
@@ -187,15 +185,13 @@ Feature 010 later adds manual drag reordering for saved profile rows. Feature 00
 - Invalid rename attempts:
   - do not change the saved name
   - keep rename mode open for that row
-  - show a visible warning toast
-  - auto-dismiss that warning toast after `5` seconds
+  - show a Feature 013 passive warning toast
 
 ### Delete Behavior
 - Each profile row exposes delete access.
 - The selected-profile header exposes delete access only while a profile is selected.
-- Activating selected-profile header delete requests delete confirmation for that selected profile through a confirmation toast.
-- Delete requires explicit confirmation inside that confirmation toast before removal.
-- Confirmation toasts remain visible until `Delete`, `Cancel`, or a replacing toast clears them.
+- Activating selected-profile header delete requests delete confirmation for that selected profile through the Feature 013 confirmation toast.
+- Delete requires explicit confirmation inside that Feature 013 confirmation toast before removal.
 - Deleting an unselected profile removes only that saved profile.
 - Deleting the selected profile:
   - removes that saved profile
@@ -229,7 +225,7 @@ Feature 010 later adds manual drag reordering for saved profile rows. Feature 00
   - remain auto-saveable
   - keep their row launch action clickable in normal display mode
   - do not launch when their row launch action is activated
-  - show their current invalid reason in a warning toast when their row launch action is activated
+  - show their current invalid reason in a Feature 013 passive warning toast when their row launch action is activated
 - Valid profiles:
   - show an explicit `VALID` badge in the same shared row status slot used by invalid profiles
   - show `Selected profile is ready to launch.` in the selected-profile status text when selected
@@ -369,7 +365,7 @@ Given a profile is in rename mode
 When the entered name is empty, whitespace-only, or duplicates another profile name case-insensitively
 Then the saved name remains unchanged.
 And rename mode stays open.
-And a visible warning toast is shown.
+And a Feature 013 passive warning toast is shown.
 
 ### Pinned workspace panes
 Given the workspace is rendered
@@ -435,7 +431,7 @@ And no neighboring profile is auto-selected.
 ### Selected-profile header delete reuses existing confirmation flow
 Given a selected profile exists
 When the selected-profile header delete action is activated
-Then delete confirmation is requested in a confirmation toast for that selected profile.
+Then delete confirmation is requested in the Feature 013 confirmation toast for that selected profile.
 And no second delete workflow is introduced in the right pane.
 
 ### Invalid profile remains repairable
@@ -452,14 +448,7 @@ When the row launch action is activated for that row
 Then that row's profile becomes the selected profile.
 And current Source Port / IWAD / Mod selections hydrate from that profile.
 And launch does not execute for that profile.
-And a warning toast shows that profile's current invalid reason.
-
-### Repeated invalid profile launch does not spam the same warning toast
-Given an invalid saved profile row exists
-And its current invalid-launch warning toast is already visible
-When the row launch action is activated again and the invalid reason is unchanged
-Then launch still does not execute for that profile.
-And the existing warning toast remains visible without being replaced or restarted.
+And a Feature 013 passive warning toast shows that profile's current invalid reason.
 
 ### Removed or missing mod does not block launch
 Given a saved profile has valid saved Source Port and IWAD references and one or more saved Mod references

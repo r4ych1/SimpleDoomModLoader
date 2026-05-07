@@ -10,7 +10,8 @@ For each launch profile, users provide:
 
 Feature 005 added launch execution for the pre-profile single-selection workflow.
 Feature 008 makes saved profiles the only launchable unit while keeping Source Ports, IWADs, and Mods as shared library collections.
-Feature 012 removes the legacy fixed top header, keeps the toast overlay top-centered above the workspace, and turns collapsed file-library mode into a profile-only window mode that shrinks the native window to the profile-management section.
+Feature 012 removes the legacy fixed top header and turns collapsed file-library mode into a profile-only window mode that shrinks the native window to the profile-management section.
+Feature 013 replaces the old in-window message section with a shared top-centered toast overlay for workspace warning and confirmation feedback.
 
 This repository follows feature-scoped delivery. Behavior is only guaranteed when specified in feature specs under `Features/`.
 
@@ -29,7 +30,7 @@ This repository follows feature-scoped delivery. Behavior is only guaranteed whe
 - Feature 005: Fixed header and launch execution.
   - Defines launch execution using generated full-path `-iwad` / `-file` arguments from current selection state.
   - The fixed top header introduced there is later removed by Feature 012.
-  - Later profile-based features are authoritative for where launch is triggered in the UI.
+  - Later profile-based features are authoritative for where launch is triggered in the UI, while Feature 013 is authoritative for toast-based failure feedback presentation.
   - Authoritative spec: `Features/005-fixed-header-and-launch-execution.md`.
 - Feature 006: Section collapse layout and row interaction states.
   - Aligns Source Port/IWAD/Mod section headers with inline collapse actions and row-level `Delete` actions using shared right-hand action-column layout patterns.
@@ -52,7 +53,7 @@ This repository follows feature-scoped delivery. Behavior is only guaranteed whe
   - While the file library is expanded, the left `Profiles` pane uses a fixed `380 px` width, profile names wrap up to two lines, and inline invalid-reason text stays hidden while shared status badges remain visible.
   - The left profile list and the right file-library pane remain scrollable when their content overflows, while visible scrollbar chrome stays hidden for both panes.
   - Profile rows expose launch, rename, and delete actions plus a shared row-status badge treatment for valid and invalid states, while profile rename is handled inline on the selected row and outside-click rename exit cancels rather than saves.
-  - Profile edits auto-save immediately through file-library selection changes; row launch actions stay clickable in normal display mode, launch valid saved profiles, and show a warning toast for invalid profiles without spamming duplicate warnings for the same visible invalid reason.
+  - Profile edits auto-save immediately through file-library selection changes; row launch actions stay clickable in normal display mode, launch valid saved profiles, and use Feature 013 toast feedback for invalid launches, rename validation, and selected-profile delete confirmation.
   - Authoritative spec: `Features/008-profile-management.md`.
 - Feature 009: Collapsible file library pane.
   - Wraps the shared file library in its own right-side section with a pane-level collapse control that lives in the left profile-management header.
@@ -67,13 +68,17 @@ This repository follows feature-scoped delivery. Behavior is only guaranteed whe
 - Feature 011: Icon-based action controls.
   - Replaces selected text-labeled UI actions with Fluent icon-only controls while preserving profile creation, launch, rename, delete, remove, and pane-collapse behavior, and adds the shared Fluent `arrow_down_regular` geometry for the file-library scroll affordance.
   - Shared-library Source Port, IWAD, and Mod row delete icons expose `Delete`, while the file-library pane toggle exposes `File Library` and the selected-profile header exposes `Edit` and `Delete`.
-  - Keeps destructive confirmation actions text-based inside the toast while exposing icon-only actions through tooltip and automation name text.
+  - Keeps destructive confirmation actions text-based inside the Feature 013 confirmation toast while exposing icon-only actions through tooltip and automation name text.
   - Authoritative spec: `Features/011-icon-based-action-controls.md`.
 - Feature 012: Profile-only collapse mode and header removal.
-  - Removes the legacy fixed top header while preserving the existing toast overlay and two-pane workspace structure.
+  - Removes the legacy fixed top header while preserving the two-pane workspace structure, while visible workspace toast placement follows Feature 013.
   - Makes collapsed file-library mode a true profile-only window mode that shrinks the native window to the profile-management section and restores the remembered expanded width when reopened.
   - Persists the last expanded normal-window width for future restore from collapsed mode, while keeping the existing `768 px` row-preview threshold unchanged.
   - Authoritative spec: `Features/012-profile-only-collapse-mode-and-header-removal.md`.
+- Feature 013: Toast message overlay.
+  - Replaces the old in-window message section with a shared top-centered toast overlay that does not reserve layout space above the workspace.
+  - Defines shared passive warning-toast and confirmation-toast behavior, including timing, replacement rules, and invalid-launch duplicate suppression.
+  - Authoritative spec: `Features/013-toast-message-overlay.md`.
 
 ## Scope Boundary For Feature 001
 Feature 001 provides in-memory state management and UI interactions only. It does not include:
