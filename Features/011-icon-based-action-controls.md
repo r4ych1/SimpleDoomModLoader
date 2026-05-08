@@ -18,8 +18,8 @@ Feature 014 later becomes authoritative for which workspace-view swap controls a
 ## Rules
 ### Icon mappings
 - The Profiles-header `New Profile` action uses `add_square_regular`.
-- The Profiles-header view-swap action uses `folder_open_regular`.
-- The File-Library-header view-swap action uses `folder_regular`.
+- The Profiles-header view-swap action uses `arrow_right_regular`.
+- The File-Library top-left back-to-profiles action uses `arrow_left_regular`.
 - The selected-profile header `Edit` action uses `edit_regular`.
 - The selected-profile header `Delete` action uses `delete_regular`.
 - Each profile-row `Launch` action uses `play_regular`.
@@ -32,7 +32,7 @@ Feature 014 later becomes authoritative for which workspace-view swap controls a
 ### Accessibility
 - Every icon-only control exposes the same action text through tooltip and automation name text.
 - Profiles-header view-swap action exposes `File Library`.
-- File-Library-header view-swap action exposes `Profiles`.
+- File-Library top-left back-to-profiles action exposes `Profiles`.
 - Static icon-only actions expose:
   - `New Profile`
   - `Edit`
@@ -55,11 +55,11 @@ Feature 014 later becomes authoritative for which workspace-view swap controls a
 ### View-swap controls expose destination labels
 Given the Profiles view is rendered
 When the Profiles-header swap control is shown
-Then it renders `folder_open_regular`.
+Then it renders `arrow_right_regular`.
 And it exposes `File Library` through tooltip and automation name text.
 And given the File Library view is rendered
-When the File-Library-header swap control is shown
-Then it renders `folder_regular`.
+When the File-Library top-left back-to-profiles control is shown
+Then it renders `arrow_left_regular`.
 And it exposes `Profiles` through tooltip and automation name text.
 
 ### Selected-profile header actions use icons

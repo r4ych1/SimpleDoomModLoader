@@ -359,6 +359,8 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     public bool IsSelectedProfileDisplayVisible => _profileRenameMode != ProfileRenameMode.Header;
 
+    public bool IsSelectedProfileCreateVisible => !HasSelectedProfile;
+
     public bool IsSelectedProfileHeaderRenameVisible
     {
         get => _profileRenameMode == ProfileRenameMode.Header;
@@ -1226,6 +1228,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(SelectedProfileCommandPreviewText));
         OnPropertyChanged(nameof(HasSelectedProfileCommandPreview));
         OnPropertyChanged(nameof(IsSelectedProfileDisplayVisible));
+        OnPropertyChanged(nameof(IsSelectedProfileCreateVisible));
         OnPropertyChanged(nameof(IsSelectedProfileHeaderRenameVisible));
         OnPropertyChanged(nameof(IsSelectedProfileRowRenameVisible));
     }

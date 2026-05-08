@@ -1950,6 +1950,9 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("automation:AutomationProperties.Name=\"{Binding OpenFileLibraryViewText}\"", xaml, StringComparison.Ordinal);
         Assert.Contains("ToolTip.Tip=\"{Binding ReturnToProfilesViewText}\"", xaml, StringComparison.Ordinal);
         Assert.Contains("automation:AutomationProperties.Name=\"{Binding ReturnToProfilesViewText}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("ToolTip.Tip=\"Create Profile\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("automation:AutomationProperties.Name=\"Create Profile\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding IsSelectedProfileCreateVisible}\"", xaml, StringComparison.Ordinal);
         Assert.Contains("ToolTip.Tip=\"Edit\"", xaml, StringComparison.Ordinal);
         Assert.Contains("automation:AutomationProperties.Name=\"Edit\"", xaml, StringComparison.Ordinal);
         Assert.Contains("ToolTip.Tip=\"Launch\"", xaml, StringComparison.Ordinal);
@@ -1960,8 +1963,8 @@ public sealed class MainWindowViewModelTests
         Assert.DoesNotContain("ToolTip.Tip=\"Remove\"", xaml, StringComparison.Ordinal);
         Assert.DoesNotContain("automation:AutomationProperties.Name=\"Remove\"", xaml, StringComparison.Ordinal);
         Assert.Contains("Data=\"{StaticResource add_square_regular}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Data=\"{StaticResource folder_regular}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Data=\"{StaticResource folder_open_regular}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("Data=\"{StaticResource arrow_left_regular}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("Data=\"{StaticResource arrow_right_regular}\"", xaml, StringComparison.Ordinal);
         Assert.Contains("Data=\"{StaticResource play_regular}\"", xaml, StringComparison.Ordinal);
         Assert.Contains("Data=\"{StaticResource edit_regular}\"", xaml, StringComparison.Ordinal);
         Assert.Contains("Data=\"{StaticResource delete_regular}\"", xaml, StringComparison.Ordinal);
@@ -2040,7 +2043,7 @@ public sealed class MainWindowViewModelTests
         Assert.True(profilesHeaderIndex >= 0);
         Assert.True(newProfileIndex > profilesHeaderIndex);
         Assert.True(fileLibraryToggleIndex > newProfileIndex);
-        Assert.True(profilesToggleIndex > selectedProfileNameIndex);
+        Assert.True(profilesToggleIndex < selectedProfileNameIndex);
         Assert.True(selectedProfileNameIndex > newProfileIndex);
         Assert.True(selectedProfileNameIndex > fileLibraryToggleIndex);
         Assert.True(fileLibraryScrollViewerIndex > selectedProfileNameIndex);
@@ -2083,9 +2086,9 @@ public sealed class MainWindowViewModelTests
         Assert.DoesNotContain("the right file-library pane is not rendered", feature009, StringComparison.Ordinal);
 
         Assert.Contains("Profiles-header view-swap action exposes `File Library`", feature011, StringComparison.Ordinal);
-        Assert.Contains("File-Library-header view-swap action exposes `Profiles`", feature011, StringComparison.Ordinal);
-        Assert.Contains("`folder_open_regular`", feature011, StringComparison.Ordinal);
-        Assert.Contains("`folder_regular`", feature011, StringComparison.Ordinal);
+        Assert.Contains("File-Library top-left back-to-profiles action exposes `Profiles`", feature011, StringComparison.Ordinal);
+        Assert.Contains("`arrow_right_regular`", feature011, StringComparison.Ordinal);
+        Assert.Contains("`arrow_left_regular`", feature011, StringComparison.Ordinal);
 
         Assert.Contains("The top fixed header is not rendered.", feature012, StringComparison.Ordinal);
         Assert.Contains("Feature 014 is authoritative for workspace view swapping.", feature012, StringComparison.Ordinal);
@@ -2095,7 +2098,7 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("Remove persisted pane-collapse and remembered-width state.", feature014, StringComparison.Ordinal);
         Assert.Contains("Creating a new profile selects it and keeps Profiles view active.", feature014, StringComparison.Ordinal);
         Assert.Contains("Double-clicking a profile row selects that profile and opens File Library view.", feature014, StringComparison.Ordinal);
-        Assert.Contains("The File Library header exposes a `Profiles` view-swap action.", feature014, StringComparison.Ordinal);
+        Assert.Contains("The File Library view exposes a top-left `Profiles` back action above the selected-profile header.", feature014, StringComparison.Ordinal);
         Assert.Contains("The selected-profile header `Edit` action opens rename inline in that header.", feature014, StringComparison.Ordinal);
 
         Assert.Contains("Feature 013 is the authoritative source for toast behavior.", feature013, StringComparison.Ordinal);

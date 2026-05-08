@@ -5,8 +5,9 @@ Replace the two-pane workspace with one shared workspace that shows either `Prof
 
 ## In Scope
 - Replace pane collapse with full-view swapping between `Profiles` and `File Library`.
-- Add a `Profiles` view-swap action in the File Library header.
+- Move the File Library back-to-profiles action to a top-left position above the selected-profile header.
 - Keep the selected-profile header fixed at the top of File Library view.
+- Add a selected-profile-header `Create Profile` action that is visible only when no profile is selected.
 - Remove persisted pane-collapse and remembered-width state.
 - Remove app-defined fixed default window sizes.
 - Persist the last active workspace view.
@@ -34,15 +35,15 @@ Replace the two-pane workspace with one shared workspace that shows either `Prof
   - the `File Library` view-swap action
   - the saved profile list
 - The File Library view contains:
+  - a top-left `Profiles` back action above the selected-profile header
   - the selected-profile header
-  - the `Profiles` view-swap action
   - the shared Source Port, IWAD, and Mod library controls
-- The File Library header exposes a `Profiles` view-swap action.
+- The File Library view exposes a top-left `Profiles` back action above the selected-profile header.
 - The selected-profile header remains fixed while the file-library content scrolls beneath it.
 
 ### View-swap behavior
 - Activating the Profiles-header `File Library` action opens File Library view.
-- Activating the File-Library-header `Profiles` action opens Profiles view.
+- Activating the top-left File-Library `Profiles` back action opens Profiles view.
 - The last active workspace view persists immediately after change.
 - Saves that do not contain view state load into Profiles view by default.
 - Switching views cancels any active rename session.
@@ -60,7 +61,9 @@ Replace the two-pane workspace with one shared workspace that shows either `Prof
 - The File Library header `Edit` action opens rename inline in that header.
 - The File Library header `Delete` action keeps the existing delete-confirmation flow.
 - The selected-profile header `Edit` action opens rename inline in that header.
-- When no profile is selected, the File Library header keeps the `Profiles` view-swap action visible while `Edit` and `Delete` stay hidden.
+- When no profile is selected, the selected-profile header hides `Edit` and `Delete`.
+- When no profile is selected, the selected-profile header shows a `Create Profile` action inline to the right of the selected-profile label.
+- Activating the selected-profile-header `Create Profile` action creates and selects a new profile using Feature 008 profile-creation rules while keeping File Library view visible.
 - The selected-profile status text and selected-profile command preview keep their existing meaning.
 
 ### Visibility rules carried forward
@@ -83,7 +86,7 @@ And the new active view persists immediately.
 
 ### File Library view swaps to Profiles
 Given File Library view is visible
-When the File-Library-header `Profiles` action is activated
+When the top-left File-Library `Profiles` back action is activated
 Then Profiles view becomes visible.
 And the new active view persists immediately.
 
@@ -111,3 +114,12 @@ Given File Library view is visible and a profile is selected
 When the selected-profile header `Edit` action is activated
 Then the header replaces the selected-profile name display with a rename input.
 And the existing rename validation and toast behavior remain unchanged.
+
+### Header create profile is available when no profile is selected
+Given File Library view is visible and no profile is selected
+When the selected-profile header is shown
+Then a `Create Profile` action is visible inline to the right of the selected-profile label.
+And `Edit` and `Delete` are hidden.
+And when the `Create Profile` action is activated
+Then a new profile is created and selected using Feature 008 rules.
+And File Library view remains visible.
