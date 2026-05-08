@@ -64,9 +64,39 @@ This repository follows feature-scoped delivery. Behavior is only guaranteed whe
   - Persists the last active workspace view, keeps File Library accessible without a selected profile, and removes the old pane-collapse model and fixed default window sizes.
   - Authoritative spec: `Features/014-single-view-profile-library-swap.md`.
 
-## Scope Boundary For Feature 001
-Feature 001 provides in-memory state management and UI interactions only. It does not include:
-- Persistence to disk (provided later by Feature 003).
-- Launch execution (provided later by Feature 005).
-- Profile management.
-- Recursive directory traversal.
+## Current Authoritative Behavior
+- Workspace model (Feature 014):
+  - The app uses one single shared workspace that shows either `Profiles` or `File Library`.
+- Launch model (Feature 008):
+  - Saved profiles are the only launchable unit.
+  - Source Ports, IWADs, and Mods remain shared library collections.
+- Feedback model (Feature 013):
+  - The app uses one shared top-centered toast overlay above the workspace.
+  - Only one toast is visible at a time.
+  - Passive warning toasts and confirmation toasts are the supported feedback categories.
+- Visibility model (Features 008 and 014):
+  - Profile-row command preview and profile-row inline invalid-reason text are visible only in `Profiles` view.
+  - Profile-row inline detail messaging (command preview and inline invalid-reason text) is additionally width-gated to window widths greater than `640 px`.
+
+## Feature Precedence And Supersession
+- Feature specs are authoritative in numeric order of delivery.
+- Later features override earlier behavior only where replacement is explicit.
+- Known supersessions:
+  - Feature 009 is historical and superseded by Feature 014.
+  - Legacy fixed-header behavior is superseded by Feature 012.
+  - Legacy pane-collapse workspace behavior is superseded by Feature 014.
+
+## Persistence Contract Snapshot
+- Current persisted model is defined by feature specs and represented through `LaunchInputsConfig`.
+- The persisted contract includes shared library collections plus:
+  - `Profiles`
+  - nullable `SelectedProfileId`
+  - `IsFileLibraryViewActive`
+- Legacy `IsFileLibraryPaneCollapsed` and `LastExpandedWindowWidth` load-time compatibility handling is defined by Feature 014:
+  - legacy fields are ignored on load and not re-saved.
+- Field-level schema and migration rules remain authoritative in the feature specs (primarily Features 003, 008, and 014).
+
+## Windows-First Path Semantics
+- File-path handling is Windows-first unless a later feature explicitly broadens platform scope.
+- Normalized absolute path identity and path comparisons are case-insensitive under Windows-first semantics.
+- Surface-specific path rules and allowlists remain authoritative in the relevant feature specs.

@@ -71,8 +71,8 @@ Replace the two-pane workspace with one shared workspace that shows either `Prof
 - The selected-profile status text and selected-profile command preview keep their existing meaning.
 
 ### Visibility rules carried forward
-- Profile-row command preview is visible only in Profiles view and only when the overall window width is greater than `768 px`.
-- Profile-row inline invalid-reason text is visible only in Profiles view.
+- Profile-row command preview is visible only in Profiles view and only when the overall window width is greater than `640 px`.
+- Profile-row inline invalid-reason text is visible only in Profiles view and only when the overall window width is greater than `640 px`.
 - File Library view hides profile-row command preview and inline invalid-reason text.
 - Profile-list and file-library scroll affordances remain visual-only and only show for the currently visible view.
 

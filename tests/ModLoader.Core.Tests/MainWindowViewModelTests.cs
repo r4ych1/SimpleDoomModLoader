@@ -595,16 +595,16 @@ public sealed class MainWindowViewModelTests
         viewModel.ShowFileLibraryView();
         Assert.False(row.IsCommandPreviewVisible);
 
-        viewModel.SetWindowWidth(768d);
+        viewModel.SetWindowWidth(640d);
         Assert.False(row.IsCommandPreviewVisible);
 
-        viewModel.SetWindowWidth(700d);
-        Assert.False(row.IsCommandPreviewVisible);
-
-        viewModel.SetWindowWidth(769d);
+        viewModel.SetWindowWidth(639d);
         Assert.False(row.IsCommandPreviewVisible);
 
         viewModel.ShowProfilesView();
+        Assert.False(row.IsCommandPreviewVisible);
+
+        viewModel.SetWindowWidth(641d);
         Assert.True(row.IsCommandPreviewVisible);
     }
 
@@ -966,7 +966,7 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
-    public void InvalidProfileRow_HidesInlineInvalidReasonInLibraryView_AndShowsItInProfilesView()
+    public void InvalidProfileRow_InlineInvalidReasonRespectsProfilesViewAndWidthGate()
     {
         using var temp = new TempDirectory();
         var source = temp.CreateFile("gzdoom.exe");
@@ -994,10 +994,22 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("IWAD file is missing", row.InvalidReason);
         Assert.Contains("IWAD file is missing", viewModel.SelectedProfileStatusText);
 
+        viewModel.SetWindowWidth(640d);
+        Assert.False(row.IsInvalidReasonVisible);
+
+        viewModel.SetWindowWidth(639d);
+        Assert.False(row.IsInvalidReasonVisible);
+
+        viewModel.SetWindowWidth(641d);
+        Assert.True(row.IsInvalidReasonVisible);
+
         viewModel.ShowFileLibraryView();
 
         Assert.True(row.IsInvalid);
         Assert.Equal("INVALID", row.StatusBadgeText);
+        Assert.False(row.IsInvalidReasonVisible);
+
+        viewModel.SetWindowWidth(641d);
         Assert.False(row.IsInvalidReasonVisible);
         Assert.Contains("IWAD file is missing", viewModel.SelectedProfileStatusText);
     }
