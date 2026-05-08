@@ -1,128 +1,81 @@
 # Feature 011 - Icon-Based Action Controls
 
 ## Goal
-Replace selected text-labeled UI action buttons with icon-based controls so the workspace stays compact and visually scannable without changing the underlying profile, library, rename, launch, delete, or collapse behavior, while also defining the shared Fluent icon used by the file-library scroll affordance.
+Use icon-only controls for compact workspace actions without changing their underlying behavior.
+
+Feature 014 later becomes authoritative for which workspace-view swap controls are shown and where they are placed.
 
 ## In Scope
-- Icon-only presentation for selected profile-header, profile-row, shared-library-row, and section-toggle controls.
-- Shared accessibility text for each icon-only control through tooltip and automation name metadata.
-- Shared Fluent icon geometry resources stored in the window for reuse by all affected controls and the file-library scroll affordance indicator.
+- Icon-only presentation for profile-header, selected-profile-header, profile-row, shared-library-row, and section-toggle actions.
+- Tooltip and automation-name text for every icon-only control.
+- Shared Fluent icon geometry resources used by those controls and the scroll affordances.
 
 ## Out Of Scope
-- Changes to launch rules, profile validity, persistence, drag behavior, or rename behavior.
-- Changes to Feature 013 confirmation toast behavior beyond keeping `Delete` and `Cancel` text-based.
-- New keyboard shortcuts, context menus, or alternate action placements.
-
-## Definitions
-- Icon-only control:
-  - A standard button that keeps its existing hit target and click behavior but renders only a Fluent icon as visible content.
-- Shared accessibility text:
-  - The action text exposed through tooltip and automation name metadata for icon-only controls.
+- Launch-rule changes.
+- Profile validity changes.
+- Toast-behavior changes beyond keeping confirmation actions text-based.
 
 ## Rules
-### Icon Mappings
-- The left profile-management header `New Profile` action uses `add_square_regular`.
-- The left profile-management header file-library toggle uses:
-  - `folder_regular` while the file library pane is collapsed and the action text is `File Library`
-  - `folder_open_regular` while the file library pane is expanded and the action text is `File Library`
-- The file-library scroll affordance indicator uses `arrow_down_regular`.
-- The profile-list scroll affordance indicator uses `arrow_down_regular`.
+### Icon mappings
+- The Profiles-header `New Profile` action uses `add_square_regular`.
+- The Profiles-header view-swap action uses `arrow_right_regular`.
+- The File-Library top-left back-to-profiles action uses `arrow_left_regular`.
 - The selected-profile header `Edit` action uses `edit_regular`.
 - The selected-profile header `Delete` action uses `delete_regular`.
 - Each profile-row `Launch` action uses `play_regular`.
 - Each profile-row `Rename` action uses `edit_regular`.
 - Each profile-row `Delete` action uses `delete_regular`.
 - Each shared-library row `Delete` action uses `delete_regular`.
-- Each Source Port / IWAD / Mod section toggle uses:
-  - `chevron_up_regular` while that section is expanded and the action semantics are `Collapse`
-  - `chevron_down_regular` while that section is collapsed and the action semantics are `Expand`
-
-### Behavior Preservation
-- Icon-only controls keep the same click handlers, enabled state, visibility rules, and layout slots used by the prior text-labeled buttons.
-- Profile-row icon actions do not change drag-reorder behavior:
-  - they do not start drag reorder
-  - rename mode still hides the normal row actions
-- Shared-library row icon actions do not change row selection or remove semantics.
-- File-library and inner section toggles keep their existing collapse and expand behavior exactly.
-- The file-library and profile-list scroll affordance indicators are visual-only and do not introduce a new command, hit target, or keyboard behavior.
-- Each scroll affordance indicator is visual-only and does not introduce a new command, hit target, or keyboard behavior.
+- The Source Port / IWAD / Mod section toggles use `chevron_up_regular` while expanded and `chevron_down_regular` while collapsed.
+- The profile-list and file-library scroll affordances use `arrow_down_regular`.
 
 ### Accessibility
-- Every icon-only control exposes the same action text through:
-  - tooltip text
-  - automation name text
-- The file-library pane toggle exposes `File Library` in both collapsed and expanded states.
-- Source Port / IWAD / Mod section toggles continue to expose `Expand` or `Collapse` according to their current state.
-- Static icon-only actions expose these texts:
+- Every icon-only control exposes the same action text through tooltip and automation name text.
+- Profiles-header view-swap action exposes `File Library`.
+- File-Library top-left back-to-profiles action exposes `Profiles`.
+- Static icon-only actions expose:
   - `New Profile`
   - `Edit`
   - `Launch`
   - `Rename`
   - `Delete`
+- Section toggles expose `Expand` or `Collapse` according to current state.
 
-### Visual Composition
-- The icon-only conversion does not remove button chrome or reduce the effective hit target below the prior button treatment.
-- Fluent icon geometries are defined as shared `StreamGeometry` resources and rendered through `PathIcon`.
-- Icon color follows normal button foreground behavior rather than introducing custom per-action colors.
-- The file-library and profile-list scroll affordance indicators are anchored near the bottom-center of their panes, remain non-interactive, and use low visual weight with semi-transparent presentation.
-- Both scroll affordance indicators use a subtle but slightly stronger visible-opacity treatment than the prior implementation, with a default visible opacity of `0.72`.
+### Behavior preservation
+- Icon-only controls keep the same click handlers, visibility rules, and layout slots used by their corresponding actions.
+- The profile-list and file-library scroll affordances remain visual-only and do not introduce a new command, hit target, or keyboard behavior.
+- Delete confirmation actions remain text-based inside the Feature 013 confirmation toast.
+
+### Visual composition
+- Icon-only conversion does not reduce the effective hit target below the prior button treatment.
+- Scroll affordances stay anchored near the bottom-center of their visible view.
+- Scroll affordances keep the shared visible opacity of `0.72`.
 
 ## Acceptance Criteria
-### New profile uses icon-only control
-Given the left profile-management header is rendered
-When the header actions are visible
-Then the `New Profile` action renders `add_square_regular` as icon-only content.
-And that control exposes `New Profile` through tooltip and automation name text.
-And activating it keeps existing Feature 008 profile-creation behavior unchanged.
-
-### File-library pane toggle changes icon by state
-Given the left profile-management header is rendered
-When the file library pane is collapsed
-Then the file-library toggle renders `folder_regular`.
+### View-swap controls expose destination labels
+Given the Profiles view is rendered
+When the Profiles-header swap control is shown
+Then it renders `arrow_right_regular`.
 And it exposes `File Library` through tooltip and automation name text.
-And when the file library pane is expanded
-Then that same toggle renders `folder_open_regular`.
-And it exposes `File Library` through tooltip and automation name text.
+And given the File Library view is rendered
+When the File-Library top-left back-to-profiles control is shown
+Then it renders `arrow_left_regular`.
+And it exposes `Profiles` through tooltip and automation name text.
 
-### Selected-profile header actions use icons without introducing a new edit surface
-Given the selected-profile header is rendered while a profile is selected
-When its header actions are shown
-Then `Edit` and `Delete` render `edit_regular` and `delete_regular` respectively as icon-only controls.
-And each control exposes its action text through tooltip and automation name text.
-And activating `Edit` reuses the existing inline row rename behavior instead of rendering a rename input in the selected-profile header.
-And activating `Delete` reuses the existing delete-confirmation behavior.
+### Selected-profile header actions use icons
+Given the File Library header is rendered while a profile is selected
+When its actions are shown
+Then `Edit` and `Delete` render `edit_regular` and `delete_regular`.
+And each exposes its action text through tooltip and automation name text.
 
-### Profile-row actions use icons without behavior change
+### Profile-row actions use icons
 Given a saved profile row is rendered in normal display mode
 When its row actions are shown
-Then `Launch`, `Rename`, and `Delete` render `play_regular`, `edit_regular`, and `delete_regular` respectively as icon-only controls.
-And each control exposes its action text through tooltip and automation name text.
-And existing launch enablement, rename entry, and delete-confirmation behavior remain unchanged.
+Then `Launch`, `Rename`, and `Delete` render `play_regular`, `edit_regular`, and `delete_regular`.
+And each exposes its action text through tooltip and automation name text.
 
-### Shared-library delete actions use delete icon
-Given a Source Port, IWAD, or Mod row is rendered
-When its row action is shown
-Then the row `Delete` action renders `delete_regular` as icon-only content.
-And it exposes `Delete` through tooltip and automation name text.
-And existing removal behavior remains unchanged.
-
-### Section toggles use chevron icons by state
-Given a Source Port, IWAD, or Mod section header is rendered
-When that section is expanded
-Then its toggle renders `chevron_up_regular`.
-And it exposes `Collapse` through tooltip and automation name text.
-And when that section is collapsed
-Then its toggle renders `chevron_down_regular`.
-And it exposes `Expand` through tooltip and automation name text.
-
-### File-library scroll affordance uses downward chevron icon
-Given the expanded file-library pane shows the hidden-scrollbar scroll affordance
+### Scroll affordances use the shared arrow icon
+Given the profile list or file library shows a hidden-scrollbar affordance
 When that affordance is visible
-Then it renders `arrow_down_regular` as non-interactive icon-only content near the bottom-center of the pane.
-And its visual treatment remains subtle, semi-transparent, and uses the shared visible opacity of `0.72`.
-
-### Profile-list scroll affordance uses downward chevron icon
-Given the profile list shows the hidden-scrollbar scroll affordance
-When that affordance is visible
-Then it renders `arrow_down_regular` as non-interactive icon-only content near the bottom-center of the pane.
-And its visual treatment remains subtle, semi-transparent, and uses the shared visible opacity of `0.72`.
+Then it renders `arrow_down_regular` near the bottom-center of the visible view.
+And it remains non-interactive with shared visible opacity `0.72`.

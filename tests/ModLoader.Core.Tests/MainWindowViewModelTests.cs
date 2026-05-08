@@ -180,77 +180,59 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
-    public void CreateNewProfile_WhenFileLibraryPaneCollapsed_ExpandsPane()
-    {
-        var persistence = new RecordingPersistence
-        {
-            LoadResult = new LaunchInputsLoadResult
-            {
-                State = new LaunchInputsConfig
-                {
-                    IsFileLibraryPaneCollapsed = true
-                }
-            }
-        };
-
-        var viewModel = new MainWindowViewModel(persistence);
-
-        viewModel.CreateNewProfile();
-
-        Assert.False(viewModel.IsFileLibraryPaneCollapsed);
-        Assert.True(viewModel.IsFileLibraryPaneExpanded);
-        Assert.False(persistence.SavedStates.Last().IsFileLibraryPaneCollapsed);
-    }
-
-    [Fact]
-    public void ToggleSectionCollapse_PersistsStateAndUpdatesVisibility()
+    public void CreateNewProfile_FromProfilesView_KeepsProfilesViewActive()
     {
         var persistence = new RecordingPersistence();
         var viewModel = new MainWindowViewModel(persistence);
 
-        Assert.False(viewModel.IsFileLibraryPaneCollapsed);
-        Assert.True(viewModel.IsFileLibraryPaneExpanded);
-        Assert.Equal("File Library", viewModel.FileLibraryPaneToggleText);
-        Assert.Equal(380d, viewModel.ProfilePaneColumnWidth.Value);
-        Assert.Equal(16d, viewModel.PaneSpacerColumnWidth.Value);
-        Assert.Equal(1d, viewModel.FileLibraryPaneColumnWidth.Value);
+        viewModel.CreateNewProfile();
+
+        Assert.True(viewModel.IsProfilesViewActive);
+        Assert.False(viewModel.IsFileLibraryViewActive);
+        Assert.False(persistence.SavedStates.Last().IsFileLibraryViewActive);
+    }
+
+    [Fact]
+    public void ViewSwapAndSectionCollapse_PersistStateAndUpdateVisibility()
+    {
+        var persistence = new RecordingPersistence();
+        var viewModel = new MainWindowViewModel(persistence);
+
+        Assert.True(viewModel.IsProfilesViewActive);
+        Assert.False(viewModel.IsFileLibraryViewActive);
+        Assert.Equal("File Library", viewModel.OpenFileLibraryViewText);
+        Assert.Equal("Profiles", viewModel.ReturnToProfilesViewText);
         Assert.True(viewModel.AreSourcePortRowsVisible);
-        Assert.Equal("Collapse", viewModel.SourcePortSectionToggleText);
         Assert.True(viewModel.AreIwadRowsVisible);
-        Assert.Equal("Collapse", viewModel.IwadSectionToggleText);
         Assert.True(viewModel.AreModRowsVisible);
-        Assert.Equal("Collapse", viewModel.ModSectionToggleText);
 
         viewModel.ToggleSourcePortSectionCollapsed();
         viewModel.ToggleIwadSectionCollapsed();
         viewModel.ToggleModSectionCollapsed();
+        viewModel.ShowFileLibraryView();
 
-        viewModel.ToggleFileLibraryPaneCollapsed();
-
-        Assert.True(viewModel.IsFileLibraryPaneCollapsed);
-        Assert.False(viewModel.IsFileLibraryPaneExpanded);
-        Assert.Equal("File Library", viewModel.FileLibraryPaneToggleText);
-        Assert.Equal(1d, viewModel.ProfilePaneColumnWidth.Value);
-        Assert.Equal(0d, viewModel.PaneSpacerColumnWidth.Value);
-        Assert.Equal(0d, viewModel.FileLibraryPaneColumnWidth.Value);
+        Assert.True(viewModel.IsFileLibraryViewActive);
+        Assert.False(viewModel.IsProfilesViewActive);
         Assert.True(viewModel.IsSourcePortSectionCollapsed);
         Assert.False(viewModel.AreSourcePortRowsVisible);
-        Assert.Equal("Expand", viewModel.SourcePortSectionToggleText);
         Assert.True(viewModel.IsIwadSectionCollapsed);
         Assert.False(viewModel.AreIwadRowsVisible);
-        Assert.Equal("Expand", viewModel.IwadSectionToggleText);
         Assert.True(viewModel.IsModSectionCollapsed);
         Assert.False(viewModel.AreModRowsVisible);
-        Assert.Equal("Expand", viewModel.ModSectionToggleText);
-
-        Assert.True(persistence.SavedStates.Last().IsFileLibraryPaneCollapsed);
+        Assert.True(persistence.SavedStates.Last().IsFileLibraryViewActive);
         Assert.True(persistence.SavedStates.Last().IsSourcePortSectionCollapsed);
         Assert.True(persistence.SavedStates.Last().IsIwadSectionCollapsed);
         Assert.True(persistence.SavedStates.Last().IsModSectionCollapsed);
+
+        viewModel.ShowProfilesView();
+
+        Assert.True(viewModel.IsProfilesViewActive);
+        Assert.False(viewModel.IsFileLibraryViewActive);
+        Assert.False(persistence.SavedStates.Last().IsFileLibraryViewActive);
     }
 
     [Fact]
-    public void Constructor_WithPersistedCollapseState_RestoresSectionVisibility()
+    public void Constructor_WithPersistedViewState_RestoresViewAndSectionVisibility()
     {
         var persistence = new RecordingPersistence
         {
@@ -258,7 +240,7 @@ public sealed class MainWindowViewModelTests
             {
                 State = new LaunchInputsConfig
                 {
-                    IsFileLibraryPaneCollapsed = true,
+                    IsFileLibraryViewActive = true,
                     IsSourcePortSectionCollapsed = true,
                     IsIwadSectionCollapsed = false,
                     IsModSectionCollapsed = true
@@ -268,24 +250,18 @@ public sealed class MainWindowViewModelTests
 
         var viewModel = new MainWindowViewModel(persistence);
 
-        Assert.True(viewModel.IsFileLibraryPaneCollapsed);
-        Assert.False(viewModel.IsFileLibraryPaneExpanded);
-        Assert.Equal("File Library", viewModel.FileLibraryPaneToggleText);
-        Assert.Equal(0d, viewModel.PaneSpacerColumnWidth.Value);
-        Assert.Equal(0d, viewModel.FileLibraryPaneColumnWidth.Value);
+        Assert.True(viewModel.IsFileLibraryViewActive);
+        Assert.False(viewModel.IsProfilesViewActive);
         Assert.True(viewModel.IsSourcePortSectionCollapsed);
         Assert.False(viewModel.AreSourcePortRowsVisible);
-        Assert.Equal("Expand", viewModel.SourcePortSectionToggleText);
         Assert.False(viewModel.IsIwadSectionCollapsed);
         Assert.True(viewModel.AreIwadRowsVisible);
-        Assert.Equal("Collapse", viewModel.IwadSectionToggleText);
         Assert.True(viewModel.IsModSectionCollapsed);
         Assert.False(viewModel.AreModRowsVisible);
-        Assert.Equal("Expand", viewModel.ModSectionToggleText);
     }
 
     [Fact]
-    public void ToggleFileLibraryPaneCollapse_DoesNotChangeProfileSelectionsOrLaunchState()
+    public void SwitchingViews_DoesNotChangeProfileSelectionsOrLaunchState()
     {
         using var temp = new TempDirectory();
         var source = temp.CreateFile("gzdoom.exe");
@@ -309,93 +285,23 @@ public sealed class MainWindowViewModelTests
 
         var viewModel = new MainWindowViewModel(persistence);
 
-        viewModel.ToggleFileLibraryPaneCollapsed();
+        viewModel.ShowFileLibraryView();
 
         Assert.Equal("Profile 1", viewModel.SelectedProfileName);
         Assert.Equal(Path.GetFullPath(source), viewModel.SelectedSourcePortPath);
         Assert.Equal(Path.GetFullPath(iwad), viewModel.SelectedIwadPath);
         Assert.Equal([Path.GetFullPath(mod)], viewModel.SelectedModPaths);
         Assert.True(viewModel.CanLaunch);
-        Assert.True(viewModel.IsFileLibraryPaneCollapsed);
-    }
+        Assert.True(viewModel.IsFileLibraryViewActive);
 
-    [Fact]
-    public void WindowSizingPolicy_UsesDefaultExpandedWidthAndProfileOnlyCollapsedWidth()
-    {
-        Assert.Equal(1180d, WindowSizingPolicy.GetExpandedWindowWidth(null));
-        Assert.Equal(1180d, WindowSizingPolicy.GetExpandedWindowWidth(0d));
-        Assert.Equal(1366d, WindowSizingPolicy.GetExpandedWindowWidth(1366d));
-        Assert.Equal(420d, WindowSizingPolicy.ProfileOnlyWindowWidth);
-    }
+        viewModel.ShowProfilesView();
 
-    [Fact]
-    public void Constructor_WithPersistedExpandedWindowWidth_RestoresPreferredExpandedWidth()
-    {
-        var persistence = new RecordingPersistence
-        {
-            LoadResult = new LaunchInputsLoadResult
-            {
-                State = new LaunchInputsConfig
-                {
-                    LastExpandedWindowWidth = 1440d
-                }
-            }
-        };
-
-        var viewModel = new MainWindowViewModel(persistence);
-
-        Assert.Equal(1440d, viewModel.PreferredExpandedWindowWidth);
-        Assert.Equal(420d, viewModel.PreferredCollapsedWindowWidth);
-    }
-
-    [Fact]
-    public void RememberExpandedWindowWidth_WhenExpandedAndNormal_PersistsRememberedWidth()
-    {
-        var persistence = new RecordingPersistence();
-        var viewModel = new MainWindowViewModel(persistence);
-
-        viewModel.RememberExpandedWindowWidth(1366d, isNormalWindowState: true);
-
-        Assert.Equal(1366d, viewModel.PreferredExpandedWindowWidth);
-        Assert.Equal(1366d, persistence.SavedStates.Last().LastExpandedWindowWidth);
-    }
-
-    [Fact]
-    public void RememberExpandedWindowWidth_DoesNotPersistWhileCollapsedOrNotNormal()
-    {
-        var persistence = new RecordingPersistence();
-        var viewModel = new MainWindowViewModel(persistence);
-
-        viewModel.RememberExpandedWindowWidth(1366d, isNormalWindowState: false);
-        Assert.Empty(persistence.SavedStates);
-
-        viewModel.ToggleFileLibraryPaneCollapsed();
-        var savedStateCountAfterCollapse = persistence.SavedStates.Count;
-
-        viewModel.RememberExpandedWindowWidth(1440d, isNormalWindowState: true);
-
-        Assert.Equal(savedStateCountAfterCollapse, persistence.SavedStates.Count);
-        Assert.Equal(1180d, viewModel.PreferredExpandedWindowWidth);
-    }
-
-    [Fact]
-    public void Constructor_WithInvalidPersistedExpandedWindowWidth_FallsBackToDefaultAndPersistsSanitizedState()
-    {
-        var persistence = new RecordingPersistence
-        {
-            LoadResult = new LaunchInputsLoadResult
-            {
-                State = new LaunchInputsConfig
-                {
-                    LastExpandedWindowWidth = 0d
-                }
-            }
-        };
-
-        var viewModel = new MainWindowViewModel(persistence);
-
-        Assert.Equal(1180d, viewModel.PreferredExpandedWindowWidth);
-        Assert.Null(persistence.SavedStates.Last().LastExpandedWindowWidth);
+        Assert.Equal("Profile 1", viewModel.SelectedProfileName);
+        Assert.Equal(Path.GetFullPath(source), viewModel.SelectedSourcePortPath);
+        Assert.Equal(Path.GetFullPath(iwad), viewModel.SelectedIwadPath);
+        Assert.Equal([Path.GetFullPath(mod)], viewModel.SelectedModPaths);
+        Assert.True(viewModel.CanLaunch);
+        Assert.True(viewModel.IsProfilesViewActive);
     }
 
     [Fact]
@@ -510,7 +416,7 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
-    public void SelectProfileAndExpandFileLibraryPane_WhenCollapsedAndUnselected_SelectsHydratesAndPersistsExpandedState()
+    public void SelectProfileAndOpenFileLibraryView_WhenProfilesViewAndUnselected_SelectsHydratesAndPersistsViewState()
     {
         using var temp = new TempDirectory();
         var source = temp.CreateFile("gzdoom.exe");
@@ -526,29 +432,27 @@ public sealed class MainWindowViewModelTests
                     SourcePorts = [source],
                     Iwads = [iwad],
                     Mods = [mod],
-                    Profiles = [CreateProfile("p1", "Profile 1", source, iwad, mod)],
-                    IsFileLibraryPaneCollapsed = true
+                    Profiles = [CreateProfile("p1", "Profile 1", source, iwad, mod)]
                 }
             }
         };
 
         var viewModel = new MainWindowViewModel(persistence);
 
-        var wasSelected = viewModel.SelectProfileAndExpandFileLibraryPane("p1");
+        var wasSelected = viewModel.SelectProfileAndOpenFileLibraryView("p1");
 
         Assert.True(wasSelected);
         Assert.Equal("p1", viewModel.SelectedProfileId);
         Assert.Equal(Path.GetFullPath(source), viewModel.SelectedSourcePortPath);
         Assert.Equal(Path.GetFullPath(iwad), viewModel.SelectedIwadPath);
         Assert.Equal([Path.GetFullPath(mod)], viewModel.SelectedModPaths);
-        Assert.False(viewModel.IsFileLibraryPaneCollapsed);
-        Assert.True(viewModel.IsFileLibraryPaneExpanded);
-        Assert.False(persistence.SavedStates.Last().IsFileLibraryPaneCollapsed);
+        Assert.True(viewModel.IsFileLibraryViewActive);
+        Assert.True(persistence.SavedStates.Last().IsFileLibraryViewActive);
         Assert.Equal("p1", persistence.SavedStates.Last().SelectedProfileId);
     }
 
     [Fact]
-    public void SelectProfileAndExpandFileLibraryPane_WhenCollapsedAndAlreadySelected_KeepsSelectionAndSelectionsIntact()
+    public void SelectProfileAndOpenFileLibraryView_WhenAlreadySelected_KeepsSelectionAndSelectionsIntact()
     {
         using var temp = new TempDirectory();
         var source = temp.CreateFile("gzdoom.exe");
@@ -565,24 +469,22 @@ public sealed class MainWindowViewModelTests
                     Iwads = [iwad],
                     Mods = [mod],
                     Profiles = [CreateProfile("p1", "Profile 1", source, iwad, mod)],
-                    SelectedProfileId = "p1",
-                    IsFileLibraryPaneCollapsed = true
+                    SelectedProfileId = "p1"
                 }
             }
         };
 
         var viewModel = new MainWindowViewModel(persistence);
 
-        var wasSelected = viewModel.SelectProfileAndExpandFileLibraryPane("p1");
+        var wasSelected = viewModel.SelectProfileAndOpenFileLibraryView("p1");
 
         Assert.True(wasSelected);
         Assert.Equal("p1", viewModel.SelectedProfileId);
         Assert.Equal(Path.GetFullPath(source), viewModel.SelectedSourcePortPath);
         Assert.Equal(Path.GetFullPath(iwad), viewModel.SelectedIwadPath);
         Assert.Equal([Path.GetFullPath(mod)], viewModel.SelectedModPaths);
-        Assert.False(viewModel.IsFileLibraryPaneCollapsed);
-        Assert.True(viewModel.IsFileLibraryPaneExpanded);
-        Assert.False(persistence.SavedStates.Last().IsFileLibraryPaneCollapsed);
+        Assert.True(viewModel.IsFileLibraryViewActive);
+        Assert.True(persistence.SavedStates.Last().IsFileLibraryViewActive);
         Assert.Equal("p1", persistence.SavedStates.Last().SelectedProfileId);
     }
 
@@ -613,9 +515,6 @@ public sealed class MainWindowViewModelTests
 
         var row = viewModel.ProfileRows.Single();
         Assert.Equal("gzdoom.exe -iwad doom2.wad -file mod-a.pk3 mod-b.pk3", row.CommandPreviewText);
-        Assert.False(row.IsCommandPreviewVisible);
-
-        viewModel.ToggleFileLibraryPaneCollapsed();
         Assert.True(row.IsCommandPreviewVisible);
     }
 
@@ -644,9 +543,6 @@ public sealed class MainWindowViewModelTests
         var row = viewModel.ProfileRows.Single();
         Assert.True(row.IsInvalid);
         Assert.Equal("gzdoom.exe -file mod-a.pk3", row.CommandPreviewText);
-        Assert.False(row.IsCommandPreviewVisible);
-
-        viewModel.ToggleFileLibraryPaneCollapsed();
         Assert.True(row.IsCommandPreviewVisible);
     }
 
@@ -694,10 +590,10 @@ public sealed class MainWindowViewModelTests
         var viewModel = new MainWindowViewModel(persistence);
         var row = viewModel.ProfileRows.Single();
 
-        Assert.False(row.IsCommandPreviewVisible);
-
-        viewModel.ToggleFileLibraryPaneCollapsed();
         Assert.True(row.IsCommandPreviewVisible);
+
+        viewModel.ShowFileLibraryView();
+        Assert.False(row.IsCommandPreviewVisible);
 
         viewModel.SetWindowWidth(768d);
         Assert.False(row.IsCommandPreviewVisible);
@@ -706,12 +602,9 @@ public sealed class MainWindowViewModelTests
         Assert.False(row.IsCommandPreviewVisible);
 
         viewModel.SetWindowWidth(769d);
-        Assert.True(row.IsCommandPreviewVisible);
-
-        viewModel.ToggleFileLibraryPaneCollapsed();
         Assert.False(row.IsCommandPreviewVisible);
 
-        viewModel.ToggleFileLibraryPaneCollapsed();
+        viewModel.ShowProfilesView();
         Assert.True(row.IsCommandPreviewVisible);
     }
 
@@ -1073,7 +966,7 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
-    public void InvalidProfileRow_HidesInlineInvalidReasonWhileExpanded_AndShowsItWhenCollapsed()
+    public void InvalidProfileRow_HidesInlineInvalidReasonInLibraryView_AndShowsItInProfilesView()
     {
         using var temp = new TempDirectory();
         var source = temp.CreateFile("gzdoom.exe");
@@ -1097,15 +990,15 @@ public sealed class MainWindowViewModelTests
 
         Assert.True(row.IsInvalid);
         Assert.Equal("INVALID", row.StatusBadgeText);
-        Assert.False(row.IsInvalidReasonVisible);
+        Assert.True(row.IsInvalidReasonVisible);
         Assert.Contains("IWAD file is missing", row.InvalidReason);
         Assert.Contains("IWAD file is missing", viewModel.SelectedProfileStatusText);
 
-        viewModel.ToggleFileLibraryPaneCollapsed();
+        viewModel.ShowFileLibraryView();
 
         Assert.True(row.IsInvalid);
         Assert.Equal("INVALID", row.StatusBadgeText);
-        Assert.True(row.IsInvalidReasonVisible);
+        Assert.False(row.IsInvalidReasonVisible);
         Assert.Contains("IWAD file is missing", viewModel.SelectedProfileStatusText);
     }
 
@@ -1428,7 +1321,7 @@ public sealed class MainWindowViewModelTests
 
         viewModel.CommitRename("p1");
 
-        Assert.False(viewModel.IsSelectedProfileRenameVisible);
+        Assert.False(viewModel.HasActiveProfileRename);
         Assert.False(viewModel.ProfileRows.Single().IsRenameVisible);
         Assert.Equal("Ultra-Violence", viewModel.SelectedProfileName);
         Assert.Equal("Ultra-Violence", persistence.SavedStates.Last().Profiles.Single().Name);
@@ -1468,7 +1361,8 @@ public sealed class MainWindowViewModelTests
 
         viewModel.BeginRenameProfile("p2");
 
-        Assert.True(viewModel.IsSelectedProfileRenameVisible);
+        Assert.True(viewModel.HasActiveProfileRename);
+        Assert.True(viewModel.IsSelectedProfileRowRenameVisible);
         Assert.Equal("Profile 2", viewModel.SelectedProfileRenameText);
         Assert.Equal("Profile 2", viewModel.SelectedProfileName);
         Assert.Equal(Path.GetFullPath(source2), viewModel.SelectedSourcePortPath);
@@ -1510,7 +1404,7 @@ public sealed class MainWindowViewModelTests
 
         viewModel.CommitRename("p1");
 
-        Assert.True(viewModel.IsSelectedProfileRenameVisible);
+        Assert.True(viewModel.HasActiveProfileRename);
         Assert.True(viewModel.ProfileRows.Single(row => row.Id == "p1").IsRenameVisible);
         Assert.Equal("Profile 1", viewModel.SelectedProfileName);
         Assert.True(viewModel.HasToast);
@@ -1546,7 +1440,7 @@ public sealed class MainWindowViewModelTests
 
         viewModel.CommitRename("p1");
 
-        Assert.True(viewModel.IsSelectedProfileRenameVisible);
+        Assert.True(viewModel.HasActiveProfileRename);
         Assert.True(viewModel.ProfileRows.Single().IsRenameVisible);
         Assert.True(viewModel.HasToast);
         Assert.True(viewModel.IsPassiveToast);
@@ -1583,7 +1477,7 @@ public sealed class MainWindowViewModelTests
         var canceled = viewModel.CancelRename();
 
         Assert.True(canceled);
-        Assert.False(viewModel.IsSelectedProfileRenameVisible);
+        Assert.False(viewModel.HasActiveProfileRename);
         Assert.False(viewModel.ProfileRows.Single().IsRenameVisible);
         Assert.Equal("Profile 1", viewModel.SelectedProfileName);
         Assert.Equal("Profile 1", viewModel.SelectedProfileRenameText);
@@ -1601,11 +1495,11 @@ public sealed class MainWindowViewModelTests
 
         viewModel.BeginRenameSelectedProfile();
 
-        Assert.False(viewModel.IsSelectedProfileRenameVisible);
+        Assert.False(viewModel.HasActiveProfileRename);
     }
 
     [Fact]
-    public void BeginRenameSelectedProfile_WhenProfileIsSelected_ReusesRowRenameFlow()
+    public void BeginRenameSelectedProfile_WhenProfileIsSelected_UsesHeaderRenameFlow()
     {
         using var temp = new TempDirectory();
         var source = temp.CreateFile("gzdoom.exe");
@@ -1627,11 +1521,13 @@ public sealed class MainWindowViewModelTests
 
         var viewModel = new MainWindowViewModel(persistence);
 
+        viewModel.ShowFileLibraryView();
         viewModel.BeginRenameSelectedProfile();
 
-        Assert.True(viewModel.IsSelectedProfileRenameVisible);
+        Assert.True(viewModel.HasActiveProfileRename);
+        Assert.True(viewModel.IsSelectedProfileHeaderRenameVisible);
         Assert.Equal("Profile 1", viewModel.SelectedProfileRenameText);
-        Assert.True(viewModel.ProfileRows.Single().IsRenameVisible);
+        Assert.False(viewModel.ProfileRows.Single().IsRenameVisible);
     }
 
     [Fact]
@@ -1700,7 +1596,7 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
-    public void SelectProfileAndSetFileLibraryPaneCollapsed_WhenExpanded_SelectsHydratesAndPersistsCollapsedState()
+    public void ShowProfilesView_WhenLibraryViewIsActive_PersistsProfilesViewState()
     {
         using var temp = new TempDirectory();
         var source = temp.CreateFile("gzdoom.exe");
@@ -1718,23 +1614,22 @@ public sealed class MainWindowViewModelTests
                     Mods = [mod],
                     Profiles = [CreateProfile("p1", "Profile 1", source, iwad, mod)],
                     SelectedProfileId = "p1",
-                    IsFileLibraryPaneCollapsed = false
+                    IsFileLibraryViewActive = true
                 }
             }
         };
 
         var viewModel = new MainWindowViewModel(persistence);
 
-        var wasSelected = viewModel.SelectProfileAndSetFileLibraryPaneCollapsed("p1", true);
+        viewModel.ShowProfilesView();
 
-        Assert.True(wasSelected);
         Assert.Equal("p1", viewModel.SelectedProfileId);
         Assert.Equal(Path.GetFullPath(source), viewModel.SelectedSourcePortPath);
         Assert.Equal(Path.GetFullPath(iwad), viewModel.SelectedIwadPath);
         Assert.Equal([Path.GetFullPath(mod)], viewModel.SelectedModPaths);
-        Assert.True(viewModel.IsFileLibraryPaneCollapsed);
-        Assert.False(viewModel.IsFileLibraryPaneExpanded);
-        Assert.True(persistence.SavedStates.Last().IsFileLibraryPaneCollapsed);
+        Assert.True(viewModel.IsProfilesViewActive);
+        Assert.False(viewModel.IsFileLibraryViewActive);
+        Assert.False(persistence.SavedStates.Last().IsFileLibraryViewActive);
         Assert.Equal("p1", persistence.SavedStates.Last().SelectedProfileId);
     }
 
@@ -2024,11 +1919,12 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("BorderBrush=\"{Binding ToastBorderBrush}\"", xaml, StringComparison.Ordinal);
         Assert.Contains("Foreground=\"{Binding ToastForeground}\"", xaml, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding DataContext.SelectedProfileRenameText, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding SelectedProfileRenameText, Mode=TwoWay}\"", xaml, StringComparison.Ordinal);
         Assert.DoesNotContain("Text=\"{Binding RenameText, Mode=TwoWay}\"", xaml, StringComparison.Ordinal);
-        Assert.DoesNotContain("Text=\"{Binding SelectedProfileRenameText, Mode=TwoWay}\"", xaml, StringComparison.Ordinal);
         Assert.DoesNotContain("IsEnabled=\"{Binding CanCreateProfile}\"", xaml, StringComparison.Ordinal);
         Assert.DoesNotContain("IsEnabled=\"{Binding CanRenameSelectedProfile}\"", xaml, StringComparison.Ordinal);
         Assert.DoesNotContain("IsVisible=\"{Binding IsSelectedProfileRenameVisible}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding IsSelectedProfileHeaderRenameVisible}\"", xaml, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding HasStatusBadge}\"", xaml, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding StatusBadgeText}\"", xaml, StringComparison.Ordinal);
         Assert.Contains("Background=\"{Binding StatusBadgeBackground}\"", xaml, StringComparison.Ordinal);
@@ -2050,8 +1946,13 @@ public sealed class MainWindowViewModelTests
         Assert.DoesNotContain("Select, launch, or delete a launch profile from the saved profile list.", xaml, StringComparison.Ordinal);
         Assert.Contains("ToolTip.Tip=\"New Profile\"", xaml, StringComparison.Ordinal);
         Assert.Contains("automation:AutomationProperties.Name=\"New Profile\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("ToolTip.Tip=\"{Binding FileLibraryPaneToggleText}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("automation:AutomationProperties.Name=\"{Binding FileLibraryPaneToggleText}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("ToolTip.Tip=\"{Binding OpenFileLibraryViewText}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("automation:AutomationProperties.Name=\"{Binding OpenFileLibraryViewText}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("ToolTip.Tip=\"{Binding ReturnToProfilesViewText}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("automation:AutomationProperties.Name=\"{Binding ReturnToProfilesViewText}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("ToolTip.Tip=\"Create Profile\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("automation:AutomationProperties.Name=\"Create Profile\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding IsSelectedProfileCreateVisible}\"", xaml, StringComparison.Ordinal);
         Assert.Contains("ToolTip.Tip=\"Edit\"", xaml, StringComparison.Ordinal);
         Assert.Contains("automation:AutomationProperties.Name=\"Edit\"", xaml, StringComparison.Ordinal);
         Assert.Contains("ToolTip.Tip=\"Launch\"", xaml, StringComparison.Ordinal);
@@ -2062,8 +1963,8 @@ public sealed class MainWindowViewModelTests
         Assert.DoesNotContain("ToolTip.Tip=\"Remove\"", xaml, StringComparison.Ordinal);
         Assert.DoesNotContain("automation:AutomationProperties.Name=\"Remove\"", xaml, StringComparison.Ordinal);
         Assert.Contains("Data=\"{StaticResource add_square_regular}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Data=\"{StaticResource folder_regular}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Data=\"{StaticResource folder_open_regular}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("Data=\"{StaticResource arrow_left_regular}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("Data=\"{StaticResource arrow_right_regular}\"", xaml, StringComparison.Ordinal);
         Assert.Contains("Data=\"{StaticResource play_regular}\"", xaml, StringComparison.Ordinal);
         Assert.Contains("Data=\"{StaticResource edit_regular}\"", xaml, StringComparison.Ordinal);
         Assert.Contains("Data=\"{StaticResource delete_regular}\"", xaml, StringComparison.Ordinal);
@@ -2129,7 +2030,8 @@ public sealed class MainWindowViewModelTests
 
         var profilesHeaderIndex = xaml.IndexOf("Text=\"Profiles\"", StringComparison.Ordinal);
         var newProfileIndex = xaml.IndexOf("ToolTip.Tip=\"New Profile\"", StringComparison.Ordinal);
-        var fileLibraryToggleIndex = xaml.IndexOf("ToolTip.Tip=\"{Binding FileLibraryPaneToggleText}\"", StringComparison.Ordinal);
+        var fileLibraryToggleIndex = xaml.IndexOf("ToolTip.Tip=\"{Binding OpenFileLibraryViewText}\"", StringComparison.Ordinal);
+        var profilesToggleIndex = xaml.IndexOf("ToolTip.Tip=\"{Binding ReturnToProfilesViewText}\"", StringComparison.Ordinal);
         var fileLibraryScrollViewerIndex = xaml.IndexOf("x:Name=\"FileLibraryScrollViewer\"", StringComparison.Ordinal);
         var selectedProfileNameIndex = xaml.IndexOf("Text=\"{Binding SelectedProfileName}\"", StringComparison.Ordinal);
         var selectedProfileEditIndex = xaml.IndexOf("ToolTip.Tip=\"Edit\"", StringComparison.Ordinal);
@@ -2141,6 +2043,7 @@ public sealed class MainWindowViewModelTests
         Assert.True(profilesHeaderIndex >= 0);
         Assert.True(newProfileIndex > profilesHeaderIndex);
         Assert.True(fileLibraryToggleIndex > newProfileIndex);
+        Assert.True(profilesToggleIndex < selectedProfileNameIndex);
         Assert.True(selectedProfileNameIndex > newProfileIndex);
         Assert.True(selectedProfileNameIndex > fileLibraryToggleIndex);
         Assert.True(fileLibraryScrollViewerIndex > selectedProfileNameIndex);
@@ -2151,146 +2054,53 @@ public sealed class MainWindowViewModelTests
         Assert.True(renameIndex > launchIndex);
         Assert.True(deleteIndex > launchIndex);
         Assert.True(deleteIndex > renameIndex);
-        Assert.Equal(fileLibraryToggleIndex, xaml.LastIndexOf("ToolTip.Tip=\"{Binding FileLibraryPaneToggleText}\"", StringComparison.Ordinal));
+        Assert.Equal(fileLibraryToggleIndex, xaml.LastIndexOf("ToolTip.Tip=\"{Binding OpenFileLibraryViewText}\"", StringComparison.Ordinal));
+        Assert.Equal(profilesToggleIndex, xaml.LastIndexOf("ToolTip.Tip=\"{Binding ReturnToProfilesViewText}\"", StringComparison.Ordinal));
     }
 
     [Fact]
     public void FeatureSpecs_ReflectProfileOrderingAndDragReorderSpecs()
     {
         var spec = File.ReadAllText(GetRepoFilePath("SPEC.md"));
-        var feature002 = File.ReadAllText(GetRepoFilePath("Features", "002-border-drop-and-row-selection.md"));
-        var feature004 = File.ReadAllText(GetRepoFilePath("Features", "004-fixed-command-preview-and-selection-order.md"));
-        var feature005 = File.ReadAllText(GetRepoFilePath("Features", "005-fixed-header-and-launch-execution.md"));
         var feature008 = File.ReadAllText(GetRepoFilePath("Features", "008-profile-management.md"));
         var feature009 = File.ReadAllText(GetRepoFilePath("Features", "009-file-library-pane-collapse.md"));
-        var feature010 = File.ReadAllText(GetRepoFilePath("Features", "010-profile-drag-reorder.md"));
         var feature011 = File.ReadAllText(GetRepoFilePath("Features", "011-icon-based-action-controls.md"));
         var feature012 = File.ReadAllText(GetRepoFilePath("Features", "012-profile-only-collapse-mode-and-header-removal.md"));
         var feature013 = File.ReadAllText(GetRepoFilePath("Features", "013-toast-message-overlay.md"));
+        var feature014 = File.ReadAllText(GetRepoFilePath("Features", "014-single-view-profile-library-swap.md"));
 
-        Assert.Contains("always-visible instructional card styling", spec, StringComparison.Ordinal);
-        Assert.DoesNotContain("clickable keyboard-accessible file-picker fallback", spec, StringComparison.Ordinal);
-        Assert.DoesNotContain("click / keyboard fallback to multi-select file pickers", spec, StringComparison.Ordinal);
-        Assert.Contains("drag-and-drop targets with visible instructional text, section-specific accessible labels, and drag-over highlight", spec, StringComparison.Ordinal);
-        Assert.Contains("Feature 011: Icon-based action controls.", spec, StringComparison.Ordinal);
-        Assert.Contains("Feature 012: Profile-only collapse mode and header removal.", spec, StringComparison.Ordinal);
-        Assert.Contains("Feature 013: Toast message overlay.", spec, StringComparison.Ordinal);
-        Assert.Contains("profile-creation action in the left profile-management header", spec, StringComparison.Ordinal);
-        Assert.Contains("Profile rows expose launch, rename, and delete actions", spec, StringComparison.Ordinal);
-        Assert.Contains("Double-clicking a profile row acts as a pane shortcut", spec, StringComparison.Ordinal);
-        Assert.Contains("fixed `380 px` width", spec, StringComparison.Ordinal);
-        Assert.Contains("profile names wrap up to two lines", spec, StringComparison.Ordinal);
-        Assert.Contains("inline invalid-reason text stays hidden while shared status badges remain visible", spec, StringComparison.Ordinal);
-        Assert.Contains("visible scrollbar chrome stays hidden for both panes", spec, StringComparison.Ordinal);
-        Assert.Contains("subtle bottom-centered downward chevron affordance", spec, StringComparison.Ordinal);
-        Assert.Contains("remains visible until the bottom of the scrollable content is reached", spec, StringComparison.Ordinal);
-        Assert.Contains("left profile list has additional content below the current viewport", spec, StringComparison.Ordinal);
-        Assert.Contains("selected-profile header stays fixed at the top of the file-library pane, keeps the profile name, shows right-aligned `Edit` and `Delete` actions on the same row, shows status text with the shared amber invalid color when invalid, and renders its own wrapped filename-only command preview", spec, StringComparison.Ordinal);
-        Assert.Contains("require one source port plus one IWAD only for profile validity", spec, StringComparison.Ordinal);
-        Assert.Contains("Shared-library Source Port, IWAD, and Mod selection is profile-scoped; when no profile is selected, those rows remain visible but are not selectable.", spec, StringComparison.Ordinal);
-        Assert.Contains("removes the legacy fixed top header", spec, StringComparison.Ordinal);
+        Assert.Contains("Feature 014: Single-view profile/library workspace swap.", spec, StringComparison.Ordinal);
+        Assert.Contains("single shared workspace", spec, StringComparison.Ordinal);
+        Assert.Contains("removes the old pane-collapse model and fixed default window sizes", spec, StringComparison.Ordinal);
         Assert.Contains("shared top-centered toast overlay", spec, StringComparison.Ordinal);
-        Assert.Contains("does not reserve layout space above the workspace", spec, StringComparison.Ordinal);
-        Assert.Contains("destructive confirmation actions text-based inside the Feature 013 confirmation toast", spec, StringComparison.Ordinal);
-        Assert.Contains("row launch actions stay clickable in normal display mode", spec, StringComparison.Ordinal);
-        Assert.Contains("shrinks the native window to the profile-management section", spec, StringComparison.Ordinal);
-        Assert.Contains("Each drop zone renders a visible default target treatment before any drag begins", feature002, StringComparison.Ordinal);
-        Assert.DoesNotContain("an always-visible empty-state icon or badge treatment", feature002, StringComparison.Ordinal);
-        Assert.DoesNotContain("`Drag files here or click to upload`", feature002, StringComparison.Ordinal);
-        Assert.DoesNotContain("clicking the zone opens a multi-select file picker for that zone", feature002, StringComparison.Ordinal);
-        Assert.DoesNotContain("`Enter` and `Space` trigger the same picker flow as click", feature002, StringComparison.Ordinal);
-        Assert.Contains("Then the zone does not open a file picker or perform any other add-files action.", feature002, StringComparison.Ordinal);
-        Assert.Contains("profile-scoped selection changes are unavailable", feature004, StringComparison.Ordinal);
-        Assert.Contains("### No-profile Mod ordering stays alphabetical", feature004, StringComparison.Ordinal);
-        Assert.DoesNotContain("selection toggles may temporarily move selected Mods to the top for the current session", feature004, StringComparison.Ordinal);
-        Assert.DoesNotContain("### Detached-state temporary reordering", feature004, StringComparison.Ordinal);
-        Assert.Contains("Feature 012 later removes that header", feature005, StringComparison.Ordinal);
-        Assert.Contains("Feature 013 passive warning toast behavior", feature005, StringComparison.Ordinal);
-        Assert.DoesNotContain("Fixed Header Layout", feature005, StringComparison.Ordinal);
-        Assert.Contains("file-library collapse / expand action to the right of the profile-creation action", feature008, StringComparison.Ordinal);
-        Assert.Contains("selected-profile command preview text below the status text when the selected profile has one or more previewable saved launch tokens", feature008, StringComparison.Ordinal);
-        Assert.Contains("the Source Port, IWAD, and Mod drop zones inside that pane use the shared visible drop-zone affordance defined by Feature 002", feature008, StringComparison.Ordinal);
-        Assert.DoesNotContain("File-picker fallback does not add folder selection support", feature008, StringComparison.Ordinal);
-        Assert.DoesNotContain("click-upload affordance", feature008, StringComparison.Ordinal);
-        Assert.Contains("Drag and drop files here.", feature008, StringComparison.Ordinal);
-        Assert.Contains("selected-profile `Edit` and `Delete` actions on the right, inline with the name row", feature008, StringComparison.Ordinal);
-        Assert.Contains("the selected-profile header actions are hidden", feature008, StringComparison.Ordinal);
-        Assert.Contains("right pane shows a fixed selected-profile header above the independently scrolling shared library content", feature008, StringComparison.Ordinal);
-        Assert.Contains("scrollable region below that fixed selected-profile header", feature008, StringComparison.Ordinal);
+        Assert.Contains("saved profiles the only launchable unit", spec, StringComparison.Ordinal);
+
+        Assert.Contains("single shared workspace", feature008, StringComparison.Ordinal);
+        Assert.Contains("Profiles view", feature008, StringComparison.Ordinal);
+        Assert.Contains("File Library view", feature008, StringComparison.Ordinal);
         Assert.Contains("When no profile is selected, Source Port, IWAD, and Mod rows remain visible but are not selectable.", feature008, StringComparison.Ordinal);
-        Assert.Contains("render a disabled visual treatment that suppresses selection affordance while leaving row delete actions available", feature008, StringComparison.Ordinal);
-        Assert.Contains("valid rows show a `VALID` badge in that same slot", feature008, StringComparison.Ordinal);
-        Assert.Contains("left profile pane uses a fixed width of `380 px`", feature008, StringComparison.Ordinal);
-        Assert.Contains("Feature 010 becomes authoritative for how profile row ordering is changed by drag reordering", feature008, StringComparison.Ordinal);
-        Assert.Contains("does not render a separate inline valid text line", feature008, StringComparison.Ordinal);
-        Assert.Contains("Profile names in left-pane rows wrap within the row body and are capped at two rendered lines.", feature008, StringComparison.Ordinal);
-        Assert.Contains("selected-profile status text in the right-pane header uses the same amber invalid text color", feature008, StringComparison.Ordinal);
-        Assert.Contains("Each profile row renders its command preview in the non-interactive text area under the profile name", feature008, StringComparison.Ordinal);
-        Assert.Contains("when the file library pane is expanded, row preview text is hidden for all profile rows regardless of width", feature008, StringComparison.Ordinal);
-        Assert.Contains("when the file library pane is expanded, inline invalid-reason text is hidden for all profile rows regardless of width", feature008, StringComparison.Ordinal);
-        Assert.Contains("visible scrollbar chrome is not rendered in either pane", feature008, StringComparison.Ordinal);
-        Assert.Contains("mouse wheel, touchpad, keyboard, and equivalent platform scroll input", feature008, StringComparison.Ordinal);
-        Assert.Contains("subtle bottom-centered downward chevron affordance only when additional scrollable file-library content exists below the current viewport", feature008, StringComparison.Ordinal);
-        Assert.Contains("remains visible while additional file-library content still exists below the current viewport", feature008, StringComparison.Ordinal);
-        Assert.Contains("left profile list shows the same subtle bottom-centered downward chevron affordance", feature008, StringComparison.Ordinal);
-        Assert.Contains("profile-list scroll affordance is shown in both expanded two-pane mode and collapsed profile-only mode", feature008, StringComparison.Ordinal);
-        Assert.Contains("selected profile's saved launch inputs rather than current hydrated live selections", feature008, StringComparison.Ordinal);
-        Assert.Contains("when the overall window width is less than or equal to `768 px`, row preview text is hidden for all profile rows even while the file library pane is collapsed", feature008, StringComparison.Ordinal);
-        Assert.Contains("While the file library pane is collapsed, double-clicking a profile row is a profile-open shortcut", feature008, StringComparison.Ordinal);
-        Assert.Contains("While the file library pane is expanded, double-clicking a profile row is the inverse pane shortcut", feature008, StringComparison.Ordinal);
-        Assert.Contains("the second click does not toggle the row back off", feature008, StringComparison.Ordinal);
+        Assert.Contains("The selected-profile header `Edit` action starts rename inside the File Library view header.", feature008, StringComparison.Ordinal);
         Assert.Contains("Each profile row exposes launch, rename, and delete actions in that order.", feature008, StringComparison.Ordinal);
-        Assert.Contains("Feature 011 later becomes authoritative for the visible icon presentation of those row actions", feature008, StringComparison.Ordinal);
-        Assert.Contains("Feature 013 later becomes authoritative for shared toast mechanics", feature008, StringComparison.Ordinal);
-        Assert.Contains("The selected-profile header `Edit` action reuses that same rename flow", feature008, StringComparison.Ordinal);
-        Assert.Contains("the right-pane selected-profile header remains display-only and does not render a rename input", feature008, StringComparison.Ordinal);
-        Assert.Contains("Activating selected-profile header delete requests delete confirmation", feature008, StringComparison.Ordinal);
-        Assert.Contains("Feature 013 passive warning toast", feature008, StringComparison.Ordinal);
-        Assert.Contains("Feature 013 confirmation toast", feature008, StringComparison.Ordinal);
-        Assert.Contains("Invalid profiles remain listed, selectable, and row-launch-clickable", feature008, StringComparison.Ordinal);
-        Assert.Contains("Then the selected-profile header remains fixed at the top of the right pane.", feature008, StringComparison.Ordinal);
-        Assert.Contains("Removing a referenced Mod from the shared library does not invalidate the profile.", feature008, StringComparison.Ordinal);
-        Assert.Contains("Missing referenced Mod files on disk do not invalidate the profile.", feature008, StringComparison.Ordinal);
-        Assert.Contains("its saved Mod references remain preserved for preview text and launch argument construction", feature008, StringComparison.Ordinal);
-        Assert.Contains("leaves the shared file library visible but non-selectable until a profile is selected again", feature008, StringComparison.Ordinal);
-        Assert.Contains("attempted selection input does not change selection state", feature008, StringComparison.Ordinal);
-        Assert.Contains("visible scrollbar chrome is not rendered for that profile list", feature008, StringComparison.Ordinal);
-        Assert.Contains("visible scrollbar chrome is not rendered for that file-library pane", feature008, StringComparison.Ordinal);
-        Assert.DoesNotContain("Detached library state:", feature008, StringComparison.Ordinal);
-        Assert.DoesNotContain("selected Mods temporarily move to the top in detached selected sequence order", feature008, StringComparison.Ordinal);
-        Assert.DoesNotContain("Detached no-profile library selections created during runtime are not restored on restart.", feature008, StringComparison.Ordinal);
-        Assert.Contains("fixed selected-profile header plus the scrollable Source Port, IWAD, and Mod library controls", feature009, StringComparison.Ordinal);
-        Assert.Contains("selected-profile header as a fixed top region and the shared library controls as a scrollable region beneath it", feature009, StringComparison.Ordinal);
-        Assert.Contains("the right file-library pane is not rendered", feature009, StringComparison.Ordinal);
-        Assert.Contains("the spacer gap between the profile pane and file-library pane is not rendered", feature009, StringComparison.Ordinal);
-        Assert.Contains("remains as the only workspace pane in view", feature009, StringComparison.Ordinal);
-        Assert.DoesNotContain("The file-library section header contains the `File Library` section title.", feature009, StringComparison.Ordinal);
-        Assert.Contains("toggle exposes `File Library` through tooltip and automation name text", feature009, StringComparison.Ordinal);
-        Assert.Contains("Feature 012 later becomes authoritative for shrinking and restoring the native window width", feature009, StringComparison.Ordinal);
-        Assert.Contains("Double-clicking a profile row while the file library pane is collapsed is the other exception", feature009, StringComparison.Ordinal);
-        Assert.Contains("Double-clicking a profile row while the file library pane is expanded is the inverse exception", feature009, StringComparison.Ordinal);
-        Assert.Contains("The drag ghost renders only the dragged profile name.", feature010, StringComparison.Ordinal);
-        Assert.Contains("The row launch, rename, and delete actions do not start drag.", feature010, StringComparison.Ordinal);
-        Assert.Contains("A real drag does not also toggle profile row selection.", feature010, StringComparison.Ordinal);
-        Assert.Contains("`add_square_regular`", feature011, StringComparison.Ordinal);
-        Assert.Contains("`folder_open_regular`", feature011, StringComparison.Ordinal);
-        Assert.Contains("`delete_regular`", feature011, StringComparison.Ordinal);
-        Assert.Contains("`arrow_down_regular`", feature011, StringComparison.Ordinal);
-        Assert.Contains("The profile-list scroll affordance indicator uses `arrow_down_regular`.", feature011, StringComparison.Ordinal);
-        Assert.Contains("The file-library pane toggle exposes `File Library` in both collapsed and expanded states.", feature011, StringComparison.Ordinal);
-        Assert.Contains("The selected-profile header `Edit` action uses `edit_regular`.", feature011, StringComparison.Ordinal);
-        Assert.Contains("The selected-profile header `Delete` action uses `delete_regular`.", feature011, StringComparison.Ordinal);
-        Assert.Contains("The file-library and profile-list scroll affordance indicators are visual-only", feature011, StringComparison.Ordinal);
-        Assert.Contains("default visible opacity of `0.72`", feature011, StringComparison.Ordinal);
-        Assert.Contains("visual-only and do not introduce a new command, hit target, or keyboard behavior", feature011, StringComparison.Ordinal);
-        Assert.Contains("bottom-center of their panes", feature011, StringComparison.Ordinal);
-        Assert.Contains("tooltip and automation name text", feature011, StringComparison.Ordinal);
-        Assert.Contains("Feature 013 confirmation toast behavior", feature011, StringComparison.Ordinal);
+
+        Assert.Contains("superseded by Feature 014", feature009, StringComparison.Ordinal);
+        Assert.DoesNotContain("the right file-library pane is not rendered", feature009, StringComparison.Ordinal);
+
+        Assert.Contains("Profiles-header view-swap action exposes `File Library`", feature011, StringComparison.Ordinal);
+        Assert.Contains("File-Library top-left back-to-profiles action exposes `Profiles`", feature011, StringComparison.Ordinal);
+        Assert.Contains("`arrow_right_regular`", feature011, StringComparison.Ordinal);
+        Assert.Contains("`arrow_left_regular`", feature011, StringComparison.Ordinal);
+
         Assert.Contains("The top fixed header is not rendered.", feature012, StringComparison.Ordinal);
-        Assert.Contains("visible workspace toast behavior follows Feature 013", feature012, StringComparison.Ordinal);
-        Assert.Contains("Any visible workspace toast follows Feature 013 placement and overlay behavior.", feature012, StringComparison.Ordinal);
-        Assert.Contains("restores the remembered expanded normal-window width", feature012, StringComparison.Ordinal);
-        Assert.Contains("If the window is maximized", feature012, StringComparison.Ordinal);
+        Assert.Contains("Feature 014 is authoritative for workspace view swapping.", feature012, StringComparison.Ordinal);
+        Assert.DoesNotContain("restores the remembered expanded normal-window width", feature012, StringComparison.Ordinal);
+
+        Assert.Contains("Replace the two-pane workspace with one shared workspace that shows either `Profiles` or `File Library`.", feature014, StringComparison.Ordinal);
+        Assert.Contains("Remove persisted pane-collapse and remembered-width state.", feature014, StringComparison.Ordinal);
+        Assert.Contains("Creating a new profile selects it and keeps Profiles view active.", feature014, StringComparison.Ordinal);
+        Assert.Contains("Double-clicking a profile row selects that profile and opens File Library view.", feature014, StringComparison.Ordinal);
+        Assert.Contains("The File Library view exposes a top-left `Profiles` back action above the selected-profile header.", feature014, StringComparison.Ordinal);
+        Assert.Contains("The selected-profile header `Edit` action opens rename inline in that header.", feature014, StringComparison.Ordinal);
+
         Assert.Contains("Feature 013 is the authoritative source for toast behavior.", feature013, StringComparison.Ordinal);
         Assert.Contains("Only one toast is visible at a time.", feature013, StringComparison.Ordinal);
         Assert.Contains("Passive warning toasts auto-dismiss after `5` seconds.", feature013, StringComparison.Ordinal);
@@ -2394,8 +2204,7 @@ internal sealed class RecordingPersistence : ILaunchInputsPersistence
             SourcePorts = [.. config.SourcePorts],
             Profiles = [.. config.Profiles.Select(CloneProfile)],
             SelectedProfileId = config.SelectedProfileId,
-            IsFileLibraryPaneCollapsed = config.IsFileLibraryPaneCollapsed,
-            LastExpandedWindowWidth = config.LastExpandedWindowWidth,
+            IsFileLibraryViewActive = config.IsFileLibraryViewActive,
             IsSourcePortSectionCollapsed = config.IsSourcePortSectionCollapsed,
             SelectedSourcePortPath = config.SelectedSourcePortPath,
             Iwads = [.. config.Iwads],
