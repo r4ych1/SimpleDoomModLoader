@@ -2,7 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:automation="clr-namespace:Avalonia.Automation;assembly=Avalonia.Controls"
         x:Class="ModLoader.App.MainWindow"
-        Title="ModLoader - Feature 014">
+        Title="Simple Doom Mod Loader">
   <Window.Resources>
     <ResourceDictionary>
       <ResourceDictionary.ThemeDictionaries>
@@ -293,16 +293,26 @@
               Background="#0f172a"
               Padding="12">
         <Grid RowDefinitions="Auto,Auto,*">
-          <Button Grid.Row="0"
-                  Classes="IconButton"
-                  ToolTip.Tip="{Binding ReturnToProfilesViewText}"
-                  automation:AutomationProperties.Name="{Binding ReturnToProfilesViewText}"
-                  HorizontalAlignment="Left"
-                  Click="OnReturnToProfilesViewClicked">
-            <PathIcon Width="16"
-                      Height="16"
-                      Data="{StaticResource arrow_left_regular}" />
-          </Button>
+          <Grid Grid.Row="0"
+                ColumnDefinitions="Auto,*">
+            <Button Grid.Column="0"
+                    Classes="IconButton"
+                    ToolTip.Tip="{Binding ReturnToProfilesViewText}"
+                    automation:AutomationProperties.Name="{Binding ReturnToProfilesViewText}"
+                    HorizontalAlignment="Left"
+                    Click="OnReturnToProfilesViewClicked">
+              <PathIcon Width="16"
+                        Height="16"
+                        Data="{StaticResource arrow_left_regular}" />
+            </Button>
+            <TextBlock Grid.Column="1"
+                       Margin="8,0,0,0"
+                       FontSize="18"
+                       FontWeight="Bold"
+                       Foreground="#e5e7eb"
+                       VerticalAlignment="Center"
+                       Text="File Library" />
+          </Grid>
 
           <Border Grid.Row="1"
                   BorderBrush="#374151"
