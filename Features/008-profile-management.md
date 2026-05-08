@@ -67,8 +67,8 @@ Feature 014 later becomes authoritative for the single shared workspace layout a
   - preview uses saved profile inputs, not live detached selections
   - preview token order is source-port filename, `-iwad`, IWAD filename, `-file`, ordered mod filenames
   - rows with no previewable tokens omit the preview line
-- Profile-row command preview is visible only in Profiles view and only when the overall window width is greater than `768 px`.
-- Invalid profile inline reason text is visible only in Profiles view.
+- Profile-row command preview is visible only in Profiles view and only when the overall window width is greater than `640 px`.
+- Invalid profile inline reason text is visible only in Profiles view and only when the overall window width is greater than `640 px`.
 
 ### Profile creation
 - The profile-creation action is always enabled.

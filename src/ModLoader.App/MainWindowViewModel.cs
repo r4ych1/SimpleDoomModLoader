@@ -17,7 +17,7 @@ public enum ToastKind
 
 public sealed class MainWindowViewModel : INotifyPropertyChanged
 {
-    private const double ProfileCommandPreviewHideWidthThreshold = 768d;
+    private const double ProfileCommandPreviewHideWidthThreshold = 640d;
     private readonly ISourcePortLauncher _launcher;
     private readonly ILaunchInputsPersistence _persistence;
     private readonly LaunchInputsStore _store;
@@ -1278,7 +1278,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             row.ValidMessage = validity.IsValid ? "VALID" : string.Empty;
             row.InvalidReason = validity.Reason;
             row.IsInvalidReasonVisible = !validity.IsValid
-                && IsProfilesViewActive
+                && AreProfileCommandPreviewsVisible
                 && !string.IsNullOrWhiteSpace(validity.Reason);
             row.CommandPreviewText = BuildCommandPreviewArguments(profile);
             row.IsCommandPreviewVisible = AreProfileCommandPreviewsVisible && !string.IsNullOrWhiteSpace(row.CommandPreviewText);

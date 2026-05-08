@@ -6,11 +6,13 @@ Replace the two-pane workspace with one shared workspace that shows either `Prof
 ## In Scope
 - Replace pane collapse with full-view swapping between `Profiles` and `File Library`.
 - Move the File Library back-to-profiles action to a top-left position above the selected-profile header.
+- Add a `File Library` title to File Library view.
 - Keep the selected-profile header fixed at the top of File Library view.
 - Add a selected-profile-header `Create Profile` action that is visible only when no profile is selected.
 - Remove persisted pane-collapse and remembered-width state.
 - Remove app-defined fixed default window sizes.
 - Persist the last active workspace view.
+- Rename the app window title to `Simple Doom Mod Loader`.
 
 ## Out Of Scope
 - Changes to profile validity rules.
@@ -22,7 +24,7 @@ Replace the two-pane workspace with one shared workspace that shows either `Prof
 - Profiles view:
   - The full-width workspace view that shows the profile-management header, profile list, profile-row actions, drag reorder, and profile-list scroll affordance.
 - File Library view:
-  - The full-width workspace view that shows the selected-profile header plus the shared Source Port, IWAD, and Mod library controls.
+  - The full-width workspace view that shows a top-row `File Library` title, the selected-profile header, and the shared Source Port, IWAD, and Mod library controls.
 
 ## Rules
 ### Workspace composition
@@ -35,9 +37,11 @@ Replace the two-pane workspace with one shared workspace that shows either `Prof
   - the `File Library` view-swap action
   - the saved profile list
 - The File Library view contains:
+  - the `File Library` title
   - a top-left `Profiles` back action above the selected-profile header
   - the selected-profile header
   - the shared Source Port, IWAD, and Mod library controls
+- The File Library view shows the `File Library` title in the same top row as the top-left `Profiles` back action.
 - The File Library view exposes a top-left `Profiles` back action above the selected-profile header.
 - The selected-profile header remains fixed while the file-library content scrolls beneath it.
 
@@ -67,8 +71,8 @@ Replace the two-pane workspace with one shared workspace that shows either `Prof
 - The selected-profile status text and selected-profile command preview keep their existing meaning.
 
 ### Visibility rules carried forward
-- Profile-row command preview is visible only in Profiles view and only when the overall window width is greater than `768 px`.
-- Profile-row inline invalid-reason text is visible only in Profiles view.
+- Profile-row command preview is visible only in Profiles view and only when the overall window width is greater than `640 px`.
+- Profile-row inline invalid-reason text is visible only in Profiles view and only when the overall window width is greater than `640 px`.
 - File Library view hides profile-row command preview and inline invalid-reason text.
 - Profile-list and file-library scroll affordances remain visual-only and only show for the currently visible view.
 
@@ -76,6 +80,9 @@ Replace the two-pane workspace with one shared workspace that shows either `Prof
 - `LaunchInputsConfig` replaces `IsFileLibraryPaneCollapsed` with `IsFileLibraryViewActive`.
 - `LaunchInputsConfig` no longer persists `LastExpandedWindowWidth`.
 - Legacy `IsFileLibraryPaneCollapsed` and `LastExpandedWindowWidth` fields are ignored on load and are not re-saved.
+
+### App title
+- The main app window title is `Simple Doom Mod Loader`.
 
 ## Acceptance Criteria
 ### Profiles view swaps to File Library
@@ -89,6 +96,11 @@ Given File Library view is visible
 When the top-left File-Library `Profiles` back action is activated
 Then Profiles view becomes visible.
 And the new active view persists immediately.
+
+### File Library view shows its title
+Given File Library view is visible
+Then the top-row `File Library` title is visible.
+And the top-left File-Library `Profiles` back action remains visible.
 
 ### New profile keeps Profiles view active
 Given Profiles view is visible
@@ -123,3 +135,7 @@ And `Edit` and `Delete` are hidden.
 And when the `Create Profile` action is activated
 Then a new profile is created and selected using Feature 008 rules.
 And File Library view remains visible.
+
+### Window title uses the corrected product name
+Given the app window is visible
+Then the window title is `Simple Doom Mod Loader`.

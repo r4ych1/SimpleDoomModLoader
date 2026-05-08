@@ -595,16 +595,16 @@ public sealed class MainWindowViewModelTests
         viewModel.ShowFileLibraryView();
         Assert.False(row.IsCommandPreviewVisible);
 
-        viewModel.SetWindowWidth(768d);
+        viewModel.SetWindowWidth(640d);
         Assert.False(row.IsCommandPreviewVisible);
 
-        viewModel.SetWindowWidth(700d);
-        Assert.False(row.IsCommandPreviewVisible);
-
-        viewModel.SetWindowWidth(769d);
+        viewModel.SetWindowWidth(639d);
         Assert.False(row.IsCommandPreviewVisible);
 
         viewModel.ShowProfilesView();
+        Assert.False(row.IsCommandPreviewVisible);
+
+        viewModel.SetWindowWidth(641d);
         Assert.True(row.IsCommandPreviewVisible);
     }
 
@@ -966,7 +966,7 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
-    public void InvalidProfileRow_HidesInlineInvalidReasonInLibraryView_AndShowsItInProfilesView()
+    public void InvalidProfileRow_InlineInvalidReasonRespectsProfilesViewAndWidthGate()
     {
         using var temp = new TempDirectory();
         var source = temp.CreateFile("gzdoom.exe");
@@ -994,10 +994,22 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("IWAD file is missing", row.InvalidReason);
         Assert.Contains("IWAD file is missing", viewModel.SelectedProfileStatusText);
 
+        viewModel.SetWindowWidth(640d);
+        Assert.False(row.IsInvalidReasonVisible);
+
+        viewModel.SetWindowWidth(639d);
+        Assert.False(row.IsInvalidReasonVisible);
+
+        viewModel.SetWindowWidth(641d);
+        Assert.True(row.IsInvalidReasonVisible);
+
         viewModel.ShowFileLibraryView();
 
         Assert.True(row.IsInvalid);
         Assert.Equal("INVALID", row.StatusBadgeText);
+        Assert.False(row.IsInvalidReasonVisible);
+
+        viewModel.SetWindowWidth(641d);
         Assert.False(row.IsInvalidReasonVisible);
         Assert.Contains("IWAD file is missing", viewModel.SelectedProfileStatusText);
     }
@@ -1942,7 +1954,7 @@ public sealed class MainWindowViewModelTests
         Assert.DoesNotContain("IsVisible=\"{Binding HasValidMessage}\"", xaml, StringComparison.Ordinal);
         Assert.DoesNotContain("Text=\"Command Preview\"", xaml, StringComparison.Ordinal);
         Assert.DoesNotContain("Text=\"{Binding CommandPreviewArguments}\"", xaml, StringComparison.Ordinal);
-        Assert.DoesNotContain("Text=\"File Library\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("Text=\"File Library\"", xaml, StringComparison.Ordinal);
         Assert.DoesNotContain("Select, launch, or delete a launch profile from the saved profile list.", xaml, StringComparison.Ordinal);
         Assert.Contains("ToolTip.Tip=\"New Profile\"", xaml, StringComparison.Ordinal);
         Assert.Contains("automation:AutomationProperties.Name=\"New Profile\"", xaml, StringComparison.Ordinal);
@@ -2032,6 +2044,7 @@ public sealed class MainWindowViewModelTests
         var newProfileIndex = xaml.IndexOf("ToolTip.Tip=\"New Profile\"", StringComparison.Ordinal);
         var fileLibraryToggleIndex = xaml.IndexOf("ToolTip.Tip=\"{Binding OpenFileLibraryViewText}\"", StringComparison.Ordinal);
         var profilesToggleIndex = xaml.IndexOf("ToolTip.Tip=\"{Binding ReturnToProfilesViewText}\"", StringComparison.Ordinal);
+        var fileLibraryTitleIndex = xaml.IndexOf("Text=\"File Library\"", StringComparison.Ordinal);
         var fileLibraryScrollViewerIndex = xaml.IndexOf("x:Name=\"FileLibraryScrollViewer\"", StringComparison.Ordinal);
         var selectedProfileNameIndex = xaml.IndexOf("Text=\"{Binding SelectedProfileName}\"", StringComparison.Ordinal);
         var selectedProfileEditIndex = xaml.IndexOf("ToolTip.Tip=\"Edit\"", StringComparison.Ordinal);
@@ -2043,6 +2056,8 @@ public sealed class MainWindowViewModelTests
         Assert.True(profilesHeaderIndex >= 0);
         Assert.True(newProfileIndex > profilesHeaderIndex);
         Assert.True(fileLibraryToggleIndex > newProfileIndex);
+        Assert.True(fileLibraryTitleIndex > profilesToggleIndex);
+        Assert.True(fileLibraryTitleIndex < selectedProfileNameIndex);
         Assert.True(profilesToggleIndex < selectedProfileNameIndex);
         Assert.True(selectedProfileNameIndex > newProfileIndex);
         Assert.True(selectedProfileNameIndex > fileLibraryToggleIndex);
@@ -2071,6 +2086,7 @@ public sealed class MainWindowViewModelTests
 
         Assert.Contains("Feature 014: Single-view profile/library workspace swap.", spec, StringComparison.Ordinal);
         Assert.Contains("single shared workspace", spec, StringComparison.Ordinal);
+        Assert.Contains("adds a `File Library` title in File Library view", spec, StringComparison.Ordinal);
         Assert.Contains("removes the old pane-collapse model and fixed default window sizes", spec, StringComparison.Ordinal);
         Assert.Contains("shared top-centered toast overlay", spec, StringComparison.Ordinal);
         Assert.Contains("saved profiles the only launchable unit", spec, StringComparison.Ordinal);
@@ -2095,9 +2111,12 @@ public sealed class MainWindowViewModelTests
         Assert.DoesNotContain("restores the remembered expanded normal-window width", feature012, StringComparison.Ordinal);
 
         Assert.Contains("Replace the two-pane workspace with one shared workspace that shows either `Profiles` or `File Library`.", feature014, StringComparison.Ordinal);
+        Assert.Contains("Add a `File Library` title to File Library view.", feature014, StringComparison.Ordinal);
         Assert.Contains("Remove persisted pane-collapse and remembered-width state.", feature014, StringComparison.Ordinal);
         Assert.Contains("Creating a new profile selects it and keeps Profiles view active.", feature014, StringComparison.Ordinal);
         Assert.Contains("Double-clicking a profile row selects that profile and opens File Library view.", feature014, StringComparison.Ordinal);
+        Assert.Contains("Given File Library view is visible", feature014, StringComparison.Ordinal);
+        Assert.Contains("Then the top-row `File Library` title is visible.", feature014, StringComparison.Ordinal);
         Assert.Contains("The File Library view exposes a top-left `Profiles` back action above the selected-profile header.", feature014, StringComparison.Ordinal);
         Assert.Contains("The selected-profile header `Edit` action opens rename inline in that header.", feature014, StringComparison.Ordinal);
 
