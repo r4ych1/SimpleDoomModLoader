@@ -9,6 +9,9 @@ Simple Doom Mod Loader is a lightweight Windows-first desktop app for managing D
 - Builds launch arguments from profile selections.
 - Launches your selected source port with the chosen IWAD and mods.
 
+## Screenshot
+<img width="856" height="822" alt="image" src="https://github.com/user-attachments/assets/3e956d24-efd4-4a80-bf5f-e5a66b962910" />
+
 ## Requirements
 
 - Windows 64-bit.
