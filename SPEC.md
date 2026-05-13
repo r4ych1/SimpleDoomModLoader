@@ -32,13 +32,13 @@ This repository follows feature-scoped delivery. Behavior is only guaranteed whe
   - Feature 012 later removes the old fixed header presentation.
   - Authoritative spec: `Features/005-fixed-header-and-launch-execution.md`.
 - Feature 006: Section collapse layout and row interaction states.
-  - Adds whole-section collapse behavior plus distinct row hover and selected visuals.
+  - Adds whole-section collapse behavior plus distinct idle-unselected, hover, and selected row visuals, with disabled shared-library rows remaining borderless.
   - Authoritative spec: `Features/006-row-actions-clear-all-and-row-states.md`.
 - Feature 007: Source-port list parity and Mod `.zip` support.
   - Replaces single active source-port behavior with ordered source-port list behavior and expands Mod allowlist to include `.zip`.
   - Authoritative spec: `Features/007-source-port-list-and-mod-zip.md`.
 - Feature 008: Selection-based profile workspace.
-  - Adds saved profiles as the primary launch model, shared-library disabled-state behavior when no profile is selected, immediate profile auto-save through shared-library edits, and selected-profile header behavior in File Library view.
+  - Adds saved profiles as the primary launch model, profile-row idle outline presentation, shared-library disabled-state behavior when no profile is selected, immediate profile auto-save through shared-library edits, and selected-profile header behavior in File Library view.
   - Feature 014 later becomes authoritative for workspace composition and view swapping.
   - Authoritative spec: `Features/008-profile-management.md`.
 - Feature 009: Collapsible file library pane.

@@ -62,6 +62,7 @@ Feature 014 later becomes authoritative for the single shared workspace layout a
 - Profile rows use one shared right-side status-badge slot:
   - invalid rows show `INVALID`
   - valid rows show `VALID`
+- Unselected profile rows show a subtle always-visible outline when not hovered.
 - Profile names wrap within the row body and are capped at two rendered lines.
 - Each profile row renders its command preview in the non-interactive text area under the profile name:
   - preview uses saved profile inputs, not live detached selections
@@ -177,6 +178,15 @@ Given no profile is selected and shared Source Port, IWAD, and Mod rows exist
 When selection input is applied to any of those rows
 Then current Source Port / IWAD / Mod selections remain unchanged.
 And no profile is auto-created or auto-selected.
+
+### Profile rows show idle unselected outline
+Given one or more profile rows are visible in Profiles view
+When a profile row is unselected and not hovered
+Then that row shows a subtle outline box visual.
+And when the same row is hovered
+Then hover visual feedback is shown.
+And when the row is selected
+Then selected visual feedback remains distinct from idle and hover states.
 
 ### Explicit rename action
 Given a saved profile exists

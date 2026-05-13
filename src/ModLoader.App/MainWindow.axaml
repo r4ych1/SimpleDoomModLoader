@@ -17,6 +17,7 @@
           <SolidColorBrush x:Key="DropZoneIconBackgroundBrush" Color="#dbeafe" />
           <SolidColorBrush x:Key="DropZoneIconBorderBrush" Color="#60a5fa" />
           <SolidColorBrush x:Key="DropZoneIconForegroundBrush" Color="#1d4ed8" />
+          <SolidColorBrush x:Key="InputRowDefaultBorderBrush" Color="#22000000" />
           <SolidColorBrush x:Key="InputRowHoverBackgroundBrush" Color="#12000000" />
           <SolidColorBrush x:Key="InputRowHoverBorderBrush" Color="#40000000" />
           <SolidColorBrush x:Key="InputRowSelectedBackgroundBrush" Color="#2a3b82f6" />
@@ -35,6 +36,7 @@
           <SolidColorBrush x:Key="DropZoneIconBackgroundBrush" Color="#10233f" />
           <SolidColorBrush x:Key="DropZoneIconBorderBrush" Color="#3b82f6" />
           <SolidColorBrush x:Key="DropZoneIconForegroundBrush" Color="#93c5fd" />
+          <SolidColorBrush x:Key="InputRowDefaultBorderBrush" Color="#2f93c5fd" />
           <SolidColorBrush x:Key="InputRowHoverBackgroundBrush" Color="#1f93c5fd" />
           <SolidColorBrush x:Key="InputRowHoverBorderBrush" Color="#4b93c5fd" />
           <SolidColorBrush x:Key="InputRowSelectedBackgroundBrush" Color="#334f8df5" />
@@ -86,7 +88,7 @@
       <Setter Property="CornerRadius" Value="4" />
       <Setter Property="Padding" Value="8" />
       <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="{DynamicResource InputRowDefaultBorderBrush}" />
     </Style>
     <Style Selector="Border.InputRow:pointerover">
       <Setter Property="Background" Value="{DynamicResource InputRowHoverBackgroundBrush}" />
@@ -102,6 +104,7 @@
     </Style>
     <Style Selector="Border.InputRow.selection-disabled">
       <Setter Property="Opacity" Value="0.58" />
+      <Setter Property="BorderBrush" Value="Transparent" />
     </Style>
     <Style Selector="Border.InputRow.selection-disabled:pointerover">
       <Setter Property="Background" Value="Transparent" />
