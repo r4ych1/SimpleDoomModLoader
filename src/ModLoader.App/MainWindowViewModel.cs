@@ -24,7 +24,9 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private readonly List<ProfileConfig> _profiles = [];
     private bool _isFileLibraryViewActive;
     private bool _isIwadDropZoneDragActive;
+    private bool _isModDragGhostVisible;
     private bool _isProfileDragGhostVisible;
+    private bool _isModDropIndicatorVisible;
     private bool _isProfileDropIndicatorVisible;
     private bool _isIwadSectionCollapsed;
     private bool _isModSectionCollapsed;
@@ -33,6 +35,12 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private bool _isSourcePortDropZoneDragActive;
     private bool _isSourcePortSectionCollapsed;
     private string? _pendingDeleteProfileId;
+    private string _modDragGhostText = string.Empty;
+    private double _modDragGhostLeft;
+    private double _modDragGhostTop;
+    private double _modDropIndicatorLeft;
+    private double _modDropIndicatorTop;
+    private double _modDropIndicatorWidth;
     private string _profileDragGhostText = string.Empty;
     private double _profileDragGhostLeft;
     private double _profileDragGhostTop;
@@ -533,6 +541,126 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         }
     }
 
+    public bool IsModDragGhostVisible
+    {
+        get => _isModDragGhostVisible;
+        private set
+        {
+            if (_isModDragGhostVisible == value)
+            {
+                return;
+            }
+
+            _isModDragGhostVisible = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public string ModDragGhostText
+    {
+        get => _modDragGhostText;
+        private set
+        {
+            if (_modDragGhostText == value)
+            {
+                return;
+            }
+
+            _modDragGhostText = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public double ModDragGhostLeft
+    {
+        get => _modDragGhostLeft;
+        private set
+        {
+            if (_modDragGhostLeft == value)
+            {
+                return;
+            }
+
+            _modDragGhostLeft = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public double ModDragGhostTop
+    {
+        get => _modDragGhostTop;
+        private set
+        {
+            if (_modDragGhostTop == value)
+            {
+                return;
+            }
+
+            _modDragGhostTop = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool IsModDropIndicatorVisible
+    {
+        get => _isModDropIndicatorVisible;
+        private set
+        {
+            if (_isModDropIndicatorVisible == value)
+            {
+                return;
+            }
+
+            _isModDropIndicatorVisible = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public double ModDropIndicatorLeft
+    {
+        get => _modDropIndicatorLeft;
+        private set
+        {
+            if (_modDropIndicatorLeft == value)
+            {
+                return;
+            }
+
+            _modDropIndicatorLeft = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public double ModDropIndicatorTop
+    {
+        get => _modDropIndicatorTop;
+        private set
+        {
+            if (_modDropIndicatorTop == value)
+            {
+                return;
+            }
+
+            _modDropIndicatorTop = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public double ModDropIndicatorWidth
+    {
+        get => _modDropIndicatorWidth;
+        private set
+        {
+            if (_modDropIndicatorWidth == value)
+            {
+                return;
+            }
+
+            _modDropIndicatorWidth = value;
+            OnPropertyChanged();
+        }
+    }
+
     public string CommandPreviewArguments => BuildCommandPreviewArguments();
 
     public bool AreProfileCommandPreviewsVisible => IsProfilesViewActive && _windowWidth > ProfileCommandPreviewHideWidthThreshold;
@@ -891,6 +1019,48 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         HideProfileDropIndicator();
     }
 
+    public bool BeginModDrag(string path, double ghostLeft, double ghostTop)
+    {
+        var row = ModRows.FirstOrDefault(candidate => string.Equals(candidate.Path, path, StringComparison.OrdinalIgnoreCase));
+        if (row is null)
+        {
+            return false;
+        }
+
+        ModDragGhostText = row.Path;
+        ModDragGhostLeft = ghostLeft;
+        ModDragGhostTop = ghostTop;
+        IsModDragGhostVisible = true;
+        HideModDropIndicator();
+        return true;
+    }
+
+    public void UpdateModDragGhostPosition(double ghostLeft, double ghostTop)
+    {
+        ModDragGhostLeft = ghostLeft;
+        ModDragGhostTop = ghostTop;
+    }
+
+    public void ShowModDropIndicator(double left, double top, double width)
+    {
+        ModDropIndicatorLeft = left;
+        ModDropIndicatorTop = top;
+        ModDropIndicatorWidth = width;
+        IsModDropIndicatorVisible = true;
+    }
+
+    public void HideModDropIndicator()
+    {
+        IsModDropIndicatorVisible = false;
+    }
+
+    public void HideModDragFeedback()
+    {
+        IsModDragGhostVisible = false;
+        ModDragGhostText = string.Empty;
+        HideModDropIndicator();
+    }
+
     public void BeginRenameSelectedProfile()
     {
         var selectedProfileId = SelectedProfileId;
@@ -1169,6 +1339,21 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         return true;
     }
 
+    public bool ReorderMod(string path, int targetIndex)
+    {
+        CancelRename();
+
+        if (!_store.ReorderMod(path, targetIndex))
+        {
+            return false;
+        }
+
+        ClearPendingDeleteConfirmation();
+        RefreshFromStore();
+        PersistState();
+        return true;
+    }
+
     public void LaunchSourcePort()
     {
         var selectedProfile = GetSelectedProfile();
@@ -1250,7 +1435,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             isLibrarySelectionEnabled);
 
         CopyRows(
-            GetOrderedModPaths(),
+            Mods,
             ModRows,
             path => FindPathIndex(SelectedModPaths, path) >= 0,
             isLibrarySelectionEnabled);
@@ -1544,42 +1729,6 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         return reasons.Count == 0
             ? new ProfileValidity(true, "Selected profile is ready to launch.")
             : new ProfileValidity(false, string.Join(" ", reasons));
-    }
-
-    private IReadOnlyList<string> GetOrderedModPaths()
-    {
-        if (!HasSelectedProfile)
-        {
-            return
-            [
-                .. Mods
-                    .OrderBy(path => Path.GetFileName(path), StringComparer.OrdinalIgnoreCase)
-                    .ThenBy(path => path, StringComparer.OrdinalIgnoreCase)
-            ];
-        }
-
-        var orderedSelectedPaths = new List<string>();
-        var selectedPathSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var selectedModPath in SelectedModPaths)
-        {
-            if (!ContainsPath(Mods, selectedModPath))
-            {
-                continue;
-            }
-
-            if (selectedPathSet.Add(selectedModPath))
-            {
-                orderedSelectedPaths.Add(selectedModPath);
-            }
-        }
-
-        var orderedUnselectedPaths = Mods
-            .Where(path => !selectedPathSet.Contains(path))
-            .OrderBy(path => Path.GetFileName(path), StringComparer.OrdinalIgnoreCase)
-            .ThenBy(path => path, StringComparer.OrdinalIgnoreCase);
-
-        return [.. orderedSelectedPaths, .. orderedUnselectedPaths];
     }
 
     private static bool ContainsPath(IEnumerable<string> candidates, string? path)

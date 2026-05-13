@@ -25,15 +25,21 @@ public partial class MainWindow : Window
     private DispatcherTimer? _pendingProfileToggleTimer;
     private DispatcherTimer? _toastDismissTimer;
     private string? _pendingToggleProfileId;
+    private Grid? _modListHost;
     private Grid? _profileListHost;
     private ScrollViewer? _profileListScrollViewer;
     private ScrollViewer? _fileLibraryScrollViewer;
     private PathIcon? _profileListScrollAffordance;
     private PathIcon? _fileLibraryScrollAffordance;
     private bool _isProfileDragActive;
+    private bool _isModDragActive;
+    private int? _modDropIndex;
     private int? _profileDropIndex;
+    private string? _pressedModPath;
     private string? _pressedProfileId;
+    private Point _pressedModPointInHost;
     private Point _pressedProfilePointInHost;
+    private Border? _pressedModRow;
     private Border? _pressedProfileRow;
 
     public MainWindow()
@@ -56,6 +62,7 @@ public partial class MainWindow : Window
     private void InitializeComponent()
     {
         AvaloniaXamlLoader.Load(this);
+        _modListHost = this.FindControl<Grid>("ModListHost");
         _profileListHost = this.FindControl<Grid>("ProfileListHost");
         _profileListScrollViewer = this.FindControl<ScrollViewer>("ProfileListScrollViewer");
         _fileLibraryScrollViewer = this.FindControl<ScrollViewer>("FileLibraryScrollViewer");
@@ -510,11 +517,97 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (sender is Border border && border.Tag is string path)
+        if (sender is Border border
+            && border.Tag is string path
+            && TryGetModListPoint(e, out var pointInHost))
         {
-            _viewModel.ToggleModSelection(path);
+            _pressedModRow = border;
+            _pressedModPath = path;
+            _pressedModPointInHost = pointInHost;
+            _isModDragActive = false;
+            _modDropIndex = null;
+            e.Pointer.Capture(border);
             e.Handled = true;
         }
+    }
+
+    private void OnModRowPointerMoved(object? sender, PointerEventArgs e)
+    {
+        if (!IsActivePressedModRow(sender) || _pressedModPath is null || !TryGetModListPoint(e, out var pointInHost))
+        {
+            return;
+        }
+
+        if (!_isModDragActive)
+        {
+            if (!HasExceededProfileDragThreshold(_pressedModPointInHost, pointInHost))
+            {
+                return;
+            }
+
+            if (!_viewModel.BeginModDrag(_pressedModPath, pointInHost.X + 12d, pointInHost.Y + 12d))
+            {
+                ClearModPointerInteraction();
+                e.Pointer.Capture(null);
+                return;
+            }
+
+            _isModDragActive = true;
+        }
+
+        UpdateModDrag(pointInHost);
+        e.Handled = true;
+    }
+
+    private void OnModRowPointerReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        if (!IsActivePressedModRow(sender))
+        {
+            return;
+        }
+
+        var releasedModPath = _pressedModPath;
+        var wasDragActive = _isModDragActive;
+        var dropIndex = _modDropIndex;
+
+        ClearModPointerInteraction();
+        e.Pointer.Capture(null);
+
+        if (releasedModPath is null)
+        {
+            return;
+        }
+
+        if (wasDragActive)
+        {
+            if (dropIndex.HasValue)
+            {
+                _viewModel.ReorderMod(releasedModPath, dropIndex.Value);
+            }
+
+            _viewModel.HideModDragFeedback();
+        }
+        else
+        {
+            _viewModel.ToggleModSelection(releasedModPath);
+        }
+
+        e.Handled = true;
+    }
+
+    private void OnModRowPointerCaptureLost(object? sender, PointerCaptureLostEventArgs e)
+    {
+        if (!IsActivePressedModRow(sender))
+        {
+            return;
+        }
+
+        if (_isModDragActive)
+        {
+            _viewModel.HideModDragFeedback();
+        }
+
+        ClearModPointerInteraction();
     }
 
     private static bool HasFilePayload(DragEventArgs e)
@@ -619,6 +712,22 @@ public partial class MainWindow : Window
         }
     }
 
+    private void UpdateModDrag(Point pointInHost)
+    {
+        _viewModel.UpdateModDragGhostPosition(pointInHost.X + 12d, pointInHost.Y + 12d);
+
+        if (TryGetModDropTarget(pointInHost, out var dropTarget))
+        {
+            _modDropIndex = dropTarget.Index;
+            _viewModel.ShowModDropIndicator(dropTarget.Left, dropTarget.Top, dropTarget.Width);
+        }
+        else
+        {
+            _modDropIndex = null;
+            _viewModel.HideModDropIndicator();
+        }
+    }
+
     private bool TryGetProfileListPoint(PointerEventArgs e, out Point pointInHost)
     {
         if (_profileListHost is null)
@@ -628,6 +737,18 @@ public partial class MainWindow : Window
         }
 
         pointInHost = e.GetPosition(_profileListHost);
+        return true;
+    }
+
+    private bool TryGetModListPoint(PointerEventArgs e, out Point pointInHost)
+    {
+        if (_modListHost is null)
+        {
+            pointInHost = default;
+            return false;
+        }
+
+        pointInHost = e.GetPosition(_modListHost);
         return true;
     }
 
@@ -683,6 +804,58 @@ public partial class MainWindow : Window
         return true;
     }
 
+    private bool TryGetModDropTarget(Point pointInHost, out ModDropTarget dropTarget)
+    {
+        dropTarget = default;
+
+        if (_modListHost is null
+            || pointInHost.X < 0
+            || pointInHost.Y < 0
+            || pointInHost.X > _modListHost.Bounds.Width
+            || pointInHost.Y > _modListHost.Bounds.Height)
+        {
+            return false;
+        }
+
+        var rowBounds = GetVisibleModRowBounds();
+        if (rowBounds.Count == 0)
+        {
+            return false;
+        }
+
+        var firstRow = rowBounds[0];
+        if (pointInHost.Y <= firstRow.Top)
+        {
+            dropTarget = new ModDropTarget(0, firstRow.Left, firstRow.Top, firstRow.Width);
+            return true;
+        }
+
+        for (var i = 0; i < rowBounds.Count; i++)
+        {
+            var row = rowBounds[i];
+            if (pointInHost.Y > row.Bottom)
+            {
+                continue;
+            }
+
+            var beforeRow = pointInHost.Y < row.Top + (row.Height / 2d);
+            var targetIndex = beforeRow ? i : i + 1;
+            var markerTop = beforeRow
+                ? row.Top
+                : i == rowBounds.Count - 1
+                    ? row.Bottom
+                    : rowBounds[i + 1].Top;
+            var markerRow = beforeRow || i == rowBounds.Count - 1 ? row : rowBounds[i + 1];
+
+            dropTarget = new ModDropTarget(targetIndex, markerRow.Left, markerTop, markerRow.Width);
+            return true;
+        }
+
+        var lastRow = rowBounds[^1];
+        dropTarget = new ModDropTarget(rowBounds.Count, lastRow.Left, lastRow.Bottom, lastRow.Width);
+        return true;
+    }
+
     private List<ProfileRowBounds> GetVisibleProfileRowBounds()
     {
         if (_profileListHost is null || _profileListScrollViewer is null)
@@ -706,11 +879,41 @@ public partial class MainWindow : Window
         ];
     }
 
+    private List<ModRowBounds> GetVisibleModRowBounds()
+    {
+        if (_modListHost is null)
+        {
+            return [];
+        }
+
+        return
+        [
+            .. _modListHost.GetVisualDescendants()
+                .OfType<Border>()
+                .Where(border => border.DataContext is SelectablePathRow && border.Classes.Contains("InputRow"))
+                .Select(border => new { Border = border, TopLeft = border.TranslatePoint(new Point(0, 0), _modListHost) })
+                .Where(item => item.TopLeft.HasValue)
+                .Select(item => new ModRowBounds(
+                    item.TopLeft!.Value.X,
+                    item.TopLeft.Value.Y,
+                    item.Border.Bounds.Width,
+                    item.Border.Bounds.Height))
+                .OrderBy(row => row.Top)
+        ];
+    }
+
     private bool IsActivePressedProfileRow(object? sender)
     {
         return sender is Border border
             && _pressedProfileRow is not null
             && ReferenceEquals(border, _pressedProfileRow);
+    }
+
+    private bool IsActivePressedModRow(object? sender)
+    {
+        return sender is Border border
+            && _pressedModRow is not null
+            && ReferenceEquals(border, _pressedModRow);
     }
 
     private static bool HasExceededProfileDragThreshold(Point startPoint, Point currentPoint)
@@ -836,7 +1039,22 @@ public partial class MainWindow : Window
         _isProfileDragActive = false;
     }
 
+    private void ClearModPointerInteraction()
+    {
+        _pressedModRow = null;
+        _pressedModPath = null;
+        _modDropIndex = null;
+        _isModDragActive = false;
+    }
+
+    private readonly record struct ModDropTarget(int Index, double Left, double Top, double Width);
+
     private readonly record struct ProfileDropTarget(int Index, double Left, double Top, double Width);
+
+    private readonly record struct ModRowBounds(double Left, double Top, double Width, double Height)
+    {
+        public double Bottom => Top + Height;
+    }
 
     private readonly record struct ProfileRowBounds(double Left, double Top, double Width, double Height)
     {

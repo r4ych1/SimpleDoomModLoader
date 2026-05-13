@@ -140,12 +140,8 @@ Feature 014 later becomes authoritative for the single shared workspace layout a
 - The selected-profile command preview uses saved profile inputs rather than current live selections.
 
 ### Mod ordering context
-- When no profile is selected:
-  - Mod rows default to alphabetical filename order
-  - attempted selection input does not change ordering or selection state
-- When a profile is selected:
-  - selected mods appear first in that profile's saved order
-  - remaining unselected mods appear afterward in alphabetical filename order
+- Feature 015 is authoritative for Mod row display ordering and Mod drag reorder behavior.
+- Feature 008 remains authoritative for selected-profile persistence of `SelectedModPaths` and selection-enabled state rules.
 
 ### Persistence and backward compatibility
 - `LaunchInputsConfig` adds:

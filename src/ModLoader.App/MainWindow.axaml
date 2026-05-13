@@ -601,44 +601,71 @@
                                    TextWrapping="Wrap"
                                    Text="Allowed: .wad, .pwad, .pk3, .pk7, .ipk3, .ipk7, .pkz, .zip. Directories scan top-level files only." />
                       </StackPanel>
-                      <ItemsControl Grid.Row="1"
-                                    Margin="0,12,0,0"
-                                    ItemsSource="{Binding ModRows}">
-                        <ItemsControl.ItemTemplate>
-                          <DataTemplate>
-                            <Border Classes="InputRow"
-                                    Classes.selected="{Binding IsSelected}"
-                                    Classes.selection-disabled="{Binding IsSelectionDisabled}"
-                                    Margin="0,4,0,0"
-                                    Tag="{Binding Path}"
-                                    PointerPressed="OnModRowPointerPressed">
-                              <Grid>
-                                <Grid.ColumnDefinitions>
-                                  <ColumnDefinition Width="*" />
-                                  <ColumnDefinition Width="Auto" SharedSizeGroup="ModActionColumn" />
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0"
-                                           Text="{Binding Path}"
-                                           TextTrimming="CharacterEllipsis"
-                                           VerticalAlignment="Center" />
-                                <Button Grid.Column="1"
-                                        Classes="IconButton"
-                                        ToolTip.Tip="Delete"
-                                        automation:AutomationProperties.Name="Delete"
-                                        Tag="{Binding Path}"
-                                        HorizontalAlignment="Right"
-                                        VerticalAlignment="Center"
-                                        Margin="8,0,0,0"
-                                        Click="OnRemoveModClicked">
-                                  <PathIcon Width="16"
-                                            Height="16"
-                                            Data="{StaticResource delete_regular}" />
-                                </Button>
-                              </Grid>
-                            </Border>
-                          </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                      </ItemsControl>
+                      <Grid Grid.Row="1"
+                            x:Name="ModListHost"
+                            Margin="0,12,0,0"
+                            ClipToBounds="True">
+                        <ItemsControl ItemsSource="{Binding ModRows}">
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                              <Border Classes="InputRow"
+                                      Classes.selected="{Binding IsSelected}"
+                                      Classes.selection-disabled="{Binding IsSelectionDisabled}"
+                                      Margin="0,4,0,0"
+                                      Tag="{Binding Path}"
+                                      PointerPressed="OnModRowPointerPressed"
+                                      PointerMoved="OnModRowPointerMoved"
+                                      PointerReleased="OnModRowPointerReleased"
+                                      PointerCaptureLost="OnModRowPointerCaptureLost">
+                                <Grid>
+                                  <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" SharedSizeGroup="ModActionColumn" />
+                                  </Grid.ColumnDefinitions>
+                                  <TextBlock Grid.Column="0"
+                                             Text="{Binding Path}"
+                                             TextTrimming="CharacterEllipsis"
+                                             VerticalAlignment="Center" />
+                                  <Button Grid.Column="1"
+                                          Classes="IconButton"
+                                          ToolTip.Tip="Delete"
+                                          automation:AutomationProperties.Name="Delete"
+                                          Tag="{Binding Path}"
+                                          HorizontalAlignment="Right"
+                                          VerticalAlignment="Center"
+                                          Margin="8,0,0,0"
+                                          Click="OnRemoveModClicked">
+                                    <PathIcon Width="16"
+                                              Height="16"
+                                              Data="{StaticResource delete_regular}" />
+                                  </Button>
+                                </Grid>
+                              </Border>
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <Canvas IsHitTestVisible="False">
+                          <Border IsVisible="{Binding IsModDropIndicatorVisible}"
+                                  Canvas.Left="{Binding ModDropIndicatorLeft}"
+                                  Canvas.Top="{Binding ModDropIndicatorTop}"
+                                  Width="{Binding ModDropIndicatorWidth}"
+                                  Height="2"
+                                  Background="#60a5fa" />
+                          <Border IsVisible="{Binding IsModDragGhostVisible}"
+                                  Canvas.Left="{Binding ModDragGhostLeft}"
+                                  Canvas.Top="{Binding ModDragGhostTop}"
+                                  Background="#111827"
+                                  BorderBrush="#60a5fa"
+                                  BorderThickness="1"
+                                  CornerRadius="6"
+                                  Padding="12,8"
+                                  Opacity="0.96">
+                            <TextBlock Foreground="#e5e7eb"
+                                       FontWeight="SemiBold"
+                                       Text="{Binding ModDragGhostText}" />
+                          </Border>
+                        </Canvas>
+                      </Grid>
                     </Grid>
                   </Border>
                 </StackPanel>

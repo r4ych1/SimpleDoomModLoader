@@ -166,6 +166,57 @@ public sealed class LaunchInputsStoreTests
         Assert.Empty(store.Mods);
     }
 
+    [Fact]
+    public void ReorderMod_MovesItemAcrossPositions_WithoutDuplicateOrLoss()
+    {
+        using var temp = new TempDirectory();
+        var modAlpha = temp.CreateFile("alpha.pk3");
+        var modBravo = temp.CreateFile("bravo.pk3");
+        var modCharlie = temp.CreateFile("charlie.pk3");
+
+        var store = new LaunchInputsStore(new LaunchInputsConfig
+        {
+            Mods = [modAlpha, modBravo, modCharlie]
+        });
+
+        Assert.True(store.ReorderMod(modCharlie, 0));
+        Assert.Equal(
+            [Path.GetFullPath(modCharlie), Path.GetFullPath(modAlpha), Path.GetFullPath(modBravo)],
+            store.Mods.ToArray());
+
+        Assert.True(store.ReorderMod(modCharlie, 3));
+        Assert.Equal(
+            [Path.GetFullPath(modAlpha), Path.GetFullPath(modBravo), Path.GetFullPath(modCharlie)],
+            store.Mods.ToArray());
+
+        Assert.Equal(3, store.Mods.Count);
+        Assert.Equal(3, store.Mods.Distinct(StringComparer.OrdinalIgnoreCase).Count());
+    }
+
+    [Fact]
+    public void ReorderMod_ReturnsFalseForInvalidOrNoOpTargets()
+    {
+        using var temp = new TempDirectory();
+        var modAlpha = temp.CreateFile("alpha.pk3");
+        var modBravo = temp.CreateFile("bravo.pk3");
+        var missing = Path.Combine(temp.Path, "missing.pk3");
+
+        var store = new LaunchInputsStore(new LaunchInputsConfig
+        {
+            Mods = [modAlpha, modBravo]
+        });
+
+        Assert.False(store.ReorderMod(modAlpha, -1));
+        Assert.False(store.ReorderMod(modAlpha, 3));
+        Assert.False(store.ReorderMod(missing, 0));
+        Assert.False(store.ReorderMod(modAlpha, 0));
+        Assert.False(store.ReorderMod(modAlpha, 1));
+
+        Assert.Equal(
+            [Path.GetFullPath(modAlpha), Path.GetFullPath(modBravo)],
+            store.Mods.ToArray());
+    }
+
     private static bool IsValidMod(string path)
     {
         var extension = Path.GetExtension(path);

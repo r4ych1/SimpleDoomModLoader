@@ -63,6 +63,10 @@ This repository follows feature-scoped delivery. Behavior is only guaranteed whe
   - File Library shows a title, uses a top-left back-to-profiles action above the selected-profile header, and shows selected-profile-header `Create Profile` when no profile is selected.
   - Persists the last active workspace view, keeps File Library accessible without a selected profile, and removes the old pane-collapse model and fixed default window sizes.
   - Authoritative spec: `Features/014-single-view-profile-library-swap.md`.
+- Feature 015: Mod selection stability and manual drag reorder.
+  - Replaces selection-synchronized Mod row ordering with stable shared-library ordering.
+  - Adds manual Mod drag reorder with pointer-threshold drag, insertion marker, and drag ghost feedback.
+  - Authoritative spec: `Features/015-mod-selection-stability-and-drag-reorder.md`.
 
 ## Current Authoritative Behavior
 - Workspace model (Feature 014):
@@ -70,6 +74,9 @@ This repository follows feature-scoped delivery. Behavior is only guaranteed whe
 - Launch model (Feature 008):
   - Saved profiles are the only launchable unit.
   - Source Ports, IWADs, and Mods remain shared library collections.
+- Mod row ordering model (Feature 015):
+  - Selecting or deselecting a Mod row does not reorder Mod rows.
+  - Manual Mod drag reorder updates and persists shared-library Mod order.
 - Feedback model (Feature 013):
   - The app uses one shared top-centered toast overlay above the workspace.
   - Only one toast is visible at a time.
@@ -85,6 +92,8 @@ This repository follows feature-scoped delivery. Behavior is only guaranteed whe
   - Feature 009 is historical and superseded by Feature 014.
   - Legacy fixed-header behavior is superseded by Feature 012.
   - Legacy pane-collapse workspace behavior is superseded by Feature 014.
+  - Feature 004 selection-synchronized Mod row ordering is superseded by Feature 015.
+  - Feature 008 Mod ordering context is superseded by Feature 015 where Mod row ordering behavior is concerned.
 
 ## Persistence Contract Snapshot
 - Current persisted model is defined by feature specs and represented through `LaunchInputsConfig`.

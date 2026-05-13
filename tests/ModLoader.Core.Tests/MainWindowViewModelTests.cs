@@ -609,7 +609,7 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
-    public void ModRows_WhenNoProfileSelected_StayAlphabeticalAfterIgnoredToggleAttempts()
+    public void ModRows_WhenNoProfileSelected_StayInSharedLibraryOrderAfterIgnoredToggleAttempts()
     {
         using var temp = new TempDirectory();
         var modBeta = temp.CreateFile("beta.pk3");
@@ -630,14 +630,14 @@ public sealed class MainWindowViewModelTests
         var viewModel = new MainWindowViewModel(persistence);
 
         Assert.Equal(
-            ["alpha.pk3", "beta.pk3", "gamma.pk3"],
+            ["beta.pk3", "gamma.pk3", "alpha.pk3"],
             viewModel.ModRows.Select(row => Path.GetFileName(row.Path)).ToArray());
 
         viewModel.ToggleModSelection(modGamma);
         viewModel.ToggleModSelection(modAlpha);
 
         Assert.Equal(
-            ["alpha.pk3", "beta.pk3", "gamma.pk3"],
+            ["beta.pk3", "gamma.pk3", "alpha.pk3"],
             viewModel.ModRows.Select(row => Path.GetFileName(row.Path)).ToArray());
         Assert.Empty(viewModel.SelectedModPaths);
         Assert.Equal(0, persistence.SaveCallCount);
@@ -707,7 +707,7 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
-    public void SelectedProfile_ModRowsUseProfileOrderFirst_AndAlphabeticalRemainder()
+    public void SelectedProfile_ModRowsUseSharedLibraryOrder()
     {
         using var temp = new TempDirectory();
         var modCharlie = temp.CreateFile("charlie.pk3");
@@ -731,12 +731,12 @@ public sealed class MainWindowViewModelTests
         var viewModel = new MainWindowViewModel(persistence);
 
         Assert.Equal(
-            ["delta.pk3", "bravo.pk3", "alpha.pk3", "charlie.pk3"],
+            ["charlie.pk3", "alpha.pk3", "delta.pk3", "bravo.pk3"],
             viewModel.ModRows.Select(row => Path.GetFileName(row.Path)).ToArray());
     }
 
     [Fact]
-    public void SwitchingProfiles_RecomputesDisplayedModOrderPerProfile()
+    public void SwitchingProfiles_KeepsDisplayedModRowsInSharedLibraryOrder()
     {
         using var temp = new TempDirectory();
         var modCharlie = temp.CreateFile("charlie.pk3");
@@ -764,12 +764,12 @@ public sealed class MainWindowViewModelTests
 
         viewModel.ToggleProfileSelection("p1");
         Assert.Equal(
-            ["delta.pk3", "bravo.pk3", "alpha.pk3", "charlie.pk3"],
+            ["charlie.pk3", "alpha.pk3", "delta.pk3", "bravo.pk3"],
             viewModel.ModRows.Select(row => Path.GetFileName(row.Path)).ToArray());
 
         viewModel.ToggleProfileSelection("p2");
         Assert.Equal(
-            ["alpha.pk3", "charlie.pk3", "bravo.pk3", "delta.pk3"],
+            ["charlie.pk3", "alpha.pk3", "delta.pk3", "bravo.pk3"],
             viewModel.ModRows.Select(row => Path.GetFileName(row.Path)).ToArray());
     }
 
@@ -809,7 +809,7 @@ public sealed class MainWindowViewModelTests
             [Path.GetFullPath(modBeta), Path.GetFullPath(modGamma), Path.GetFullPath(modAlpha)],
             persistence.SavedStates.Last().Mods);
         Assert.Equal(
-            ["gamma.pk3", "alpha.pk3", "beta.pk3"],
+            ["beta.pk3", "gamma.pk3", "alpha.pk3"],
             viewModel.ModRows.Select(row => Path.GetFileName(row.Path)).ToArray());
     }
 
@@ -1267,6 +1267,113 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
+    public void ReorderMod_WhenNoProfileSelected_UpdatesAndPersistsSharedLibraryOrder()
+    {
+        using var temp = new TempDirectory();
+        var modAlpha = temp.CreateFile("alpha.pk3");
+        var modBravo = temp.CreateFile("bravo.pk3");
+        var modCharlie = temp.CreateFile("charlie.pk3");
+
+        var persistence = new RecordingPersistence
+        {
+            LoadResult = new LaunchInputsLoadResult
+            {
+                State = new LaunchInputsConfig
+                {
+                    Mods = [modAlpha, modBravo, modCharlie]
+                }
+            }
+        };
+
+        var viewModel = new MainWindowViewModel(persistence);
+
+        var reordered = viewModel.ReorderMod(modCharlie, 0);
+
+        Assert.True(reordered);
+        Assert.Equal(
+            ["charlie.pk3", "alpha.pk3", "bravo.pk3"],
+            viewModel.ModRows.Select(row => Path.GetFileName(row.Path)).ToArray());
+        Assert.Equal(
+            [Path.GetFullPath(modCharlie), Path.GetFullPath(modAlpha), Path.GetFullPath(modBravo)],
+            persistence.SavedStates.Last().Mods);
+    }
+
+    [Fact]
+    public void ReorderMod_PreservesSelectionStateAndSelectedSequenceOrder()
+    {
+        using var temp = new TempDirectory();
+        var source = temp.CreateFile("gzdoom.exe");
+        var iwad = temp.CreateFile("doom2.wad");
+        var modAlpha = temp.CreateFile("alpha.pk3");
+        var modBravo = temp.CreateFile("bravo.pk3");
+        var modCharlie = temp.CreateFile("charlie.pk3");
+
+        var persistence = new RecordingPersistence
+        {
+            LoadResult = new LaunchInputsLoadResult
+            {
+                State = new LaunchInputsConfig
+                {
+                    SourcePorts = [source],
+                    Iwads = [iwad],
+                    Mods = [modAlpha, modBravo, modCharlie],
+                    Profiles = [CreateProfile("p1", "Profile 1", source, iwad, modBravo, modAlpha)],
+                    SelectedProfileId = "p1"
+                }
+            }
+        };
+
+        var viewModel = new MainWindowViewModel(persistence);
+
+        var reordered = viewModel.ReorderMod(modCharlie, 0);
+
+        Assert.True(reordered);
+        Assert.Equal(
+            ["charlie.pk3", "alpha.pk3", "bravo.pk3"],
+            viewModel.ModRows.Select(row => Path.GetFileName(row.Path)).ToArray());
+        Assert.Equal(
+            [Path.GetFullPath(modBravo), Path.GetFullPath(modAlpha)],
+            viewModel.SelectedModPaths.ToArray());
+        Assert.Equal(
+            [Path.GetFullPath(modBravo), Path.GetFullPath(modAlpha)],
+            persistence.SavedStates.Last().Profiles.Single().SelectedModPaths);
+    }
+
+    [Fact]
+    public void ReorderMod_NoOpTargets_DoNotPersistNewOrder()
+    {
+        using var temp = new TempDirectory();
+        var modAlpha = temp.CreateFile("alpha.pk3");
+        var modBravo = temp.CreateFile("bravo.pk3");
+        var modCharlie = temp.CreateFile("charlie.pk3");
+
+        var persistence = new RecordingPersistence
+        {
+            LoadResult = new LaunchInputsLoadResult
+            {
+                State = new LaunchInputsConfig
+                {
+                    Mods = [modAlpha, modBravo, modCharlie]
+                }
+            }
+        };
+
+        var viewModel = new MainWindowViewModel(persistence);
+        var saveCountBeforeNoOps = persistence.SaveCallCount;
+
+        Assert.False(viewModel.ReorderMod("missing", 0));
+        Assert.False(viewModel.ReorderMod(modBravo, 1));
+        Assert.False(viewModel.ReorderMod(modBravo, 2));
+        Assert.False(viewModel.ReorderMod(modBravo, -1));
+        Assert.False(viewModel.ReorderMod(modBravo, 4));
+
+        Assert.Equal(saveCountBeforeNoOps, persistence.SaveCallCount);
+        Assert.Equal(
+            ["alpha.pk3", "bravo.pk3", "charlie.pk3"],
+            viewModel.ModRows.Select(row => Path.GetFileName(row.Path)).ToArray());
+    }
+
+    [Fact]
     public void BeginProfileDrag_UsesProfileNameOnlyGhost_AndHideClearsFeedback()
     {
         using var temp = new TempDirectory();
@@ -1303,6 +1410,42 @@ public sealed class MainWindowViewModelTests
         Assert.False(viewModel.IsProfileDragGhostVisible);
         Assert.Equal(string.Empty, viewModel.ProfileDragGhostText);
         Assert.False(viewModel.IsProfileDropIndicatorVisible);
+    }
+
+    [Fact]
+    public void BeginModDrag_UsesModPathGhost_AndHideClearsFeedback()
+    {
+        using var temp = new TempDirectory();
+        var mod = temp.CreateFile("mod-a.pk3");
+
+        var persistence = new RecordingPersistence
+        {
+            LoadResult = new LaunchInputsLoadResult
+            {
+                State = new LaunchInputsConfig
+                {
+                    Mods = [mod]
+                }
+            }
+        };
+
+        var viewModel = new MainWindowViewModel(persistence);
+
+        var began = viewModel.BeginModDrag(mod, 18d, 36d);
+        viewModel.ShowModDropIndicator(4d, 10d, 90d);
+
+        Assert.True(began);
+        Assert.True(viewModel.IsModDragGhostVisible);
+        Assert.Equal(Path.GetFullPath(mod), viewModel.ModDragGhostText);
+        Assert.Equal(18d, viewModel.ModDragGhostLeft);
+        Assert.Equal(36d, viewModel.ModDragGhostTop);
+        Assert.True(viewModel.IsModDropIndicatorVisible);
+
+        viewModel.HideModDragFeedback();
+
+        Assert.False(viewModel.IsModDragGhostVisible);
+        Assert.Equal(string.Empty, viewModel.ModDragGhostText);
+        Assert.False(viewModel.IsModDropIndicatorVisible);
     }
 
     [Fact]
@@ -1999,10 +2142,18 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("PointerMoved=\"OnProfileRowPointerMoved\"", xaml, StringComparison.Ordinal);
         Assert.Contains("PointerReleased=\"OnProfileRowPointerReleased\"", xaml, StringComparison.Ordinal);
         Assert.Contains("PointerCaptureLost=\"OnProfileRowPointerCaptureLost\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("PointerMoved=\"OnModRowPointerMoved\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("PointerReleased=\"OnModRowPointerReleased\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("PointerCaptureLost=\"OnModRowPointerCaptureLost\"", xaml, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding IsProfileDragGhostVisible}\"", xaml, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding ProfileDragGhostText}\"", xaml, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding IsProfileDropIndicatorVisible}\"", xaml, StringComparison.Ordinal);
         Assert.Contains("Width=\"{Binding ProfileDropIndicatorWidth}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding IsModDragGhostVisible}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding ModDragGhostText}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding IsModDropIndicatorVisible}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("Width=\"{Binding ModDropIndicatorWidth}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("x:Name=\"ModListHost\"", xaml, StringComparison.Ordinal);
         Assert.Contains("Text=\"Drag and drop here\"", xaml, StringComparison.Ordinal);
         Assert.Contains("Text=\"Allowed: .exe. Directories are ignored.\"", xaml, StringComparison.Ordinal);
         Assert.DoesNotContain("Text=\"Allowed: .exe. Drop one or more files. Directories are ignored.\"", xaml, StringComparison.Ordinal);
@@ -2083,6 +2234,7 @@ public sealed class MainWindowViewModelTests
         var feature012 = File.ReadAllText(GetRepoFilePath("Features", "012-profile-only-collapse-mode-and-header-removal.md"));
         var feature013 = File.ReadAllText(GetRepoFilePath("Features", "013-toast-message-overlay.md"));
         var feature014 = File.ReadAllText(GetRepoFilePath("Features", "014-single-view-profile-library-swap.md"));
+        var feature015 = File.ReadAllText(GetRepoFilePath("Features", "015-mod-selection-stability-and-drag-reorder.md"));
 
         Assert.Contains("Feature 014: Single-view profile/library workspace swap.", spec, StringComparison.Ordinal);
         Assert.Contains("single shared workspace", spec, StringComparison.Ordinal);
@@ -2090,6 +2242,8 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("removes the old pane-collapse model and fixed default window sizes", spec, StringComparison.Ordinal);
         Assert.Contains("shared top-centered toast overlay", spec, StringComparison.Ordinal);
         Assert.Contains("saved profiles the only launchable unit", spec, StringComparison.Ordinal);
+        Assert.Contains("Feature 015: Mod selection stability and manual drag reorder.", spec, StringComparison.Ordinal);
+        Assert.Contains("Selecting or deselecting a Mod row does not reorder Mod rows.", spec, StringComparison.Ordinal);
 
         Assert.Contains("single shared workspace", feature008, StringComparison.Ordinal);
         Assert.Contains("Profiles view", feature008, StringComparison.Ordinal);
@@ -2119,6 +2273,10 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("Then the top-row `File Library` title is visible.", feature014, StringComparison.Ordinal);
         Assert.Contains("The File Library view exposes a top-left `Profiles` back action above the selected-profile header.", feature014, StringComparison.Ordinal);
         Assert.Contains("The selected-profile header `Edit` action opens rename inline in that header.", feature014, StringComparison.Ordinal);
+        Assert.Contains("Stop Mod row reordering during selection changes", feature015, StringComparison.Ordinal);
+        Assert.Contains("Selection and deselection do not reorder Mod rows.", feature015, StringComparison.Ordinal);
+        Assert.Contains("Reordered Mod order persists immediately", feature015, StringComparison.Ordinal);
+        Assert.Contains("Drag reorder availability both with and without a selected profile.", feature015, StringComparison.Ordinal);
 
         Assert.Contains("Feature 013 is the authoritative source for toast behavior.", feature013, StringComparison.Ordinal);
         Assert.Contains("Only one toast is visible at a time.", feature013, StringComparison.Ordinal);
