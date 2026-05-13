@@ -279,6 +279,8 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(OpenFileLibraryViewText));
             OnPropertyChanged(nameof(ReturnToProfilesViewText));
             OnPropertyChanged(nameof(AreProfileCommandPreviewsVisible));
+            OnPropertyChanged(nameof(IsProfilesViewSubtitleVisible));
+            OnPropertyChanged(nameof(IsFileLibraryViewSubtitleVisible));
             OnPropertyChanged(nameof(IsSelectedProfileHeaderRenameVisible));
             OnPropertyChanged(nameof(IsSelectedProfileRowRenameVisible));
         }
@@ -921,6 +923,10 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     public bool AreProfileCommandPreviewsVisible => IsProfilesViewActive && _windowWidth > ProfileCommandPreviewHideWidthThreshold;
 
+    public bool IsProfilesViewSubtitleVisible => IsProfilesViewActive && _windowWidth > ProfileCommandPreviewHideWidthThreshold;
+
+    public bool IsFileLibraryViewSubtitleVisible => IsFileLibraryViewActive && _windowWidth > ProfileCommandPreviewHideWidthThreshold;
+
     public bool IsSourcePortDropZoneDragActive
     {
         get => _isSourcePortDropZoneDragActive;
@@ -975,6 +981,9 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         }
 
         _windowWidth = normalizedWidth;
+        OnPropertyChanged(nameof(AreProfileCommandPreviewsVisible));
+        OnPropertyChanged(nameof(IsProfilesViewSubtitleVisible));
+        OnPropertyChanged(nameof(IsFileLibraryViewSubtitleVisible));
         RefreshProfileRows();
     }
 

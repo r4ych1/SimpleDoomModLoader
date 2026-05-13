@@ -7,6 +7,7 @@ Replace the two-pane workspace with one shared workspace that shows either `Prof
 - Replace pane collapse with full-view swapping between `Profiles` and `File Library`.
 - Move the File Library back-to-profiles action to a top-left position above the selected-profile header.
 - Add a `File Library` title to File Library view.
+- Add simple helper subtitle text to Profiles and File Library view headers.
 - Keep the selected-profile header fixed at the top of File Library view.
 - Add a selected-profile-header `Create Profile` action that is visible only when no profile is selected.
 - Remove persisted pane-collapse and remembered-width state.
@@ -33,11 +34,13 @@ Replace the two-pane workspace with one shared workspace that shows either `Prof
   - `File Library`
 - The Profiles view contains:
   - the `Profiles` label
+  - the helper subtitle text `Create, launch, rename, or delete saved profiles.`
   - the `New Profile` action
   - the `File Library` view-swap action
   - the saved profile list
 - The File Library view contains:
   - the `File Library` title
+  - the helper subtitle text `Select Source Port, IWAD, and Mods for the selected profile.`
   - a top-left `Profiles` back action above the selected-profile header
   - the selected-profile header
   - the shared Source Port, IWAD, and Mod library controls
@@ -73,6 +76,8 @@ Replace the two-pane workspace with one shared workspace that shows either `Prof
 ### Visibility rules carried forward
 - Profile-row command preview is visible only in Profiles view and only when the overall window width is greater than `640 px`.
 - Profile-row inline invalid-reason text is visible only in Profiles view and only when the overall window width is greater than `640 px`.
+- Profiles-view helper subtitle text is visible only in Profiles view and only when the overall window width is greater than `640 px`.
+- File-Library-view helper subtitle text is visible only in File Library view and only when the overall window width is greater than `640 px`.
 - File Library view hides profile-row command preview and inline invalid-reason text.
 - Profile-list and file-library scroll affordances remain visual-only and only show for the currently visible view.
 
@@ -101,6 +106,18 @@ And the new active view persists immediately.
 Given File Library view is visible
 Then the top-row `File Library` title is visible.
 And the top-left File-Library `Profiles` back action remains visible.
+
+### Header helper subtitles are shown on wide windows
+Given Profiles view is visible
+When the overall window width is greater than `640 px`
+Then the helper subtitle `Create, launch, rename, or delete saved profiles.` is visible.
+And when File Library view is visible at the same width
+Then the helper subtitle `Select Source Port, IWAD, and Mods for the selected profile.` is visible.
+
+### Header helper subtitles are hidden on narrow windows
+Given Profiles view or File Library view is visible
+When the overall window width is `640 px` or less
+Then the active view helper subtitle is not visible.
 
 ### New profile keeps Profiles view active
 Given Profiles view is visible

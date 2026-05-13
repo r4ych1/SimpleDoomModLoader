@@ -591,21 +591,33 @@ public sealed class MainWindowViewModelTests
         var row = viewModel.ProfileRows.Single();
 
         Assert.True(row.IsCommandPreviewVisible);
+        Assert.True(viewModel.IsProfilesViewSubtitleVisible);
+        Assert.False(viewModel.IsFileLibraryViewSubtitleVisible);
 
         viewModel.ShowFileLibraryView();
         Assert.False(row.IsCommandPreviewVisible);
+        Assert.False(viewModel.IsProfilesViewSubtitleVisible);
+        Assert.True(viewModel.IsFileLibraryViewSubtitleVisible);
 
         viewModel.SetWindowWidth(640d);
         Assert.False(row.IsCommandPreviewVisible);
+        Assert.False(viewModel.IsProfilesViewSubtitleVisible);
+        Assert.False(viewModel.IsFileLibraryViewSubtitleVisible);
 
         viewModel.SetWindowWidth(639d);
         Assert.False(row.IsCommandPreviewVisible);
+        Assert.False(viewModel.IsProfilesViewSubtitleVisible);
+        Assert.False(viewModel.IsFileLibraryViewSubtitleVisible);
 
         viewModel.ShowProfilesView();
         Assert.False(row.IsCommandPreviewVisible);
+        Assert.False(viewModel.IsProfilesViewSubtitleVisible);
+        Assert.False(viewModel.IsFileLibraryViewSubtitleVisible);
 
         viewModel.SetWindowWidth(641d);
         Assert.True(row.IsCommandPreviewVisible);
+        Assert.True(viewModel.IsProfilesViewSubtitleVisible);
+        Assert.False(viewModel.IsFileLibraryViewSubtitleVisible);
     }
 
     [Fact]
@@ -2298,6 +2310,10 @@ public sealed class MainWindowViewModelTests
         Assert.DoesNotContain("Text=\"Command Preview\"", xaml, StringComparison.Ordinal);
         Assert.DoesNotContain("Text=\"{Binding CommandPreviewArguments}\"", xaml, StringComparison.Ordinal);
         Assert.Contains("Text=\"File Library\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("Text=\"Create, launch, rename, or delete saved profiles.\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding IsProfilesViewSubtitleVisible}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("Text=\"Select Source Port, IWAD, and Mods for the selected profile.\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding IsFileLibraryViewSubtitleVisible}\"", xaml, StringComparison.Ordinal);
         Assert.DoesNotContain("Select, launch, or delete a launch profile from the saved profile list.", xaml, StringComparison.Ordinal);
         Assert.Contains("ToolTip.Tip=\"New Profile\"", xaml, StringComparison.Ordinal);
         Assert.Contains("automation:AutomationProperties.Name=\"New Profile\"", xaml, StringComparison.Ordinal);
@@ -2337,7 +2353,8 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("IsHitTestVisible=\"False\"", xaml, StringComparison.Ordinal);
         Assert.Contains("HorizontalAlignment=\"Center\"", xaml, StringComparison.Ordinal);
         Assert.Contains("VerticalAlignment=\"Bottom\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Grid RowDefinitions=\"Auto,*\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("Grid RowDefinitions=\"Auto,Auto,*\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("Grid RowDefinitions=\"Auto,Auto,Auto,*\"", xaml, StringComparison.Ordinal);
         Assert.Contains("<DoubleTransition Property=\"Opacity\" Duration=\"0:0:0.18\" />", xaml, StringComparison.Ordinal);
         Assert.Contains("PointerMoved=\"OnProfileRowPointerMoved\"", xaml, StringComparison.Ordinal);
         Assert.Contains("PointerReleased=\"OnProfileRowPointerReleased\"", xaml, StringComparison.Ordinal);
@@ -2483,6 +2500,8 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("saved profiles the only launchable unit", spec, StringComparison.Ordinal);
         Assert.Contains("Profile rename interaction model (Feature 008):", spec, StringComparison.Ordinal);
         Assert.Contains("save on `Enter` or outside click", spec, StringComparison.Ordinal);
+        Assert.Contains("Profiles-view helper subtitle text is visible only in `Profiles` view", spec, StringComparison.Ordinal);
+        Assert.Contains("File-Library-view helper subtitle text is visible only in `File Library` view", spec, StringComparison.Ordinal);
         Assert.Contains("Feature 015: Shared-library selection stability and manual drag reorder.", spec, StringComparison.Ordinal);
         Assert.Contains("Selecting or deselecting Source Port, IWAD, or Mod rows does not reorder rows.", spec, StringComparison.Ordinal);
 
@@ -2511,6 +2530,11 @@ public sealed class MainWindowViewModelTests
 
         Assert.Contains("Replace the two-pane workspace with one shared workspace that shows either `Profiles` or `File Library`.", feature014, StringComparison.Ordinal);
         Assert.Contains("Add a `File Library` title to File Library view.", feature014, StringComparison.Ordinal);
+        Assert.Contains("Add simple helper subtitle text to Profiles and File Library view headers.", feature014, StringComparison.Ordinal);
+        Assert.Contains("the helper subtitle text `Create, launch, rename, or delete saved profiles.`", feature014, StringComparison.Ordinal);
+        Assert.Contains("the helper subtitle text `Select Source Port, IWAD, and Mods for the selected profile.`", feature014, StringComparison.Ordinal);
+        Assert.Contains("Profiles-view helper subtitle text is visible only in Profiles view and only when the overall window width is greater than `640 px`.", feature014, StringComparison.Ordinal);
+        Assert.Contains("File-Library-view helper subtitle text is visible only in File Library view and only when the overall window width is greater than `640 px`.", feature014, StringComparison.Ordinal);
         Assert.Contains("Remove persisted pane-collapse and remembered-width state.", feature014, StringComparison.Ordinal);
         Assert.Contains("Creating a new profile selects it and keeps Profiles view active.", feature014, StringComparison.Ordinal);
         Assert.Contains("Double-clicking a profile row selects that profile and opens File Library view.", feature014, StringComparison.Ordinal);

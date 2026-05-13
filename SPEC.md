@@ -88,6 +88,8 @@ This repository follows feature-scoped delivery. Behavior is only guaranteed whe
 - Visibility model (Features 008 and 014):
   - Profile-row command preview and profile-row inline invalid-reason text are visible only in `Profiles` view.
   - Profile-row inline detail messaging (command preview and inline invalid-reason text) is additionally width-gated to window widths greater than `640 px`.
+  - Profiles-view helper subtitle text is visible only in `Profiles` view and only when the overall window width is greater than `640 px`.
+  - File-Library-view helper subtitle text is visible only in `File Library` view and only when the overall window width is greater than `640 px`.
 
 ## Feature Precedence And Supersession
 - Feature specs are authoritative in numeric order of delivery.

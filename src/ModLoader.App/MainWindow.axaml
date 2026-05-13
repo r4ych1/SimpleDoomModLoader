@@ -117,7 +117,7 @@
               CornerRadius="8"
               Background="#0f172a"
               Padding="12">
-        <Grid RowDefinitions="Auto,*">
+        <Grid RowDefinitions="Auto,Auto,*">
           <Grid Grid.Row="0"
                 ColumnDefinitions="*,Auto,Auto">
             <TextBlock Grid.Column="0"
@@ -149,9 +149,16 @@
             </Button>
           </Grid>
 
-          <Grid Grid.Row="1"
+          <TextBlock Grid.Row="1"
+                     Margin="0,6,0,0"
+                     IsVisible="{Binding IsProfilesViewSubtitleVisible}"
+                     Foreground="#94a3b8"
+                     TextWrapping="Wrap"
+                     Text="Create, launch, rename, or delete saved profiles." />
+
+          <Grid Grid.Row="2"
                 x:Name="ProfileListHost"
-                Margin="0,12,0,0"
+                Margin="0,10,0,0"
                 ClipToBounds="True">
             <ScrollViewer x:Name="ProfileListScrollViewer"
                           Classes="HiddenScrollbars">
@@ -292,7 +299,7 @@
               CornerRadius="8"
               Background="#0f172a"
               Padding="12">
-        <Grid RowDefinitions="Auto,Auto,*">
+        <Grid RowDefinitions="Auto,Auto,Auto,*">
           <Grid Grid.Row="0"
                 ColumnDefinitions="Auto,*">
             <Button Grid.Column="0"
@@ -314,7 +321,14 @@
                        Text="File Library" />
           </Grid>
 
-          <Border Grid.Row="1"
+          <TextBlock Grid.Row="1"
+                     Margin="0,6,0,0"
+                     IsVisible="{Binding IsFileLibraryViewSubtitleVisible}"
+                     Foreground="#94a3b8"
+                     TextWrapping="Wrap"
+                     Text="Select Source Port, IWAD, and Mods for the selected profile." />
+
+          <Border Grid.Row="2"
                   BorderBrush="#374151"
                   BorderThickness="1"
                   CornerRadius="8"
@@ -382,7 +396,7 @@
             </StackPanel>
           </Border>
 
-          <Grid Grid.Row="2"
+          <Grid Grid.Row="3"
                 Margin="0,12,0,0"
                 ClipToBounds="True">
             <ScrollViewer x:Name="FileLibraryScrollViewer"
