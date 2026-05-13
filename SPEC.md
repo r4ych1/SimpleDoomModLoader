@@ -81,6 +81,10 @@ This repository follows feature-scoped delivery. Behavior is only guaranteed whe
   - The app uses one shared top-centered toast overlay above the workspace.
   - Only one toast is visible at a time.
   - Passive warning toasts and confirmation toasts are the supported feedback categories.
+- Profile rename interaction model (Feature 008):
+  - Row and header rename modes save on `Enter` or outside click when the name is valid.
+  - `Escape` restores the previous saved name.
+  - Invalid rename attempts keep rename mode open and show a passive warning toast.
 - Visibility model (Features 008 and 014):
   - Profile-row command preview and profile-row inline invalid-reason text are visible only in `Profiles` view.
   - Profile-row inline detail messaging (command preview and inline invalid-reason text) is additionally width-gated to window widths greater than `640 px`.

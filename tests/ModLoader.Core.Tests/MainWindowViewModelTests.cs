@@ -2441,6 +2441,29 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
+    public void MainWindowCodeBehind_CommitsRenameOnOutsideClickAndLostFocus()
+    {
+        var codeBehindPath = GetRepoFilePath("src", "ModLoader.App", "MainWindow.axaml.cs");
+        var codeBehind = File.ReadAllText(codeBehindPath);
+
+        var pointerPressedStart = codeBehind.IndexOf("private void OnWindowPointerPressed", StringComparison.Ordinal);
+        var pointerPressedEnd = codeBehind.IndexOf("private void OnProfileRowPointerPressed", pointerPressedStart, StringComparison.Ordinal);
+        var pointerPressedBlock = codeBehind.Substring(pointerPressedStart, pointerPressedEnd - pointerPressedStart);
+
+        Assert.Contains("if (_viewModel.RenamingProfileId is string profileId)", pointerPressedBlock, StringComparison.Ordinal);
+        Assert.Contains("_viewModel.CommitRename(profileId);", pointerPressedBlock, StringComparison.Ordinal);
+        Assert.Contains("e.Handled = true;", pointerPressedBlock, StringComparison.Ordinal);
+        Assert.DoesNotContain("_viewModel.CancelRename();", pointerPressedBlock, StringComparison.Ordinal);
+
+        var lostFocusStart = codeBehind.IndexOf("private void OnProfileRenameLostFocus", StringComparison.Ordinal);
+        var lostFocusEnd = codeBehind.IndexOf("private void OnProfileRenameTextBoxLoaded", lostFocusStart, StringComparison.Ordinal);
+        var lostFocusBlock = codeBehind.Substring(lostFocusStart, lostFocusEnd - lostFocusStart);
+
+        Assert.Contains("_viewModel.CommitRename(profileId);", lostFocusBlock, StringComparison.Ordinal);
+        Assert.DoesNotContain("_viewModel.CancelRename();", lostFocusBlock, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void FeatureSpecs_ReflectProfileOrderingAndDragReorderSpecs()
     {
         var spec = File.ReadAllText(GetRepoFilePath("SPEC.md"));
@@ -2458,6 +2481,8 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("removes the old pane-collapse model and fixed default window sizes", spec, StringComparison.Ordinal);
         Assert.Contains("shared top-centered toast overlay", spec, StringComparison.Ordinal);
         Assert.Contains("saved profiles the only launchable unit", spec, StringComparison.Ordinal);
+        Assert.Contains("Profile rename interaction model (Feature 008):", spec, StringComparison.Ordinal);
+        Assert.Contains("save on `Enter` or outside click", spec, StringComparison.Ordinal);
         Assert.Contains("Feature 015: Shared-library selection stability and manual drag reorder.", spec, StringComparison.Ordinal);
         Assert.Contains("Selecting or deselecting Source Port, IWAD, or Mod rows does not reorder rows.", spec, StringComparison.Ordinal);
 
@@ -2467,6 +2492,10 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("When no profile is selected, Source Port, IWAD, and Mod rows remain visible but are not selectable.", feature008, StringComparison.Ordinal);
         Assert.Contains("The selected-profile header `Edit` action starts rename inside the File Library view header.", feature008, StringComparison.Ordinal);
         Assert.Contains("Each profile row exposes launch, rename, and delete actions in that order.", feature008, StringComparison.Ordinal);
+        Assert.Contains("outside click saves a valid unique non-empty name", feature008, StringComparison.Ordinal);
+        Assert.Contains("outside click with an invalid rename keeps rename mode open and shows a Feature 013 passive warning toast.", feature008, StringComparison.Ordinal);
+        Assert.Contains("header rename uses the same `Enter`, outside-click, and `Escape` commit/cancel behavior as profile-row rename.", feature008, StringComparison.Ordinal);
+        Assert.DoesNotContain("And outside click or `Escape` restores the previous saved name.", feature008, StringComparison.Ordinal);
 
         Assert.Contains("superseded by Feature 014", feature009, StringComparison.Ordinal);
         Assert.DoesNotContain("the right file-library pane is not rendered", feature009, StringComparison.Ordinal);

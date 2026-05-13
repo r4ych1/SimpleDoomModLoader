@@ -288,8 +288,9 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (_viewModel.CancelRename())
+        if (_viewModel.RenamingProfileId is string profileId)
         {
+            _viewModel.CommitRename(profileId);
             e.Handled = true;
         }
     }
@@ -481,7 +482,7 @@ public partial class MainWindow : Window
     {
         if (sender is TextBox textBox && textBox.Tag is string profileId && string.Equals(_viewModel.RenamingProfileId, profileId, StringComparison.Ordinal))
         {
-            _viewModel.CancelRename();
+            _viewModel.CommitRename(profileId);
         }
     }
 

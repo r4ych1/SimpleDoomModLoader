@@ -98,6 +98,11 @@ Feature 014 later becomes authoritative for the single shared workspace layout a
   - do not change the saved name
   - keep rename mode open
   - show a Feature 013 passive warning toast
+- Rename commit/cancel behavior for both profile-row and selected-profile-header rename:
+  - `Enter` saves a valid unique non-empty name
+  - outside click saves a valid unique non-empty name
+  - outside click that saves rename is consumed and does not also trigger the clicked target action
+  - `Escape` restores the previous saved name
 - The selected-profile header `Edit` action starts rename inside the File Library view header.
 
 ### Delete behavior
@@ -177,13 +182,15 @@ And no profile is auto-created or auto-selected.
 Given a saved profile exists
 When the row rename action is activated on that profile row
 Then inline rename mode opens inside that same profile row.
-And `Enter` saves a valid unique non-empty name.
-And outside click or `Escape` restores the previous saved name.
+And `Enter` or outside click saves a valid unique non-empty name.
+And `Escape` restores the previous saved name.
+And outside click with an invalid rename keeps rename mode open and shows a Feature 013 passive warning toast.
 
 ### Selected-profile header edit uses header rename
 Given File Library view is visible and a profile is selected
 When the selected-profile header `Edit` action is activated
 Then rename mode opens in that header instead of in a profile row.
+And that header rename uses the same `Enter`, outside-click, and `Escape` commit/cancel behavior as profile-row rename.
 
 ### Invalid profile launch shows warning toast without launching
 Given an invalid saved profile row exists
