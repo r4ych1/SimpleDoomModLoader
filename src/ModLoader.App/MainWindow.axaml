@@ -431,44 +431,71 @@
                                    TextWrapping="Wrap"
                                    Text="Allowed: .exe. Directories are ignored." />
                       </StackPanel>
-                      <ItemsControl Grid.Row="1"
-                                    Margin="0,12,0,0"
-                                    ItemsSource="{Binding SourcePortRows}">
-                        <ItemsControl.ItemTemplate>
-                          <DataTemplate>
-                            <Border Classes="InputRow"
-                                    Classes.selected="{Binding IsSelected}"
-                                    Classes.selection-disabled="{Binding IsSelectionDisabled}"
-                                    Margin="0,4,0,0"
-                                    Tag="{Binding Path}"
-                                    PointerPressed="OnSourcePortRowPointerPressed">
-                              <Grid>
-                                <Grid.ColumnDefinitions>
-                                  <ColumnDefinition Width="*" />
-                                  <ColumnDefinition Width="Auto" SharedSizeGroup="SourcePortActionColumn" />
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0"
-                                           Text="{Binding Path}"
-                                           TextTrimming="CharacterEllipsis"
-                                           VerticalAlignment="Center" />
-                                <Button Grid.Column="1"
-                                        Classes="IconButton"
-                                        ToolTip.Tip="Delete"
-                                        automation:AutomationProperties.Name="Delete"
-                                        Tag="{Binding Path}"
-                                        HorizontalAlignment="Right"
-                                        VerticalAlignment="Center"
-                                        Margin="8,0,0,0"
-                                        Click="OnRemoveSourcePortClicked">
-                                  <PathIcon Width="16"
-                                            Height="16"
-                                            Data="{StaticResource delete_regular}" />
-                                </Button>
-                              </Grid>
-                            </Border>
-                          </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                      </ItemsControl>
+                      <Grid Grid.Row="1"
+                            x:Name="SourcePortListHost"
+                            Margin="0,12,0,0"
+                            ClipToBounds="True">
+                        <ItemsControl ItemsSource="{Binding SourcePortRows}">
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                              <Border Classes="InputRow"
+                                      Classes.selected="{Binding IsSelected}"
+                                      Classes.selection-disabled="{Binding IsSelectionDisabled}"
+                                      Margin="0,4,0,0"
+                                      Tag="{Binding Path}"
+                                      PointerPressed="OnSourcePortRowPointerPressed"
+                                      PointerMoved="OnSourcePortRowPointerMoved"
+                                      PointerReleased="OnSourcePortRowPointerReleased"
+                                      PointerCaptureLost="OnSourcePortRowPointerCaptureLost">
+                                <Grid>
+                                  <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" SharedSizeGroup="SourcePortActionColumn" />
+                                  </Grid.ColumnDefinitions>
+                                  <TextBlock Grid.Column="0"
+                                             Text="{Binding Path}"
+                                             TextTrimming="CharacterEllipsis"
+                                             VerticalAlignment="Center" />
+                                  <Button Grid.Column="1"
+                                          Classes="IconButton"
+                                          ToolTip.Tip="Delete"
+                                          automation:AutomationProperties.Name="Delete"
+                                          Tag="{Binding Path}"
+                                          HorizontalAlignment="Right"
+                                          VerticalAlignment="Center"
+                                          Margin="8,0,0,0"
+                                          Click="OnRemoveSourcePortClicked">
+                                    <PathIcon Width="16"
+                                              Height="16"
+                                              Data="{StaticResource delete_regular}" />
+                                  </Button>
+                                </Grid>
+                              </Border>
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <Canvas IsHitTestVisible="False">
+                          <Border IsVisible="{Binding IsSourcePortDropIndicatorVisible}"
+                                  Canvas.Left="{Binding SourcePortDropIndicatorLeft}"
+                                  Canvas.Top="{Binding SourcePortDropIndicatorTop}"
+                                  Width="{Binding SourcePortDropIndicatorWidth}"
+                                  Height="2"
+                                  Background="#60a5fa" />
+                          <Border IsVisible="{Binding IsSourcePortDragGhostVisible}"
+                                  Canvas.Left="{Binding SourcePortDragGhostLeft}"
+                                  Canvas.Top="{Binding SourcePortDragGhostTop}"
+                                  Background="#111827"
+                                  BorderBrush="#60a5fa"
+                                  BorderThickness="1"
+                                  CornerRadius="6"
+                                  Padding="12,8"
+                                  Opacity="0.96">
+                            <TextBlock Foreground="#e5e7eb"
+                                       FontWeight="SemiBold"
+                                       Text="{Binding SourcePortDragGhostText}" />
+                          </Border>
+                        </Canvas>
+                      </Grid>
                     </Grid>
                   </Border>
                 </StackPanel>
@@ -516,44 +543,71 @@
                                    TextWrapping="Wrap"
                                    Text="Allowed: .wad, .pk3, .iwad, .ipk3, .ipk7, .pk7. Directories scan top-level files only." />
                       </StackPanel>
-                      <ItemsControl Grid.Row="1"
-                                    Margin="0,12,0,0"
-                                    ItemsSource="{Binding IwadRows}">
-                        <ItemsControl.ItemTemplate>
-                          <DataTemplate>
-                            <Border Classes="InputRow"
-                                    Classes.selected="{Binding IsSelected}"
-                                    Classes.selection-disabled="{Binding IsSelectionDisabled}"
-                                    Margin="0,4,0,0"
-                                    Tag="{Binding Path}"
-                                    PointerPressed="OnIwadRowPointerPressed">
-                              <Grid>
-                                <Grid.ColumnDefinitions>
-                                  <ColumnDefinition Width="*" />
-                                  <ColumnDefinition Width="Auto" SharedSizeGroup="IwadActionColumn" />
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0"
-                                           Text="{Binding Path}"
-                                           TextTrimming="CharacterEllipsis"
-                                           VerticalAlignment="Center" />
-                                <Button Grid.Column="1"
-                                        Classes="IconButton"
-                                        ToolTip.Tip="Delete"
-                                        automation:AutomationProperties.Name="Delete"
-                                        Tag="{Binding Path}"
-                                        HorizontalAlignment="Right"
-                                        VerticalAlignment="Center"
-                                        Margin="8,0,0,0"
-                                        Click="OnRemoveIwadClicked">
-                                  <PathIcon Width="16"
-                                            Height="16"
-                                            Data="{StaticResource delete_regular}" />
-                                </Button>
-                              </Grid>
-                            </Border>
-                          </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                      </ItemsControl>
+                      <Grid Grid.Row="1"
+                            x:Name="IwadListHost"
+                            Margin="0,12,0,0"
+                            ClipToBounds="True">
+                        <ItemsControl ItemsSource="{Binding IwadRows}">
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                              <Border Classes="InputRow"
+                                      Classes.selected="{Binding IsSelected}"
+                                      Classes.selection-disabled="{Binding IsSelectionDisabled}"
+                                      Margin="0,4,0,0"
+                                      Tag="{Binding Path}"
+                                      PointerPressed="OnIwadRowPointerPressed"
+                                      PointerMoved="OnIwadRowPointerMoved"
+                                      PointerReleased="OnIwadRowPointerReleased"
+                                      PointerCaptureLost="OnIwadRowPointerCaptureLost">
+                                <Grid>
+                                  <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" SharedSizeGroup="IwadActionColumn" />
+                                  </Grid.ColumnDefinitions>
+                                  <TextBlock Grid.Column="0"
+                                             Text="{Binding Path}"
+                                             TextTrimming="CharacterEllipsis"
+                                             VerticalAlignment="Center" />
+                                  <Button Grid.Column="1"
+                                          Classes="IconButton"
+                                          ToolTip.Tip="Delete"
+                                          automation:AutomationProperties.Name="Delete"
+                                          Tag="{Binding Path}"
+                                          HorizontalAlignment="Right"
+                                          VerticalAlignment="Center"
+                                          Margin="8,0,0,0"
+                                          Click="OnRemoveIwadClicked">
+                                    <PathIcon Width="16"
+                                              Height="16"
+                                              Data="{StaticResource delete_regular}" />
+                                  </Button>
+                                </Grid>
+                              </Border>
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <Canvas IsHitTestVisible="False">
+                          <Border IsVisible="{Binding IsIwadDropIndicatorVisible}"
+                                  Canvas.Left="{Binding IwadDropIndicatorLeft}"
+                                  Canvas.Top="{Binding IwadDropIndicatorTop}"
+                                  Width="{Binding IwadDropIndicatorWidth}"
+                                  Height="2"
+                                  Background="#60a5fa" />
+                          <Border IsVisible="{Binding IsIwadDragGhostVisible}"
+                                  Canvas.Left="{Binding IwadDragGhostLeft}"
+                                  Canvas.Top="{Binding IwadDragGhostTop}"
+                                  Background="#111827"
+                                  BorderBrush="#60a5fa"
+                                  BorderThickness="1"
+                                  CornerRadius="6"
+                                  Padding="12,8"
+                                  Opacity="0.96">
+                            <TextBlock Foreground="#e5e7eb"
+                                       FontWeight="SemiBold"
+                                       Text="{Binding IwadDragGhostText}" />
+                          </Border>
+                        </Canvas>
+                      </Grid>
                     </Grid>
                   </Border>
                 </StackPanel>

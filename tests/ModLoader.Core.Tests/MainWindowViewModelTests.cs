@@ -1374,6 +1374,134 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
+    public void ReorderSourcePort_WhenNoProfileSelected_UpdatesAndPersistsSharedLibraryOrder()
+    {
+        using var temp = new TempDirectory();
+        var sourceAlpha = temp.CreateFile("alpha.exe");
+        var sourceBravo = temp.CreateFile("bravo.exe");
+        var sourceCharlie = temp.CreateFile("charlie.exe");
+
+        var persistence = new RecordingPersistence
+        {
+            LoadResult = new LaunchInputsLoadResult
+            {
+                State = new LaunchInputsConfig
+                {
+                    SourcePorts = [sourceAlpha, sourceBravo, sourceCharlie]
+                }
+            }
+        };
+
+        var viewModel = new MainWindowViewModel(persistence);
+
+        var reordered = viewModel.ReorderSourcePort(sourceCharlie, 0);
+
+        Assert.True(reordered);
+        Assert.Equal(
+            ["charlie.exe", "alpha.exe", "bravo.exe"],
+            viewModel.SourcePortRows.Select(row => Path.GetFileName(row.Path)).ToArray());
+        Assert.Equal(
+            [Path.GetFullPath(sourceCharlie), Path.GetFullPath(sourceAlpha), Path.GetFullPath(sourceBravo)],
+            persistence.SavedStates.Last().SourcePorts);
+    }
+
+    [Fact]
+    public void ReorderIwad_WhenNoProfileSelected_UpdatesAndPersistsSharedLibraryOrder()
+    {
+        using var temp = new TempDirectory();
+        var iwadAlpha = temp.CreateFile("alpha.wad");
+        var iwadBravo = temp.CreateFile("bravo.wad");
+        var iwadCharlie = temp.CreateFile("charlie.wad");
+
+        var persistence = new RecordingPersistence
+        {
+            LoadResult = new LaunchInputsLoadResult
+            {
+                State = new LaunchInputsConfig
+                {
+                    Iwads = [iwadAlpha, iwadBravo, iwadCharlie]
+                }
+            }
+        };
+
+        var viewModel = new MainWindowViewModel(persistence);
+
+        var reordered = viewModel.ReorderIwad(iwadCharlie, 0);
+
+        Assert.True(reordered);
+        Assert.Equal(
+            ["charlie.wad", "alpha.wad", "bravo.wad"],
+            viewModel.IwadRows.Select(row => Path.GetFileName(row.Path)).ToArray());
+        Assert.Equal(
+            [Path.GetFullPath(iwadCharlie), Path.GetFullPath(iwadAlpha), Path.GetFullPath(iwadBravo)],
+            persistence.SavedStates.Last().Iwads);
+    }
+
+    [Fact]
+    public void ReorderSourcePort_PreservesSelectionState()
+    {
+        using var temp = new TempDirectory();
+        var sourceAlpha = temp.CreateFile("alpha.exe");
+        var sourceBravo = temp.CreateFile("bravo.exe");
+        var sourceCharlie = temp.CreateFile("charlie.exe");
+        var iwad = temp.CreateFile("doom2.wad");
+
+        var persistence = new RecordingPersistence
+        {
+            LoadResult = new LaunchInputsLoadResult
+            {
+                State = new LaunchInputsConfig
+                {
+                    SourcePorts = [sourceAlpha, sourceBravo, sourceCharlie],
+                    Iwads = [iwad],
+                    Profiles = [CreateProfile("p1", "Profile 1", sourceBravo, iwad)],
+                    SelectedProfileId = "p1"
+                }
+            }
+        };
+
+        var viewModel = new MainWindowViewModel(persistence);
+
+        var reordered = viewModel.ReorderSourcePort(sourceCharlie, 0);
+
+        Assert.True(reordered);
+        Assert.Equal(Path.GetFullPath(sourceBravo), viewModel.SelectedSourcePortPath);
+        Assert.Equal(Path.GetFullPath(sourceBravo), persistence.SavedStates.Last().Profiles.Single().SourcePortPath);
+    }
+
+    [Fact]
+    public void ReorderIwad_PreservesSelectionState()
+    {
+        using var temp = new TempDirectory();
+        var source = temp.CreateFile("gzdoom.exe");
+        var iwadAlpha = temp.CreateFile("alpha.wad");
+        var iwadBravo = temp.CreateFile("bravo.wad");
+        var iwadCharlie = temp.CreateFile("charlie.wad");
+
+        var persistence = new RecordingPersistence
+        {
+            LoadResult = new LaunchInputsLoadResult
+            {
+                State = new LaunchInputsConfig
+                {
+                    SourcePorts = [source],
+                    Iwads = [iwadAlpha, iwadBravo, iwadCharlie],
+                    Profiles = [CreateProfile("p1", "Profile 1", source, iwadBravo)],
+                    SelectedProfileId = "p1"
+                }
+            }
+        };
+
+        var viewModel = new MainWindowViewModel(persistence);
+
+        var reordered = viewModel.ReorderIwad(iwadCharlie, 0);
+
+        Assert.True(reordered);
+        Assert.Equal(Path.GetFullPath(iwadBravo), viewModel.SelectedIwadPath);
+        Assert.Equal(Path.GetFullPath(iwadBravo), persistence.SavedStates.Last().Profiles.Single().IwadPath);
+    }
+
+    [Fact]
     public void BeginProfileDrag_UsesProfileNameOnlyGhost_AndHideClearsFeedback()
     {
         using var temp = new TempDirectory();
@@ -1446,6 +1574,78 @@ public sealed class MainWindowViewModelTests
         Assert.False(viewModel.IsModDragGhostVisible);
         Assert.Equal(string.Empty, viewModel.ModDragGhostText);
         Assert.False(viewModel.IsModDropIndicatorVisible);
+    }
+
+    [Fact]
+    public void BeginSourcePortDrag_UsesPathGhost_AndHideClearsFeedback()
+    {
+        using var temp = new TempDirectory();
+        var source = temp.CreateFile("gzdoom.exe");
+
+        var persistence = new RecordingPersistence
+        {
+            LoadResult = new LaunchInputsLoadResult
+            {
+                State = new LaunchInputsConfig
+                {
+                    SourcePorts = [source]
+                }
+            }
+        };
+
+        var viewModel = new MainWindowViewModel(persistence);
+
+        var began = viewModel.BeginSourcePortDrag(source, 18d, 36d);
+        viewModel.ShowSourcePortDropIndicator(4d, 10d, 90d);
+
+        Assert.True(began);
+        Assert.True(viewModel.IsSourcePortDragGhostVisible);
+        Assert.Equal(Path.GetFullPath(source), viewModel.SourcePortDragGhostText);
+        Assert.Equal(18d, viewModel.SourcePortDragGhostLeft);
+        Assert.Equal(36d, viewModel.SourcePortDragGhostTop);
+        Assert.True(viewModel.IsSourcePortDropIndicatorVisible);
+
+        viewModel.HideSourcePortDragFeedback();
+
+        Assert.False(viewModel.IsSourcePortDragGhostVisible);
+        Assert.Equal(string.Empty, viewModel.SourcePortDragGhostText);
+        Assert.False(viewModel.IsSourcePortDropIndicatorVisible);
+    }
+
+    [Fact]
+    public void BeginIwadDrag_UsesPathGhost_AndHideClearsFeedback()
+    {
+        using var temp = new TempDirectory();
+        var iwad = temp.CreateFile("doom2.wad");
+
+        var persistence = new RecordingPersistence
+        {
+            LoadResult = new LaunchInputsLoadResult
+            {
+                State = new LaunchInputsConfig
+                {
+                    Iwads = [iwad]
+                }
+            }
+        };
+
+        var viewModel = new MainWindowViewModel(persistence);
+
+        var began = viewModel.BeginIwadDrag(iwad, 18d, 36d);
+        viewModel.ShowIwadDropIndicator(4d, 10d, 90d);
+
+        Assert.True(began);
+        Assert.True(viewModel.IsIwadDragGhostVisible);
+        Assert.Equal(Path.GetFullPath(iwad), viewModel.IwadDragGhostText);
+        Assert.Equal(18d, viewModel.IwadDragGhostLeft);
+        Assert.Equal(36d, viewModel.IwadDragGhostTop);
+        Assert.True(viewModel.IsIwadDropIndicatorVisible);
+
+        viewModel.HideIwadDragFeedback();
+
+        Assert.False(viewModel.IsIwadDragGhostVisible);
+        Assert.Equal(string.Empty, viewModel.IwadDragGhostText);
+        Assert.False(viewModel.IsIwadDropIndicatorVisible);
     }
 
     [Fact]
@@ -2142,6 +2342,12 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("PointerMoved=\"OnProfileRowPointerMoved\"", xaml, StringComparison.Ordinal);
         Assert.Contains("PointerReleased=\"OnProfileRowPointerReleased\"", xaml, StringComparison.Ordinal);
         Assert.Contains("PointerCaptureLost=\"OnProfileRowPointerCaptureLost\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("PointerMoved=\"OnSourcePortRowPointerMoved\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("PointerReleased=\"OnSourcePortRowPointerReleased\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("PointerCaptureLost=\"OnSourcePortRowPointerCaptureLost\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("PointerMoved=\"OnIwadRowPointerMoved\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("PointerReleased=\"OnIwadRowPointerReleased\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("PointerCaptureLost=\"OnIwadRowPointerCaptureLost\"", xaml, StringComparison.Ordinal);
         Assert.Contains("PointerMoved=\"OnModRowPointerMoved\"", xaml, StringComparison.Ordinal);
         Assert.Contains("PointerReleased=\"OnModRowPointerReleased\"", xaml, StringComparison.Ordinal);
         Assert.Contains("PointerCaptureLost=\"OnModRowPointerCaptureLost\"", xaml, StringComparison.Ordinal);
@@ -2153,6 +2359,16 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("Text=\"{Binding ModDragGhostText}\"", xaml, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding IsModDropIndicatorVisible}\"", xaml, StringComparison.Ordinal);
         Assert.Contains("Width=\"{Binding ModDropIndicatorWidth}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding IsSourcePortDragGhostVisible}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding SourcePortDragGhostText}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding IsSourcePortDropIndicatorVisible}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("Width=\"{Binding SourcePortDropIndicatorWidth}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding IsIwadDragGhostVisible}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding IwadDragGhostText}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding IsIwadDropIndicatorVisible}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("Width=\"{Binding IwadDropIndicatorWidth}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("x:Name=\"SourcePortListHost\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("x:Name=\"IwadListHost\"", xaml, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"ModListHost\"", xaml, StringComparison.Ordinal);
         Assert.Contains("Text=\"Drag and drop here\"", xaml, StringComparison.Ordinal);
         Assert.Contains("Text=\"Allowed: .exe. Directories are ignored.\"", xaml, StringComparison.Ordinal);
@@ -2242,8 +2458,8 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("removes the old pane-collapse model and fixed default window sizes", spec, StringComparison.Ordinal);
         Assert.Contains("shared top-centered toast overlay", spec, StringComparison.Ordinal);
         Assert.Contains("saved profiles the only launchable unit", spec, StringComparison.Ordinal);
-        Assert.Contains("Feature 015: Mod selection stability and manual drag reorder.", spec, StringComparison.Ordinal);
-        Assert.Contains("Selecting or deselecting a Mod row does not reorder Mod rows.", spec, StringComparison.Ordinal);
+        Assert.Contains("Feature 015: Shared-library selection stability and manual drag reorder.", spec, StringComparison.Ordinal);
+        Assert.Contains("Selecting or deselecting Source Port, IWAD, or Mod rows does not reorder rows.", spec, StringComparison.Ordinal);
 
         Assert.Contains("single shared workspace", feature008, StringComparison.Ordinal);
         Assert.Contains("Profiles view", feature008, StringComparison.Ordinal);
@@ -2273,9 +2489,10 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("Then the top-row `File Library` title is visible.", feature014, StringComparison.Ordinal);
         Assert.Contains("The File Library view exposes a top-left `Profiles` back action above the selected-profile header.", feature014, StringComparison.Ordinal);
         Assert.Contains("The selected-profile header `Edit` action opens rename inline in that header.", feature014, StringComparison.Ordinal);
-        Assert.Contains("Stop Mod row reordering during selection changes", feature015, StringComparison.Ordinal);
-        Assert.Contains("Selection and deselection do not reorder Mod rows.", feature015, StringComparison.Ordinal);
-        Assert.Contains("Reordered Mod order persists immediately", feature015, StringComparison.Ordinal);
+        Assert.Contains("Stop shared-library row reordering during selection changes", feature015, StringComparison.Ordinal);
+        Assert.Contains("Selection and deselection do not reorder Source Port, IWAD, or Mod rows.", feature015, StringComparison.Ordinal);
+        Assert.Contains("Cross-list movement between Source Port, IWAD, and Mod lists.", feature015, StringComparison.Ordinal);
+        Assert.Contains("Reordered list order persists immediately", feature015, StringComparison.Ordinal);
         Assert.Contains("Drag reorder availability both with and without a selected profile.", feature015, StringComparison.Ordinal);
 
         Assert.Contains("Feature 013 is the authoritative source for toast behavior.", feature013, StringComparison.Ordinal);

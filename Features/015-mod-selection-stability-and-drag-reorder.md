@@ -1,47 +1,47 @@
-# Feature 015 - Mod Selection Stability and Manual Drag Reorder
+# Feature 015 - Shared-Library Selection Stability and Manual Drag Reorder
 
 ## Goal
-Stop Mod row reordering during selection changes and add explicit pointer-driven drag reorder for the shared Mod library list.
+Stop shared-library row reordering during selection changes and add explicit pointer-driven drag reorder for Source Port, IWAD, and Mod lists.
 
 ## In Scope
-- Preserve single-click Mod selection and deselection behavior.
-- Keep Mod row order stable while selecting or deselecting.
-- Pointer-driven Mod drag reorder with a movement threshold.
-- One floating drag ghost and one insertion marker during active drag.
-- Immediate persistence of reordered shared-library Mod order.
-- Mod drag reorder availability both with and without a selected profile.
+- Preserve existing single-click selection behavior for Source Port, IWAD, and Mod rows.
+- Keep Source Port, IWAD, and Mod row order stable while selecting or deselecting.
+- Pointer-driven drag reorder with a movement threshold for Source Port, IWAD, and Mod lists.
+- One floating drag ghost and one insertion marker for the currently active drag list.
+- Immediate persistence of reordered shared-library Source Port, IWAD, and Mod order.
+- Drag reorder availability both with and without a selected profile.
 
 ## Out Of Scope
-- Changes to Source Port or IWAD reorder behavior.
+- Cross-list movement between Source Port, IWAD, and Mod lists.
 - Changes to profile drag reorder behavior.
 - Keyboard-only reorder shortcuts, multi-row drag, or auto-scroll while dragging.
 - Changes to launch argument generation semantics for selected Mod sequence.
 
 ## Definitions
-- Stable Mod row order:
-  - The shared-library `Mods` collection order used for Mod row rendering.
-- Successful Mod drop:
-  - A drag release with a valid insertion target inside the Mod list bounds.
+- Stable shared-library row order:
+  - The collection order used for row rendering in `SourcePorts`, `Iwads`, and `Mods`.
+- Successful drop:
+  - A drag release with a valid insertion target inside the active list bounds.
 - Selection sequence:
   - Ordered `SelectedModPaths` sequence used by launch argument generation.
 
 ## Rules
 ### Selection behavior
-- Single-click on a Mod row toggles only that row's selected state.
-- Selection and deselection do not reorder Mod rows.
-- Selection sequence semantics remain unchanged:
+- Single-click on Source Port, IWAD, or Mod rows changes selection only for that list.
+- Selection and deselection do not reorder Source Port, IWAD, or Mod rows.
+- Mod selection sequence semantics remain unchanged:
   - selecting appends to selected sequence
   - deselecting removes from selected sequence
-- Launch preview and launch argument generation continue to use selection sequence.
+- Launch preview and launch argument generation continue to use selected Source Port, selected IWAD, and selected Mod sequence semantics.
 
 ### Drag start
-- Mod drag reorder starts only from the non-interactive body of a Mod row.
-- Mod row delete action does not start drag.
+- Drag reorder starts only from the non-interactive body of a row in the active list.
+- Row delete actions do not start drag.
 - A small pointer-movement threshold is required before press becomes active drag.
-- A real drag does not also toggle Mod selection.
+- A real drag does not also toggle row selection.
 
 ### Drag visuals
-- While Mod drag is active, the UI shows:
+- While drag is active for Source Port, IWAD, or Mod, the UI shows:
   - one floating drag ghost
   - one insertion marker
 - Insertion marker uses hovered-row midpoint targeting:
@@ -53,14 +53,19 @@ Stop Mod row reordering during selection changes and add explicit pointer-driven
   - last position
 
 ### Drop behavior
-- Releasing with a valid insertion target reorders shared-library Mod rows immediately.
-- Reordered Mod order persists immediately as canonical shared-library `Mods` order.
-- Reordering does not change selected/unselected membership of Mod rows.
-- Reordering does not rewrite selected sequence order in `SelectedModPaths`.
+- Releasing with a valid insertion target reorders only the active list immediately.
+- Reordered list order persists immediately as canonical shared-library order for that list.
+- Cross-list drops are invalid:
+  - Source Port reorders only within Source Port rows
+  - IWAD reorders only within IWAD rows
+  - Mod reorders only within Mod rows
+- Reordering does not change selected/unselected membership for rows.
+- Reordering Source Port or IWAD does not clear selected Source Port/IWAD path if the selected path remains present.
+- Reordering Mod rows does not rewrite selected sequence order in `SelectedModPaths`.
 - Dropping onto the current no-op position leaves order unchanged and does not persist.
 
 ### Cancel behavior
-- Releasing outside Mod list bounds cancels reorder and keeps order unchanged.
+- Releasing outside active list bounds cancels reorder and keeps order unchanged.
 - Ending drag without a valid insertion target keeps order unchanged.
 - When drag ends, drag ghost and insertion marker are removed.
 
@@ -70,44 +75,51 @@ Stop Mod row reordering during selection changes and add explicit pointer-driven
 - All other selection sequence and profile persistence behavior from Features 004 and 008 remains unchanged.
 
 ## Acceptance Criteria
-### Click does not reorder
-Given three or more Mod rows exist
-When a user clicks a Mod row to select or deselect it
+### Click does not reorder any shared-library list
+Given Source Port, IWAD, and Mod rows exist
+When a user clicks a row to select or deselect it
 Then only selection state changes.
-And Mod row order remains unchanged.
+And row order remains unchanged for all three lists.
 
-### Drag reorder to first
+### Source Port drag reorder updates and persists
+Given three or more Source Port rows exist
+When a Source Port row is dragged to a valid insertion target and released
+Then Source Port row order updates to the dropped position.
+And the new shared-library Source Port order persists immediately.
+
+### IWAD drag reorder updates and persists
+Given three or more IWAD rows exist
+When an IWAD row is dragged to a valid insertion target and released
+Then IWAD row order updates to the dropped position.
+And the new shared-library IWAD order persists immediately.
+
+### Mod drag reorder updates and persists
 Given three or more Mod rows exist
-When a later Mod row is dragged above the first Mod row and released
-Then that Mod row becomes first.
-And the new shared-library Mod order persists immediately.
-
-### Drag reorder between rows
-Given three or more Mod rows exist
-When a Mod row is dragged to a midpoint between two rows and released
-Then that Mod row is inserted at that midpoint position.
-And the new shared-library Mod order persists immediately.
-
-### Drag reorder to last
-Given two or more Mod rows exist
-When a Mod row is dragged below the last row and released in list bounds
-Then that Mod row becomes last.
+When a Mod row is dragged to a valid insertion target and released
+Then Mod row order updates to the dropped position.
 And the new shared-library Mod order persists immediately.
 
 ### Drag reorder keeps selection state
-Given one or more selected Mod rows
-When a selected or unselected Mod row is drag-reordered
-Then selected/unselected membership remains unchanged.
-And launch-argument selected sequence remains unchanged.
+Given selected Source Port and IWAD rows and one or more selected Mod rows
+When Source Port, IWAD, or Mod rows are drag-reordered
+Then selected Source Port and IWAD stay selected by path identity if still present.
+And selected/unselected Mod membership remains unchanged.
+And launch-argument selected Mod sequence remains unchanged.
+
+### Invalid cross-list drag is not applied
+Given Source Port, IWAD, and Mod rows exist
+When a drag operation does not resolve to a valid insertion target inside its active list
+Then no list reorder is applied.
+And no cross-list move is persisted.
 
 ### Drag cancel keeps order
-Given one or more Mod rows exist
-When a Mod drag starts and ends without a valid insertion target
-Then Mod row order remains unchanged.
+Given one or more rows exist in a list
+When drag starts and ends without a valid insertion target
+Then list order remains unchanged.
 And no reorder persistence occurs.
 
 ### Drag available without selected profile
-Given no profile is selected and Mod rows exist
-When a Mod row is drag-reordered to a valid insertion target
-Then shared-library Mod order updates and persists.
-And Mod selection state remains unavailable.
+Given no profile is selected and Source Port, IWAD, or Mod rows exist
+When rows are drag-reordered to valid insertion targets
+Then shared-library order updates and persists for the reordered list.
+And selection state remains unavailable.

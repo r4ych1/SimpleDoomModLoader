@@ -125,30 +125,19 @@ public sealed class LaunchInputsStore
         RemovePath(path, _mods, _modPathSet);
     }
 
+    public bool ReorderSourcePort(string path, int targetIndex)
+    {
+        return ReorderPath(path, targetIndex, _sourcePorts);
+    }
+
+    public bool ReorderIwad(string path, int targetIndex)
+    {
+        return ReorderPath(path, targetIndex, _iwads);
+    }
+
     public bool ReorderMod(string path, int targetIndex)
     {
-        if (string.IsNullOrWhiteSpace(path) || targetIndex < 0 || targetIndex > _mods.Count)
-        {
-            return false;
-        }
-
-        var normalizedPath = PathNormalizer.NormalizeAbsolutePath(path);
-        var currentIndex = _mods.FindIndex(existingPath => string.Equals(existingPath, normalizedPath, StringComparison.OrdinalIgnoreCase));
-        if (currentIndex < 0)
-        {
-            return false;
-        }
-
-        var adjustedIndex = targetIndex > currentIndex ? targetIndex - 1 : targetIndex;
-        if (adjustedIndex == currentIndex)
-        {
-            return false;
-        }
-
-        var movedPath = _mods[currentIndex];
-        _mods.RemoveAt(currentIndex);
-        _mods.Insert(adjustedIndex, movedPath);
-        return true;
+        return ReorderPath(path, targetIndex, _mods);
     }
 
     public void LoadFromConfig(LaunchInputsConfig state)
@@ -259,5 +248,31 @@ public sealed class LaunchInputsStore
         }
 
         return changed;
+    }
+
+    private static bool ReorderPath(string path, int targetIndex, List<string> orderedPaths)
+    {
+        if (string.IsNullOrWhiteSpace(path) || targetIndex < 0 || targetIndex > orderedPaths.Count)
+        {
+            return false;
+        }
+
+        var normalizedPath = PathNormalizer.NormalizeAbsolutePath(path);
+        var currentIndex = orderedPaths.FindIndex(existingPath => string.Equals(existingPath, normalizedPath, StringComparison.OrdinalIgnoreCase));
+        if (currentIndex < 0)
+        {
+            return false;
+        }
+
+        var adjustedIndex = targetIndex > currentIndex ? targetIndex - 1 : targetIndex;
+        if (adjustedIndex == currentIndex)
+        {
+            return false;
+        }
+
+        var movedPath = orderedPaths[currentIndex];
+        orderedPaths.RemoveAt(currentIndex);
+        orderedPaths.Insert(adjustedIndex, movedPath);
+        return true;
     }
 }
