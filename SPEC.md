@@ -74,6 +74,7 @@ This repository follows feature-scoped delivery. Behavior is only guaranteed whe
 - Launch model (Feature 008):
   - Saved profiles are the only launchable unit.
   - Source Ports, IWADs, and Mods remain shared library collections.
+  - Selected-profile status text uses themed green `#10b981` while the selected profile is valid and shared amber `#f59e0b` while invalid.
 - Shared-library row ordering model (Feature 015):
   - Selecting or deselecting Source Port, IWAD, or Mod rows does not reorder rows.
   - Manual drag reorder updates and persists shared-library Source Port, IWAD, and Mod order.

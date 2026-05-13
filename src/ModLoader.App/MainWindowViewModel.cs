@@ -435,7 +435,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
                 return "#94a3b8";
             }
 
-            return GetProfileValidity(selectedProfile).IsValid ? "#94a3b8" : "#f59e0b";
+            return GetProfileValidity(selectedProfile).IsValid ? "#10b981" : "#f59e0b";
         }
     }
 

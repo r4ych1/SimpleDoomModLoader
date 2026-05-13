@@ -971,6 +971,7 @@ public sealed class MainWindowViewModelTests
         Assert.True(profileRow.HasStatusBadge);
         Assert.Equal("VALID", profileRow.StatusBadgeText);
         Assert.Equal("Selected profile is ready to launch.", viewModel.SelectedProfileStatusText);
+        Assert.Equal("#10b981", viewModel.SelectedProfileStatusForeground);
         Assert.True(viewModel.CanLaunch);
         Assert.Empty(viewModel.SelectedModPaths);
         Assert.Equal("gzdoom.exe -iwad doom2.wad -file mod-a.pk3", profileRow.CommandPreviewText);
@@ -1118,6 +1119,7 @@ public sealed class MainWindowViewModelTests
         Assert.True(row.CanLaunchProfile);
         Assert.Equal("VALID", row.StatusBadgeText);
         Assert.Equal("Selected profile is ready to launch.", viewModel.SelectedProfileStatusText);
+        Assert.Equal("#10b981", viewModel.SelectedProfileStatusForeground);
         Assert.True(viewModel.CanLaunch);
         Assert.Empty(viewModel.SelectedModPaths);
         Assert.Equal("gzdoom.exe -iwad doom2.wad -file missing-mod.pk3", row.CommandPreviewText);
@@ -2498,6 +2500,7 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("removes the old pane-collapse model and fixed default window sizes", spec, StringComparison.Ordinal);
         Assert.Contains("shared top-centered toast overlay", spec, StringComparison.Ordinal);
         Assert.Contains("saved profiles the only launchable unit", spec, StringComparison.Ordinal);
+        Assert.Contains("Selected-profile status text uses themed green `#10b981`", spec, StringComparison.Ordinal);
         Assert.Contains("Profile rename interaction model (Feature 008):", spec, StringComparison.Ordinal);
         Assert.Contains("save on `Enter` or outside click", spec, StringComparison.Ordinal);
         Assert.Contains("Profiles-view helper subtitle text is visible only in `Profiles` view", spec, StringComparison.Ordinal);
@@ -2514,6 +2517,8 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("outside click saves a valid unique non-empty name", feature008, StringComparison.Ordinal);
         Assert.Contains("outside click with an invalid rename keeps rename mode open and shows a Feature 013 passive warning toast.", feature008, StringComparison.Ordinal);
         Assert.Contains("header rename uses the same `Enter`, outside-click, and `Escape` commit/cancel behavior as profile-row rename.", feature008, StringComparison.Ordinal);
+        Assert.Contains("shared themed green `#10b981`", feature008, StringComparison.Ordinal);
+        Assert.Contains("shared amber invalid `#f59e0b`", feature008, StringComparison.Ordinal);
         Assert.DoesNotContain("And outside click or `Escape` restores the previous saved name.", feature008, StringComparison.Ordinal);
 
         Assert.Contains("superseded by Feature 014", feature009, StringComparison.Ordinal);

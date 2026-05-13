@@ -132,7 +132,7 @@ Feature 014 later becomes authoritative for the single shared workspace layout a
   - remain selectable, renameable, editable, auto-saveable, and row-launch-clickable
   - do not actually launch
   - show their current invalid reason in a Feature 013 passive warning toast when row launch is activated
-- Valid profiles show `Selected profile is ready to launch.` in the selected-profile status text when selected.
+- Valid profiles show `Selected profile is ready to launch.` in the selected-profile status text when selected, and that status text uses shared themed green `#10b981`.
 - Launch is available only through saved profile rows.
 
 ### Selected-profile header
@@ -142,7 +142,7 @@ Feature 014 later becomes authoritative for the single shared workspace layout a
   - `Edit` and `Delete` actions only while a profile is selected
   - status text below the name row
   - saved command preview below the status text when one or more previewable saved tokens exist
-- The selected-profile status text uses the shared amber invalid color only while the selected profile is invalid.
+- The selected-profile status text uses shared themed green `#10b981` while the selected profile is valid and shared amber invalid `#f59e0b` only while the selected profile is invalid.
 - The selected-profile command preview uses saved profile inputs rather than current live selections.
 
 ### Mod ordering context
