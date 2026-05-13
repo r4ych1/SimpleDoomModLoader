@@ -62,6 +62,7 @@ Feature 014 later becomes authoritative for the single shared workspace layout a
 - Profile rows use one shared right-side status-badge slot:
   - invalid rows show `INVALID`
   - valid rows show `VALID`
+- Unselected profile rows show a subtle always-visible outline when not hovered.
 - Profile names wrap within the row body and are capped at two rendered lines.
 - Each profile row renders its command preview in the non-interactive text area under the profile name:
   - preview uses saved profile inputs, not live detached selections
@@ -98,6 +99,11 @@ Feature 014 later becomes authoritative for the single shared workspace layout a
   - do not change the saved name
   - keep rename mode open
   - show a Feature 013 passive warning toast
+- Rename commit/cancel behavior for both profile-row and selected-profile-header rename:
+  - `Enter` saves a valid unique non-empty name
+  - outside click saves a valid unique non-empty name
+  - outside click that saves rename is consumed and does not also trigger the clicked target action
+  - `Escape` restores the previous saved name
 - The selected-profile header `Edit` action starts rename inside the File Library view header.
 
 ### Delete behavior
@@ -126,7 +132,7 @@ Feature 014 later becomes authoritative for the single shared workspace layout a
   - remain selectable, renameable, editable, auto-saveable, and row-launch-clickable
   - do not actually launch
   - show their current invalid reason in a Feature 013 passive warning toast when row launch is activated
-- Valid profiles show `Selected profile is ready to launch.` in the selected-profile status text when selected.
+- Valid profiles show `Selected profile is ready to launch.` in the selected-profile status text when selected, and that status text uses shared themed green `#10b981`.
 - Launch is available only through saved profile rows.
 
 ### Selected-profile header
@@ -136,16 +142,12 @@ Feature 014 later becomes authoritative for the single shared workspace layout a
   - `Edit` and `Delete` actions only while a profile is selected
   - status text below the name row
   - saved command preview below the status text when one or more previewable saved tokens exist
-- The selected-profile status text uses the shared amber invalid color only while the selected profile is invalid.
+- The selected-profile status text uses shared themed green `#10b981` while the selected profile is valid and shared amber invalid `#f59e0b` only while the selected profile is invalid.
 - The selected-profile command preview uses saved profile inputs rather than current live selections.
 
 ### Mod ordering context
-- When no profile is selected:
-  - Mod rows default to alphabetical filename order
-  - attempted selection input does not change ordering or selection state
-- When a profile is selected:
-  - selected mods appear first in that profile's saved order
-  - remaining unselected mods appear afterward in alphabetical filename order
+- Feature 015 is authoritative for Mod row display ordering and Mod drag reorder behavior.
+- Feature 008 remains authoritative for selected-profile persistence of `SelectedModPaths` and selection-enabled state rules.
 
 ### Persistence and backward compatibility
 - `LaunchInputsConfig` adds:
@@ -177,17 +179,28 @@ When selection input is applied to any of those rows
 Then current Source Port / IWAD / Mod selections remain unchanged.
 And no profile is auto-created or auto-selected.
 
+### Profile rows show idle unselected outline
+Given one or more profile rows are visible in Profiles view
+When a profile row is unselected and not hovered
+Then that row shows a subtle outline box visual.
+And when the same row is hovered
+Then hover visual feedback is shown.
+And when the row is selected
+Then selected visual feedback remains distinct from idle and hover states.
+
 ### Explicit rename action
 Given a saved profile exists
 When the row rename action is activated on that profile row
 Then inline rename mode opens inside that same profile row.
-And `Enter` saves a valid unique non-empty name.
-And outside click or `Escape` restores the previous saved name.
+And `Enter` or outside click saves a valid unique non-empty name.
+And `Escape` restores the previous saved name.
+And outside click with an invalid rename keeps rename mode open and shows a Feature 013 passive warning toast.
 
 ### Selected-profile header edit uses header rename
 Given File Library view is visible and a profile is selected
 When the selected-profile header `Edit` action is activated
 Then rename mode opens in that header instead of in a profile row.
+And that header rename uses the same `Enter`, outside-click, and `Escape` commit/cancel behavior as profile-row rename.
 
 ### Invalid profile launch shows warning toast without launching
 Given an invalid saved profile row exists

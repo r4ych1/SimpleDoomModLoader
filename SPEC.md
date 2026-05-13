@@ -32,13 +32,13 @@ This repository follows feature-scoped delivery. Behavior is only guaranteed whe
   - Feature 012 later removes the old fixed header presentation.
   - Authoritative spec: `Features/005-fixed-header-and-launch-execution.md`.
 - Feature 006: Section collapse layout and row interaction states.
-  - Adds whole-section collapse behavior plus distinct row hover and selected visuals.
+  - Adds whole-section collapse behavior plus distinct idle-unselected, hover, and selected row visuals, with disabled shared-library rows remaining borderless.
   - Authoritative spec: `Features/006-row-actions-clear-all-and-row-states.md`.
 - Feature 007: Source-port list parity and Mod `.zip` support.
   - Replaces single active source-port behavior with ordered source-port list behavior and expands Mod allowlist to include `.zip`.
   - Authoritative spec: `Features/007-source-port-list-and-mod-zip.md`.
 - Feature 008: Selection-based profile workspace.
-  - Adds saved profiles as the primary launch model, shared-library disabled-state behavior when no profile is selected, immediate profile auto-save through shared-library edits, and selected-profile header behavior in File Library view.
+  - Adds saved profiles as the primary launch model, profile-row idle outline presentation, shared-library disabled-state behavior when no profile is selected, immediate profile auto-save through shared-library edits, and selected-profile header behavior in File Library view.
   - Feature 014 later becomes authoritative for workspace composition and view swapping.
   - Authoritative spec: `Features/008-profile-management.md`.
 - Feature 009: Collapsible file library pane.
@@ -63,6 +63,10 @@ This repository follows feature-scoped delivery. Behavior is only guaranteed whe
   - File Library shows a title, uses a top-left back-to-profiles action above the selected-profile header, and shows selected-profile-header `Create Profile` when no profile is selected.
   - Persists the last active workspace view, keeps File Library accessible without a selected profile, and removes the old pane-collapse model and fixed default window sizes.
   - Authoritative spec: `Features/014-single-view-profile-library-swap.md`.
+- Feature 015: Shared-library selection stability and manual drag reorder.
+  - Replaces selection-synchronized Mod row ordering with stable shared-library ordering.
+  - Adds manual Source Port, IWAD, and Mod drag reorder with pointer-threshold drag, insertion marker, and drag ghost feedback.
+  - Authoritative spec: `Features/015-mod-selection-stability-and-drag-reorder.md`.
 
 ## Current Authoritative Behavior
 - Workspace model (Feature 014):
@@ -70,13 +74,23 @@ This repository follows feature-scoped delivery. Behavior is only guaranteed whe
 - Launch model (Feature 008):
   - Saved profiles are the only launchable unit.
   - Source Ports, IWADs, and Mods remain shared library collections.
+  - Selected-profile status text uses themed green `#10b981` while the selected profile is valid and shared amber `#f59e0b` while invalid.
+- Shared-library row ordering model (Feature 015):
+  - Selecting or deselecting Source Port, IWAD, or Mod rows does not reorder rows.
+  - Manual drag reorder updates and persists shared-library Source Port, IWAD, and Mod order.
 - Feedback model (Feature 013):
   - The app uses one shared top-centered toast overlay above the workspace.
   - Only one toast is visible at a time.
   - Passive warning toasts and confirmation toasts are the supported feedback categories.
+- Profile rename interaction model (Feature 008):
+  - Row and header rename modes save on `Enter` or outside click when the name is valid.
+  - `Escape` restores the previous saved name.
+  - Invalid rename attempts keep rename mode open and show a passive warning toast.
 - Visibility model (Features 008 and 014):
   - Profile-row command preview and profile-row inline invalid-reason text are visible only in `Profiles` view.
   - Profile-row inline detail messaging (command preview and inline invalid-reason text) is additionally width-gated to window widths greater than `640 px`.
+  - Profiles-view helper subtitle text is visible only in `Profiles` view and only when the overall window width is greater than `640 px`.
+  - File-Library-view helper subtitle text is visible only in `File Library` view and only when the overall window width is greater than `640 px`.
 
 ## Feature Precedence And Supersession
 - Feature specs are authoritative in numeric order of delivery.
@@ -85,6 +99,8 @@ This repository follows feature-scoped delivery. Behavior is only guaranteed whe
   - Feature 009 is historical and superseded by Feature 014.
   - Legacy fixed-header behavior is superseded by Feature 012.
   - Legacy pane-collapse workspace behavior is superseded by Feature 014.
+  - Feature 004 selection-synchronized Mod row ordering is superseded by Feature 015.
+  - Feature 008 Mod ordering context is superseded by Feature 015 where Mod row ordering behavior is concerned.
 
 ## Persistence Contract Snapshot
 - Current persisted model is defined by feature specs and represented through `LaunchInputsConfig`.

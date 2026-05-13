@@ -1,7 +1,7 @@
 # Feature 006 - Section Collapse Layout and Row Interaction States
 
 ## Goal
-Align row-level and section-level actions into a shared right-hand action-column pattern, move collapse controls inline with section labels, and provide distinct hover/selected/selected+hover row visuals in light and dark themes.
+Align row-level and section-level actions into a shared right-hand action-column pattern, move collapse controls inline with section labels, and provide distinct idle-unselected/hover/selected/selected+hover row visuals in light and dark themes.
 
 Feature 011 later becomes authoritative for icon presentation of the row `Delete` actions and section collapse toggles while preserving the layout and behavior defined here.
 
@@ -12,6 +12,7 @@ Feature 011 later becomes authoritative for icon presentation of the row `Delete
 - Section-level collapse / expand toggles for IWAD and Mod lists.
 - Persisted collapse state for Source Port, IWAD, and Mod sections.
 - Row visual states:
+  - idle unselected outline
   - hover
   - selected
   - selected + hover
@@ -52,11 +53,13 @@ Feature 011 later becomes authoritative for icon presentation of the row `Delete
 - Configs that do not contain persisted collapse fields load with all three sections expanded.
 
 ### Row Interaction Visual States
+- Active unselected rows show a subtle always-visible outline when not hovered and not selected.
 - Hovering a non-selected row shows a visible hover state.
 - Selecting a row shows a persistent selected state.
 - Hovering a selected row shows an additional visual indication beyond selected-only state.
 - Selected rows remain clearly selected while hovered.
-- Hover, selected, and selected+hover states are visually distinct.
+- Idle unselected outline, hover, selected, and selected+hover states are visually distinct.
+- Shared-library rows in `selection-disabled` state remain borderless while keeping their existing disabled treatment.
 - Row-state styling is clearly distinguishable in both light and dark themes.
 
 ## Acceptance Criteria
@@ -79,15 +82,23 @@ When the app persists state and restarts
 Then each section restores its last saved collapsed or expanded state.
 And configs without the new collapse fields start with all sections expanded.
 
-### Row hover and selected visual distinctions
+### Row idle, hover, and selected visual distinctions
 Given an IWAD or Mod row
-When row is hovered and not selected
+When row is unselected, not hovered, and selection-enabled
+Then an idle unselected outline visual is shown.
+And when row is hovered and not selected
 Then hover visual is shown.
 And when row is selected and not hovered
 Then selected visual is shown.
 And when row is selected and hovered
 Then selected+hover visual is shown and remains clearly selected.
-And hover, selected, and selected+hover are visually distinguishable in light and dark themes.
+And idle unselected outline, hover, selected, and selected+hover are visually distinguishable in light and dark themes.
+
+### Disabled shared-library rows remain borderless
+Given no profile is selected and shared-library rows are visible in disabled state
+When a Source Port, IWAD, or Mod row is rendered and hovered
+Then the row keeps borderless disabled styling.
+And hover does not add outline or hover border feedback.
 
 ### Behavioral regression safety
 Given existing add/remove/select workflows

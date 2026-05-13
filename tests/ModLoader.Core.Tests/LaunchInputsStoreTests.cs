@@ -166,6 +166,159 @@ public sealed class LaunchInputsStoreTests
         Assert.Empty(store.Mods);
     }
 
+    [Fact]
+    public void ReorderMod_MovesItemAcrossPositions_WithoutDuplicateOrLoss()
+    {
+        using var temp = new TempDirectory();
+        var modAlpha = temp.CreateFile("alpha.pk3");
+        var modBravo = temp.CreateFile("bravo.pk3");
+        var modCharlie = temp.CreateFile("charlie.pk3");
+
+        var store = new LaunchInputsStore(new LaunchInputsConfig
+        {
+            Mods = [modAlpha, modBravo, modCharlie]
+        });
+
+        Assert.True(store.ReorderMod(modCharlie, 0));
+        Assert.Equal(
+            [Path.GetFullPath(modCharlie), Path.GetFullPath(modAlpha), Path.GetFullPath(modBravo)],
+            store.Mods.ToArray());
+
+        Assert.True(store.ReorderMod(modCharlie, 3));
+        Assert.Equal(
+            [Path.GetFullPath(modAlpha), Path.GetFullPath(modBravo), Path.GetFullPath(modCharlie)],
+            store.Mods.ToArray());
+
+        Assert.Equal(3, store.Mods.Count);
+        Assert.Equal(3, store.Mods.Distinct(StringComparer.OrdinalIgnoreCase).Count());
+    }
+
+    [Fact]
+    public void ReorderMod_ReturnsFalseForInvalidOrNoOpTargets()
+    {
+        using var temp = new TempDirectory();
+        var modAlpha = temp.CreateFile("alpha.pk3");
+        var modBravo = temp.CreateFile("bravo.pk3");
+        var missing = Path.Combine(temp.Path, "missing.pk3");
+
+        var store = new LaunchInputsStore(new LaunchInputsConfig
+        {
+            Mods = [modAlpha, modBravo]
+        });
+
+        Assert.False(store.ReorderMod(modAlpha, -1));
+        Assert.False(store.ReorderMod(modAlpha, 3));
+        Assert.False(store.ReorderMod(missing, 0));
+        Assert.False(store.ReorderMod(modAlpha, 0));
+        Assert.False(store.ReorderMod(modAlpha, 1));
+
+        Assert.Equal(
+            [Path.GetFullPath(modAlpha), Path.GetFullPath(modBravo)],
+            store.Mods.ToArray());
+    }
+
+    [Fact]
+    public void ReorderSourcePort_MovesItemAcrossPositions_WithoutDuplicateOrLoss()
+    {
+        using var temp = new TempDirectory();
+        var sourceAlpha = temp.CreateFile("alpha.exe");
+        var sourceBravo = temp.CreateFile("bravo.exe");
+        var sourceCharlie = temp.CreateFile("charlie.exe");
+
+        var store = new LaunchInputsStore(new LaunchInputsConfig
+        {
+            SourcePorts = [sourceAlpha, sourceBravo, sourceCharlie]
+        });
+
+        Assert.True(store.ReorderSourcePort(sourceCharlie, 0));
+        Assert.Equal(
+            [Path.GetFullPath(sourceCharlie), Path.GetFullPath(sourceAlpha), Path.GetFullPath(sourceBravo)],
+            store.SourcePorts.ToArray());
+
+        Assert.True(store.ReorderSourcePort(sourceCharlie, 3));
+        Assert.Equal(
+            [Path.GetFullPath(sourceAlpha), Path.GetFullPath(sourceBravo), Path.GetFullPath(sourceCharlie)],
+            store.SourcePorts.ToArray());
+
+        Assert.Equal(3, store.SourcePorts.Count);
+        Assert.Equal(3, store.SourcePorts.Distinct(StringComparer.OrdinalIgnoreCase).Count());
+    }
+
+    [Fact]
+    public void ReorderSourcePort_ReturnsFalseForInvalidOrNoOpTargets()
+    {
+        using var temp = new TempDirectory();
+        var sourceAlpha = temp.CreateFile("alpha.exe");
+        var sourceBravo = temp.CreateFile("bravo.exe");
+        var missing = Path.Combine(temp.Path, "missing.exe");
+
+        var store = new LaunchInputsStore(new LaunchInputsConfig
+        {
+            SourcePorts = [sourceAlpha, sourceBravo]
+        });
+
+        Assert.False(store.ReorderSourcePort(sourceAlpha, -1));
+        Assert.False(store.ReorderSourcePort(sourceAlpha, 3));
+        Assert.False(store.ReorderSourcePort(missing, 0));
+        Assert.False(store.ReorderSourcePort(sourceAlpha, 0));
+        Assert.False(store.ReorderSourcePort(sourceAlpha, 1));
+
+        Assert.Equal(
+            [Path.GetFullPath(sourceAlpha), Path.GetFullPath(sourceBravo)],
+            store.SourcePorts.ToArray());
+    }
+
+    [Fact]
+    public void ReorderIwad_MovesItemAcrossPositions_WithoutDuplicateOrLoss()
+    {
+        using var temp = new TempDirectory();
+        var iwadAlpha = temp.CreateFile("alpha.wad");
+        var iwadBravo = temp.CreateFile("bravo.wad");
+        var iwadCharlie = temp.CreateFile("charlie.wad");
+
+        var store = new LaunchInputsStore(new LaunchInputsConfig
+        {
+            Iwads = [iwadAlpha, iwadBravo, iwadCharlie]
+        });
+
+        Assert.True(store.ReorderIwad(iwadCharlie, 0));
+        Assert.Equal(
+            [Path.GetFullPath(iwadCharlie), Path.GetFullPath(iwadAlpha), Path.GetFullPath(iwadBravo)],
+            store.Iwads.ToArray());
+
+        Assert.True(store.ReorderIwad(iwadCharlie, 3));
+        Assert.Equal(
+            [Path.GetFullPath(iwadAlpha), Path.GetFullPath(iwadBravo), Path.GetFullPath(iwadCharlie)],
+            store.Iwads.ToArray());
+
+        Assert.Equal(3, store.Iwads.Count);
+        Assert.Equal(3, store.Iwads.Distinct(StringComparer.OrdinalIgnoreCase).Count());
+    }
+
+    [Fact]
+    public void ReorderIwad_ReturnsFalseForInvalidOrNoOpTargets()
+    {
+        using var temp = new TempDirectory();
+        var iwadAlpha = temp.CreateFile("alpha.wad");
+        var iwadBravo = temp.CreateFile("bravo.wad");
+        var missing = Path.Combine(temp.Path, "missing.wad");
+
+        var store = new LaunchInputsStore(new LaunchInputsConfig
+        {
+            Iwads = [iwadAlpha, iwadBravo]
+        });
+
+        Assert.False(store.ReorderIwad(iwadAlpha, -1));
+        Assert.False(store.ReorderIwad(iwadAlpha, 3));
+        Assert.False(store.ReorderIwad(missing, 0));
+        Assert.False(store.ReorderIwad(iwadAlpha, 0));
+        Assert.False(store.ReorderIwad(iwadAlpha, 1));
+
+        Assert.Equal(
+            [Path.GetFullPath(iwadAlpha), Path.GetFullPath(iwadBravo)],
+            store.Iwads.ToArray());
+    }
+
     private static bool IsValidMod(string path)
     {
         var extension = Path.GetExtension(path);

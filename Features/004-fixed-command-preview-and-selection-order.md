@@ -3,6 +3,8 @@
 ## Goal
 Provide a fixed footer that shows a live generated launch-argument preview and keep displayed Mod ordering synchronized with selected Mod load order without rewriting shared-library persistence.
 
+Feature 015 later supersedes Feature 004's Mod row display-order rules while keeping Feature 004 launch preview and selected-sequence behavior authoritative unless explicitly replaced.
+
 ## In Scope
 - Fixed, non-scrolling footer preview text area.
 - Preview content includes generated arguments only:
@@ -70,6 +72,7 @@ Provide a fixed footer that shows a live generated launch-argument preview and k
 ### Mod Selection Ordering Behavior
 - Selecting an unselected Mod appends that Mod path to the end of selected sequence.
 - Deselecting a selected Mod removes only that Mod path from selected sequence.
+- Feature 015 supersedes the Mod row display-order rules below:
 - After every Mod selection toggle, Mod row order is rebuilt as:
   - all selected Mod paths in selected sequence order
   - then all non-selected Mod paths sorted by filename case-insensitively, with full path as deterministic tie-breaker

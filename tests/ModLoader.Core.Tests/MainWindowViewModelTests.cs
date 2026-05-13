@@ -591,25 +591,37 @@ public sealed class MainWindowViewModelTests
         var row = viewModel.ProfileRows.Single();
 
         Assert.True(row.IsCommandPreviewVisible);
+        Assert.True(viewModel.IsProfilesViewSubtitleVisible);
+        Assert.False(viewModel.IsFileLibraryViewSubtitleVisible);
 
         viewModel.ShowFileLibraryView();
         Assert.False(row.IsCommandPreviewVisible);
+        Assert.False(viewModel.IsProfilesViewSubtitleVisible);
+        Assert.True(viewModel.IsFileLibraryViewSubtitleVisible);
 
         viewModel.SetWindowWidth(640d);
         Assert.False(row.IsCommandPreviewVisible);
+        Assert.False(viewModel.IsProfilesViewSubtitleVisible);
+        Assert.False(viewModel.IsFileLibraryViewSubtitleVisible);
 
         viewModel.SetWindowWidth(639d);
         Assert.False(row.IsCommandPreviewVisible);
+        Assert.False(viewModel.IsProfilesViewSubtitleVisible);
+        Assert.False(viewModel.IsFileLibraryViewSubtitleVisible);
 
         viewModel.ShowProfilesView();
         Assert.False(row.IsCommandPreviewVisible);
+        Assert.False(viewModel.IsProfilesViewSubtitleVisible);
+        Assert.False(viewModel.IsFileLibraryViewSubtitleVisible);
 
         viewModel.SetWindowWidth(641d);
         Assert.True(row.IsCommandPreviewVisible);
+        Assert.True(viewModel.IsProfilesViewSubtitleVisible);
+        Assert.False(viewModel.IsFileLibraryViewSubtitleVisible);
     }
 
     [Fact]
-    public void ModRows_WhenNoProfileSelected_StayAlphabeticalAfterIgnoredToggleAttempts()
+    public void ModRows_WhenNoProfileSelected_StayInSharedLibraryOrderAfterIgnoredToggleAttempts()
     {
         using var temp = new TempDirectory();
         var modBeta = temp.CreateFile("beta.pk3");
@@ -630,14 +642,14 @@ public sealed class MainWindowViewModelTests
         var viewModel = new MainWindowViewModel(persistence);
 
         Assert.Equal(
-            ["alpha.pk3", "beta.pk3", "gamma.pk3"],
+            ["beta.pk3", "gamma.pk3", "alpha.pk3"],
             viewModel.ModRows.Select(row => Path.GetFileName(row.Path)).ToArray());
 
         viewModel.ToggleModSelection(modGamma);
         viewModel.ToggleModSelection(modAlpha);
 
         Assert.Equal(
-            ["alpha.pk3", "beta.pk3", "gamma.pk3"],
+            ["beta.pk3", "gamma.pk3", "alpha.pk3"],
             viewModel.ModRows.Select(row => Path.GetFileName(row.Path)).ToArray());
         Assert.Empty(viewModel.SelectedModPaths);
         Assert.Equal(0, persistence.SaveCallCount);
@@ -707,7 +719,7 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
-    public void SelectedProfile_ModRowsUseProfileOrderFirst_AndAlphabeticalRemainder()
+    public void SelectedProfile_ModRowsUseSharedLibraryOrder()
     {
         using var temp = new TempDirectory();
         var modCharlie = temp.CreateFile("charlie.pk3");
@@ -731,12 +743,12 @@ public sealed class MainWindowViewModelTests
         var viewModel = new MainWindowViewModel(persistence);
 
         Assert.Equal(
-            ["delta.pk3", "bravo.pk3", "alpha.pk3", "charlie.pk3"],
+            ["charlie.pk3", "alpha.pk3", "delta.pk3", "bravo.pk3"],
             viewModel.ModRows.Select(row => Path.GetFileName(row.Path)).ToArray());
     }
 
     [Fact]
-    public void SwitchingProfiles_RecomputesDisplayedModOrderPerProfile()
+    public void SwitchingProfiles_KeepsDisplayedModRowsInSharedLibraryOrder()
     {
         using var temp = new TempDirectory();
         var modCharlie = temp.CreateFile("charlie.pk3");
@@ -764,12 +776,12 @@ public sealed class MainWindowViewModelTests
 
         viewModel.ToggleProfileSelection("p1");
         Assert.Equal(
-            ["delta.pk3", "bravo.pk3", "alpha.pk3", "charlie.pk3"],
+            ["charlie.pk3", "alpha.pk3", "delta.pk3", "bravo.pk3"],
             viewModel.ModRows.Select(row => Path.GetFileName(row.Path)).ToArray());
 
         viewModel.ToggleProfileSelection("p2");
         Assert.Equal(
-            ["alpha.pk3", "charlie.pk3", "bravo.pk3", "delta.pk3"],
+            ["charlie.pk3", "alpha.pk3", "delta.pk3", "bravo.pk3"],
             viewModel.ModRows.Select(row => Path.GetFileName(row.Path)).ToArray());
     }
 
@@ -809,7 +821,7 @@ public sealed class MainWindowViewModelTests
             [Path.GetFullPath(modBeta), Path.GetFullPath(modGamma), Path.GetFullPath(modAlpha)],
             persistence.SavedStates.Last().Mods);
         Assert.Equal(
-            ["gamma.pk3", "alpha.pk3", "beta.pk3"],
+            ["beta.pk3", "gamma.pk3", "alpha.pk3"],
             viewModel.ModRows.Select(row => Path.GetFileName(row.Path)).ToArray());
     }
 
@@ -959,6 +971,7 @@ public sealed class MainWindowViewModelTests
         Assert.True(profileRow.HasStatusBadge);
         Assert.Equal("VALID", profileRow.StatusBadgeText);
         Assert.Equal("Selected profile is ready to launch.", viewModel.SelectedProfileStatusText);
+        Assert.Equal("#10b981", viewModel.SelectedProfileStatusForeground);
         Assert.True(viewModel.CanLaunch);
         Assert.Empty(viewModel.SelectedModPaths);
         Assert.Equal("gzdoom.exe -iwad doom2.wad -file mod-a.pk3", profileRow.CommandPreviewText);
@@ -1106,6 +1119,7 @@ public sealed class MainWindowViewModelTests
         Assert.True(row.CanLaunchProfile);
         Assert.Equal("VALID", row.StatusBadgeText);
         Assert.Equal("Selected profile is ready to launch.", viewModel.SelectedProfileStatusText);
+        Assert.Equal("#10b981", viewModel.SelectedProfileStatusForeground);
         Assert.True(viewModel.CanLaunch);
         Assert.Empty(viewModel.SelectedModPaths);
         Assert.Equal("gzdoom.exe -iwad doom2.wad -file missing-mod.pk3", row.CommandPreviewText);
@@ -1267,6 +1281,241 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
+    public void ReorderMod_WhenNoProfileSelected_UpdatesAndPersistsSharedLibraryOrder()
+    {
+        using var temp = new TempDirectory();
+        var modAlpha = temp.CreateFile("alpha.pk3");
+        var modBravo = temp.CreateFile("bravo.pk3");
+        var modCharlie = temp.CreateFile("charlie.pk3");
+
+        var persistence = new RecordingPersistence
+        {
+            LoadResult = new LaunchInputsLoadResult
+            {
+                State = new LaunchInputsConfig
+                {
+                    Mods = [modAlpha, modBravo, modCharlie]
+                }
+            }
+        };
+
+        var viewModel = new MainWindowViewModel(persistence);
+
+        var reordered = viewModel.ReorderMod(modCharlie, 0);
+
+        Assert.True(reordered);
+        Assert.Equal(
+            ["charlie.pk3", "alpha.pk3", "bravo.pk3"],
+            viewModel.ModRows.Select(row => Path.GetFileName(row.Path)).ToArray());
+        Assert.Equal(
+            [Path.GetFullPath(modCharlie), Path.GetFullPath(modAlpha), Path.GetFullPath(modBravo)],
+            persistence.SavedStates.Last().Mods);
+    }
+
+    [Fact]
+    public void ReorderMod_PreservesSelectionStateAndSelectedSequenceOrder()
+    {
+        using var temp = new TempDirectory();
+        var source = temp.CreateFile("gzdoom.exe");
+        var iwad = temp.CreateFile("doom2.wad");
+        var modAlpha = temp.CreateFile("alpha.pk3");
+        var modBravo = temp.CreateFile("bravo.pk3");
+        var modCharlie = temp.CreateFile("charlie.pk3");
+
+        var persistence = new RecordingPersistence
+        {
+            LoadResult = new LaunchInputsLoadResult
+            {
+                State = new LaunchInputsConfig
+                {
+                    SourcePorts = [source],
+                    Iwads = [iwad],
+                    Mods = [modAlpha, modBravo, modCharlie],
+                    Profiles = [CreateProfile("p1", "Profile 1", source, iwad, modBravo, modAlpha)],
+                    SelectedProfileId = "p1"
+                }
+            }
+        };
+
+        var viewModel = new MainWindowViewModel(persistence);
+
+        var reordered = viewModel.ReorderMod(modCharlie, 0);
+
+        Assert.True(reordered);
+        Assert.Equal(
+            ["charlie.pk3", "alpha.pk3", "bravo.pk3"],
+            viewModel.ModRows.Select(row => Path.GetFileName(row.Path)).ToArray());
+        Assert.Equal(
+            [Path.GetFullPath(modBravo), Path.GetFullPath(modAlpha)],
+            viewModel.SelectedModPaths.ToArray());
+        Assert.Equal(
+            [Path.GetFullPath(modBravo), Path.GetFullPath(modAlpha)],
+            persistence.SavedStates.Last().Profiles.Single().SelectedModPaths);
+    }
+
+    [Fact]
+    public void ReorderMod_NoOpTargets_DoNotPersistNewOrder()
+    {
+        using var temp = new TempDirectory();
+        var modAlpha = temp.CreateFile("alpha.pk3");
+        var modBravo = temp.CreateFile("bravo.pk3");
+        var modCharlie = temp.CreateFile("charlie.pk3");
+
+        var persistence = new RecordingPersistence
+        {
+            LoadResult = new LaunchInputsLoadResult
+            {
+                State = new LaunchInputsConfig
+                {
+                    Mods = [modAlpha, modBravo, modCharlie]
+                }
+            }
+        };
+
+        var viewModel = new MainWindowViewModel(persistence);
+        var saveCountBeforeNoOps = persistence.SaveCallCount;
+
+        Assert.False(viewModel.ReorderMod("missing", 0));
+        Assert.False(viewModel.ReorderMod(modBravo, 1));
+        Assert.False(viewModel.ReorderMod(modBravo, 2));
+        Assert.False(viewModel.ReorderMod(modBravo, -1));
+        Assert.False(viewModel.ReorderMod(modBravo, 4));
+
+        Assert.Equal(saveCountBeforeNoOps, persistence.SaveCallCount);
+        Assert.Equal(
+            ["alpha.pk3", "bravo.pk3", "charlie.pk3"],
+            viewModel.ModRows.Select(row => Path.GetFileName(row.Path)).ToArray());
+    }
+
+    [Fact]
+    public void ReorderSourcePort_WhenNoProfileSelected_UpdatesAndPersistsSharedLibraryOrder()
+    {
+        using var temp = new TempDirectory();
+        var sourceAlpha = temp.CreateFile("alpha.exe");
+        var sourceBravo = temp.CreateFile("bravo.exe");
+        var sourceCharlie = temp.CreateFile("charlie.exe");
+
+        var persistence = new RecordingPersistence
+        {
+            LoadResult = new LaunchInputsLoadResult
+            {
+                State = new LaunchInputsConfig
+                {
+                    SourcePorts = [sourceAlpha, sourceBravo, sourceCharlie]
+                }
+            }
+        };
+
+        var viewModel = new MainWindowViewModel(persistence);
+
+        var reordered = viewModel.ReorderSourcePort(sourceCharlie, 0);
+
+        Assert.True(reordered);
+        Assert.Equal(
+            ["charlie.exe", "alpha.exe", "bravo.exe"],
+            viewModel.SourcePortRows.Select(row => Path.GetFileName(row.Path)).ToArray());
+        Assert.Equal(
+            [Path.GetFullPath(sourceCharlie), Path.GetFullPath(sourceAlpha), Path.GetFullPath(sourceBravo)],
+            persistence.SavedStates.Last().SourcePorts);
+    }
+
+    [Fact]
+    public void ReorderIwad_WhenNoProfileSelected_UpdatesAndPersistsSharedLibraryOrder()
+    {
+        using var temp = new TempDirectory();
+        var iwadAlpha = temp.CreateFile("alpha.wad");
+        var iwadBravo = temp.CreateFile("bravo.wad");
+        var iwadCharlie = temp.CreateFile("charlie.wad");
+
+        var persistence = new RecordingPersistence
+        {
+            LoadResult = new LaunchInputsLoadResult
+            {
+                State = new LaunchInputsConfig
+                {
+                    Iwads = [iwadAlpha, iwadBravo, iwadCharlie]
+                }
+            }
+        };
+
+        var viewModel = new MainWindowViewModel(persistence);
+
+        var reordered = viewModel.ReorderIwad(iwadCharlie, 0);
+
+        Assert.True(reordered);
+        Assert.Equal(
+            ["charlie.wad", "alpha.wad", "bravo.wad"],
+            viewModel.IwadRows.Select(row => Path.GetFileName(row.Path)).ToArray());
+        Assert.Equal(
+            [Path.GetFullPath(iwadCharlie), Path.GetFullPath(iwadAlpha), Path.GetFullPath(iwadBravo)],
+            persistence.SavedStates.Last().Iwads);
+    }
+
+    [Fact]
+    public void ReorderSourcePort_PreservesSelectionState()
+    {
+        using var temp = new TempDirectory();
+        var sourceAlpha = temp.CreateFile("alpha.exe");
+        var sourceBravo = temp.CreateFile("bravo.exe");
+        var sourceCharlie = temp.CreateFile("charlie.exe");
+        var iwad = temp.CreateFile("doom2.wad");
+
+        var persistence = new RecordingPersistence
+        {
+            LoadResult = new LaunchInputsLoadResult
+            {
+                State = new LaunchInputsConfig
+                {
+                    SourcePorts = [sourceAlpha, sourceBravo, sourceCharlie],
+                    Iwads = [iwad],
+                    Profiles = [CreateProfile("p1", "Profile 1", sourceBravo, iwad)],
+                    SelectedProfileId = "p1"
+                }
+            }
+        };
+
+        var viewModel = new MainWindowViewModel(persistence);
+
+        var reordered = viewModel.ReorderSourcePort(sourceCharlie, 0);
+
+        Assert.True(reordered);
+        Assert.Equal(Path.GetFullPath(sourceBravo), viewModel.SelectedSourcePortPath);
+        Assert.Equal(Path.GetFullPath(sourceBravo), persistence.SavedStates.Last().Profiles.Single().SourcePortPath);
+    }
+
+    [Fact]
+    public void ReorderIwad_PreservesSelectionState()
+    {
+        using var temp = new TempDirectory();
+        var source = temp.CreateFile("gzdoom.exe");
+        var iwadAlpha = temp.CreateFile("alpha.wad");
+        var iwadBravo = temp.CreateFile("bravo.wad");
+        var iwadCharlie = temp.CreateFile("charlie.wad");
+
+        var persistence = new RecordingPersistence
+        {
+            LoadResult = new LaunchInputsLoadResult
+            {
+                State = new LaunchInputsConfig
+                {
+                    SourcePorts = [source],
+                    Iwads = [iwadAlpha, iwadBravo, iwadCharlie],
+                    Profiles = [CreateProfile("p1", "Profile 1", source, iwadBravo)],
+                    SelectedProfileId = "p1"
+                }
+            }
+        };
+
+        var viewModel = new MainWindowViewModel(persistence);
+
+        var reordered = viewModel.ReorderIwad(iwadCharlie, 0);
+
+        Assert.True(reordered);
+        Assert.Equal(Path.GetFullPath(iwadBravo), viewModel.SelectedIwadPath);
+        Assert.Equal(Path.GetFullPath(iwadBravo), persistence.SavedStates.Last().Profiles.Single().IwadPath);
+    }
+
+    [Fact]
     public void BeginProfileDrag_UsesProfileNameOnlyGhost_AndHideClearsFeedback()
     {
         using var temp = new TempDirectory();
@@ -1303,6 +1552,114 @@ public sealed class MainWindowViewModelTests
         Assert.False(viewModel.IsProfileDragGhostVisible);
         Assert.Equal(string.Empty, viewModel.ProfileDragGhostText);
         Assert.False(viewModel.IsProfileDropIndicatorVisible);
+    }
+
+    [Fact]
+    public void BeginModDrag_UsesModPathGhost_AndHideClearsFeedback()
+    {
+        using var temp = new TempDirectory();
+        var mod = temp.CreateFile("mod-a.pk3");
+
+        var persistence = new RecordingPersistence
+        {
+            LoadResult = new LaunchInputsLoadResult
+            {
+                State = new LaunchInputsConfig
+                {
+                    Mods = [mod]
+                }
+            }
+        };
+
+        var viewModel = new MainWindowViewModel(persistence);
+
+        var began = viewModel.BeginModDrag(mod, 18d, 36d);
+        viewModel.ShowModDropIndicator(4d, 10d, 90d);
+
+        Assert.True(began);
+        Assert.True(viewModel.IsModDragGhostVisible);
+        Assert.Equal(Path.GetFullPath(mod), viewModel.ModDragGhostText);
+        Assert.Equal(18d, viewModel.ModDragGhostLeft);
+        Assert.Equal(36d, viewModel.ModDragGhostTop);
+        Assert.True(viewModel.IsModDropIndicatorVisible);
+
+        viewModel.HideModDragFeedback();
+
+        Assert.False(viewModel.IsModDragGhostVisible);
+        Assert.Equal(string.Empty, viewModel.ModDragGhostText);
+        Assert.False(viewModel.IsModDropIndicatorVisible);
+    }
+
+    [Fact]
+    public void BeginSourcePortDrag_UsesPathGhost_AndHideClearsFeedback()
+    {
+        using var temp = new TempDirectory();
+        var source = temp.CreateFile("gzdoom.exe");
+
+        var persistence = new RecordingPersistence
+        {
+            LoadResult = new LaunchInputsLoadResult
+            {
+                State = new LaunchInputsConfig
+                {
+                    SourcePorts = [source]
+                }
+            }
+        };
+
+        var viewModel = new MainWindowViewModel(persistence);
+
+        var began = viewModel.BeginSourcePortDrag(source, 18d, 36d);
+        viewModel.ShowSourcePortDropIndicator(4d, 10d, 90d);
+
+        Assert.True(began);
+        Assert.True(viewModel.IsSourcePortDragGhostVisible);
+        Assert.Equal(Path.GetFullPath(source), viewModel.SourcePortDragGhostText);
+        Assert.Equal(18d, viewModel.SourcePortDragGhostLeft);
+        Assert.Equal(36d, viewModel.SourcePortDragGhostTop);
+        Assert.True(viewModel.IsSourcePortDropIndicatorVisible);
+
+        viewModel.HideSourcePortDragFeedback();
+
+        Assert.False(viewModel.IsSourcePortDragGhostVisible);
+        Assert.Equal(string.Empty, viewModel.SourcePortDragGhostText);
+        Assert.False(viewModel.IsSourcePortDropIndicatorVisible);
+    }
+
+    [Fact]
+    public void BeginIwadDrag_UsesPathGhost_AndHideClearsFeedback()
+    {
+        using var temp = new TempDirectory();
+        var iwad = temp.CreateFile("doom2.wad");
+
+        var persistence = new RecordingPersistence
+        {
+            LoadResult = new LaunchInputsLoadResult
+            {
+                State = new LaunchInputsConfig
+                {
+                    Iwads = [iwad]
+                }
+            }
+        };
+
+        var viewModel = new MainWindowViewModel(persistence);
+
+        var began = viewModel.BeginIwadDrag(iwad, 18d, 36d);
+        viewModel.ShowIwadDropIndicator(4d, 10d, 90d);
+
+        Assert.True(began);
+        Assert.True(viewModel.IsIwadDragGhostVisible);
+        Assert.Equal(Path.GetFullPath(iwad), viewModel.IwadDragGhostText);
+        Assert.Equal(18d, viewModel.IwadDragGhostLeft);
+        Assert.Equal(36d, viewModel.IwadDragGhostTop);
+        Assert.True(viewModel.IsIwadDropIndicatorVisible);
+
+        viewModel.HideIwadDragFeedback();
+
+        Assert.False(viewModel.IsIwadDragGhostVisible);
+        Assert.Equal(string.Empty, viewModel.IwadDragGhostText);
+        Assert.False(viewModel.IsIwadDropIndicatorVisible);
     }
 
     [Fact]
@@ -1955,6 +2312,10 @@ public sealed class MainWindowViewModelTests
         Assert.DoesNotContain("Text=\"Command Preview\"", xaml, StringComparison.Ordinal);
         Assert.DoesNotContain("Text=\"{Binding CommandPreviewArguments}\"", xaml, StringComparison.Ordinal);
         Assert.Contains("Text=\"File Library\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("Text=\"Create, launch, rename, or delete saved profiles.\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding IsProfilesViewSubtitleVisible}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("Text=\"Select Source Port, IWAD, and Mods for the selected profile.\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding IsFileLibraryViewSubtitleVisible}\"", xaml, StringComparison.Ordinal);
         Assert.DoesNotContain("Select, launch, or delete a launch profile from the saved profile list.", xaml, StringComparison.Ordinal);
         Assert.Contains("ToolTip.Tip=\"New Profile\"", xaml, StringComparison.Ordinal);
         Assert.Contains("automation:AutomationProperties.Name=\"New Profile\"", xaml, StringComparison.Ordinal);
@@ -1994,15 +2355,40 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("IsHitTestVisible=\"False\"", xaml, StringComparison.Ordinal);
         Assert.Contains("HorizontalAlignment=\"Center\"", xaml, StringComparison.Ordinal);
         Assert.Contains("VerticalAlignment=\"Bottom\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Grid RowDefinitions=\"Auto,*\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("Grid RowDefinitions=\"Auto,Auto,*\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("Grid RowDefinitions=\"Auto,Auto,Auto,*\"", xaml, StringComparison.Ordinal);
         Assert.Contains("<DoubleTransition Property=\"Opacity\" Duration=\"0:0:0.18\" />", xaml, StringComparison.Ordinal);
         Assert.Contains("PointerMoved=\"OnProfileRowPointerMoved\"", xaml, StringComparison.Ordinal);
         Assert.Contains("PointerReleased=\"OnProfileRowPointerReleased\"", xaml, StringComparison.Ordinal);
         Assert.Contains("PointerCaptureLost=\"OnProfileRowPointerCaptureLost\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("PointerMoved=\"OnSourcePortRowPointerMoved\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("PointerReleased=\"OnSourcePortRowPointerReleased\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("PointerCaptureLost=\"OnSourcePortRowPointerCaptureLost\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("PointerMoved=\"OnIwadRowPointerMoved\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("PointerReleased=\"OnIwadRowPointerReleased\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("PointerCaptureLost=\"OnIwadRowPointerCaptureLost\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("PointerMoved=\"OnModRowPointerMoved\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("PointerReleased=\"OnModRowPointerReleased\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("PointerCaptureLost=\"OnModRowPointerCaptureLost\"", xaml, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding IsProfileDragGhostVisible}\"", xaml, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding ProfileDragGhostText}\"", xaml, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding IsProfileDropIndicatorVisible}\"", xaml, StringComparison.Ordinal);
         Assert.Contains("Width=\"{Binding ProfileDropIndicatorWidth}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding IsModDragGhostVisible}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding ModDragGhostText}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding IsModDropIndicatorVisible}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("Width=\"{Binding ModDropIndicatorWidth}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding IsSourcePortDragGhostVisible}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding SourcePortDragGhostText}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding IsSourcePortDropIndicatorVisible}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("Width=\"{Binding SourcePortDropIndicatorWidth}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding IsIwadDragGhostVisible}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding IwadDragGhostText}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding IsIwadDropIndicatorVisible}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("Width=\"{Binding IwadDropIndicatorWidth}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("x:Name=\"SourcePortListHost\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("x:Name=\"IwadListHost\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("x:Name=\"ModListHost\"", xaml, StringComparison.Ordinal);
         Assert.Contains("Text=\"Drag and drop here\"", xaml, StringComparison.Ordinal);
         Assert.Contains("Text=\"Allowed: .exe. Directories are ignored.\"", xaml, StringComparison.Ordinal);
         Assert.DoesNotContain("Text=\"Allowed: .exe. Drop one or more files. Directories are ignored.\"", xaml, StringComparison.Ordinal);
@@ -2074,6 +2460,29 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
+    public void MainWindowCodeBehind_CommitsRenameOnOutsideClickAndLostFocus()
+    {
+        var codeBehindPath = GetRepoFilePath("src", "ModLoader.App", "MainWindow.axaml.cs");
+        var codeBehind = File.ReadAllText(codeBehindPath);
+
+        var pointerPressedStart = codeBehind.IndexOf("private void OnWindowPointerPressed", StringComparison.Ordinal);
+        var pointerPressedEnd = codeBehind.IndexOf("private void OnProfileRowPointerPressed", pointerPressedStart, StringComparison.Ordinal);
+        var pointerPressedBlock = codeBehind.Substring(pointerPressedStart, pointerPressedEnd - pointerPressedStart);
+
+        Assert.Contains("if (_viewModel.RenamingProfileId is string profileId)", pointerPressedBlock, StringComparison.Ordinal);
+        Assert.Contains("_viewModel.CommitRename(profileId);", pointerPressedBlock, StringComparison.Ordinal);
+        Assert.Contains("e.Handled = true;", pointerPressedBlock, StringComparison.Ordinal);
+        Assert.DoesNotContain("_viewModel.CancelRename();", pointerPressedBlock, StringComparison.Ordinal);
+
+        var lostFocusStart = codeBehind.IndexOf("private void OnProfileRenameLostFocus", StringComparison.Ordinal);
+        var lostFocusEnd = codeBehind.IndexOf("private void OnProfileRenameTextBoxLoaded", lostFocusStart, StringComparison.Ordinal);
+        var lostFocusBlock = codeBehind.Substring(lostFocusStart, lostFocusEnd - lostFocusStart);
+
+        Assert.Contains("_viewModel.CommitRename(profileId);", lostFocusBlock, StringComparison.Ordinal);
+        Assert.DoesNotContain("_viewModel.CancelRename();", lostFocusBlock, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void FeatureSpecs_ReflectProfileOrderingAndDragReorderSpecs()
     {
         var spec = File.ReadAllText(GetRepoFilePath("SPEC.md"));
@@ -2083,6 +2492,7 @@ public sealed class MainWindowViewModelTests
         var feature012 = File.ReadAllText(GetRepoFilePath("Features", "012-profile-only-collapse-mode-and-header-removal.md"));
         var feature013 = File.ReadAllText(GetRepoFilePath("Features", "013-toast-message-overlay.md"));
         var feature014 = File.ReadAllText(GetRepoFilePath("Features", "014-single-view-profile-library-swap.md"));
+        var feature015 = File.ReadAllText(GetRepoFilePath("Features", "015-mod-selection-stability-and-drag-reorder.md"));
 
         Assert.Contains("Feature 014: Single-view profile/library workspace swap.", spec, StringComparison.Ordinal);
         Assert.Contains("single shared workspace", spec, StringComparison.Ordinal);
@@ -2090,6 +2500,13 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("removes the old pane-collapse model and fixed default window sizes", spec, StringComparison.Ordinal);
         Assert.Contains("shared top-centered toast overlay", spec, StringComparison.Ordinal);
         Assert.Contains("saved profiles the only launchable unit", spec, StringComparison.Ordinal);
+        Assert.Contains("Selected-profile status text uses themed green `#10b981`", spec, StringComparison.Ordinal);
+        Assert.Contains("Profile rename interaction model (Feature 008):", spec, StringComparison.Ordinal);
+        Assert.Contains("save on `Enter` or outside click", spec, StringComparison.Ordinal);
+        Assert.Contains("Profiles-view helper subtitle text is visible only in `Profiles` view", spec, StringComparison.Ordinal);
+        Assert.Contains("File-Library-view helper subtitle text is visible only in `File Library` view", spec, StringComparison.Ordinal);
+        Assert.Contains("Feature 015: Shared-library selection stability and manual drag reorder.", spec, StringComparison.Ordinal);
+        Assert.Contains("Selecting or deselecting Source Port, IWAD, or Mod rows does not reorder rows.", spec, StringComparison.Ordinal);
 
         Assert.Contains("single shared workspace", feature008, StringComparison.Ordinal);
         Assert.Contains("Profiles view", feature008, StringComparison.Ordinal);
@@ -2097,6 +2514,12 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("When no profile is selected, Source Port, IWAD, and Mod rows remain visible but are not selectable.", feature008, StringComparison.Ordinal);
         Assert.Contains("The selected-profile header `Edit` action starts rename inside the File Library view header.", feature008, StringComparison.Ordinal);
         Assert.Contains("Each profile row exposes launch, rename, and delete actions in that order.", feature008, StringComparison.Ordinal);
+        Assert.Contains("outside click saves a valid unique non-empty name", feature008, StringComparison.Ordinal);
+        Assert.Contains("outside click with an invalid rename keeps rename mode open and shows a Feature 013 passive warning toast.", feature008, StringComparison.Ordinal);
+        Assert.Contains("header rename uses the same `Enter`, outside-click, and `Escape` commit/cancel behavior as profile-row rename.", feature008, StringComparison.Ordinal);
+        Assert.Contains("shared themed green `#10b981`", feature008, StringComparison.Ordinal);
+        Assert.Contains("shared amber invalid `#f59e0b`", feature008, StringComparison.Ordinal);
+        Assert.DoesNotContain("And outside click or `Escape` restores the previous saved name.", feature008, StringComparison.Ordinal);
 
         Assert.Contains("superseded by Feature 014", feature009, StringComparison.Ordinal);
         Assert.DoesNotContain("the right file-library pane is not rendered", feature009, StringComparison.Ordinal);
@@ -2112,6 +2535,11 @@ public sealed class MainWindowViewModelTests
 
         Assert.Contains("Replace the two-pane workspace with one shared workspace that shows either `Profiles` or `File Library`.", feature014, StringComparison.Ordinal);
         Assert.Contains("Add a `File Library` title to File Library view.", feature014, StringComparison.Ordinal);
+        Assert.Contains("Add simple helper subtitle text to Profiles and File Library view headers.", feature014, StringComparison.Ordinal);
+        Assert.Contains("the helper subtitle text `Create, launch, rename, or delete saved profiles.`", feature014, StringComparison.Ordinal);
+        Assert.Contains("the helper subtitle text `Select Source Port, IWAD, and Mods for the selected profile.`", feature014, StringComparison.Ordinal);
+        Assert.Contains("Profiles-view helper subtitle text is visible only in Profiles view and only when the overall window width is greater than `640 px`.", feature014, StringComparison.Ordinal);
+        Assert.Contains("File-Library-view helper subtitle text is visible only in File Library view and only when the overall window width is greater than `640 px`.", feature014, StringComparison.Ordinal);
         Assert.Contains("Remove persisted pane-collapse and remembered-width state.", feature014, StringComparison.Ordinal);
         Assert.Contains("Creating a new profile selects it and keeps Profiles view active.", feature014, StringComparison.Ordinal);
         Assert.Contains("Double-clicking a profile row selects that profile and opens File Library view.", feature014, StringComparison.Ordinal);
@@ -2119,6 +2547,11 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("Then the top-row `File Library` title is visible.", feature014, StringComparison.Ordinal);
         Assert.Contains("The File Library view exposes a top-left `Profiles` back action above the selected-profile header.", feature014, StringComparison.Ordinal);
         Assert.Contains("The selected-profile header `Edit` action opens rename inline in that header.", feature014, StringComparison.Ordinal);
+        Assert.Contains("Stop shared-library row reordering during selection changes", feature015, StringComparison.Ordinal);
+        Assert.Contains("Selection and deselection do not reorder Source Port, IWAD, or Mod rows.", feature015, StringComparison.Ordinal);
+        Assert.Contains("Cross-list movement between Source Port, IWAD, and Mod lists.", feature015, StringComparison.Ordinal);
+        Assert.Contains("Reordered list order persists immediately", feature015, StringComparison.Ordinal);
+        Assert.Contains("Drag reorder availability both with and without a selected profile.", feature015, StringComparison.Ordinal);
 
         Assert.Contains("Feature 013 is the authoritative source for toast behavior.", feature013, StringComparison.Ordinal);
         Assert.Contains("Only one toast is visible at a time.", feature013, StringComparison.Ordinal);

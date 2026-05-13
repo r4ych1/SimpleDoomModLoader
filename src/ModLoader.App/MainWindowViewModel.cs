@@ -24,21 +24,45 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private readonly List<ProfileConfig> _profiles = [];
     private bool _isFileLibraryViewActive;
     private bool _isIwadDropZoneDragActive;
+    private bool _isIwadDragGhostVisible;
+    private bool _isIwadDropIndicatorVisible;
+    private bool _isModDragGhostVisible;
+    private bool _isModDropIndicatorVisible;
     private bool _isProfileDragGhostVisible;
     private bool _isProfileDropIndicatorVisible;
     private bool _isIwadSectionCollapsed;
     private bool _isModSectionCollapsed;
     private bool _isModDropZoneDragActive;
     private ProfileRenameMode _profileRenameMode;
+    private bool _isSourcePortDragGhostVisible;
+    private bool _isSourcePortDropIndicatorVisible;
     private bool _isSourcePortDropZoneDragActive;
     private bool _isSourcePortSectionCollapsed;
+    private string _iwadDragGhostText = string.Empty;
+    private double _iwadDragGhostLeft;
+    private double _iwadDragGhostTop;
+    private double _iwadDropIndicatorLeft;
+    private double _iwadDropIndicatorTop;
+    private double _iwadDropIndicatorWidth;
     private string? _pendingDeleteProfileId;
+    private string _modDragGhostText = string.Empty;
+    private double _modDragGhostLeft;
+    private double _modDragGhostTop;
+    private double _modDropIndicatorLeft;
+    private double _modDropIndicatorTop;
+    private double _modDropIndicatorWidth;
     private string _profileDragGhostText = string.Empty;
     private double _profileDragGhostLeft;
     private double _profileDragGhostTop;
     private double _profileDropIndicatorLeft;
     private double _profileDropIndicatorTop;
     private double _profileDropIndicatorWidth;
+    private string _sourcePortDragGhostText = string.Empty;
+    private double _sourcePortDragGhostLeft;
+    private double _sourcePortDragGhostTop;
+    private double _sourcePortDropIndicatorLeft;
+    private double _sourcePortDropIndicatorTop;
+    private double _sourcePortDropIndicatorWidth;
     private double _windowWidth = double.PositiveInfinity;
     private string? _selectedIwadPath;
     private string? _selectedProfileId;
@@ -255,6 +279,8 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(OpenFileLibraryViewText));
             OnPropertyChanged(nameof(ReturnToProfilesViewText));
             OnPropertyChanged(nameof(AreProfileCommandPreviewsVisible));
+            OnPropertyChanged(nameof(IsProfilesViewSubtitleVisible));
+            OnPropertyChanged(nameof(IsFileLibraryViewSubtitleVisible));
             OnPropertyChanged(nameof(IsSelectedProfileHeaderRenameVisible));
             OnPropertyChanged(nameof(IsSelectedProfileRowRenameVisible));
         }
@@ -409,7 +435,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
                 return "#94a3b8";
             }
 
-            return GetProfileValidity(selectedProfile).IsValid ? "#94a3b8" : "#f59e0b";
+            return GetProfileValidity(selectedProfile).IsValid ? "#10b981" : "#f59e0b";
         }
     }
 
@@ -533,9 +559,373 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         }
     }
 
+    public bool IsSourcePortDragGhostVisible
+    {
+        get => _isSourcePortDragGhostVisible;
+        private set
+        {
+            if (_isSourcePortDragGhostVisible == value)
+            {
+                return;
+            }
+
+            _isSourcePortDragGhostVisible = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public string SourcePortDragGhostText
+    {
+        get => _sourcePortDragGhostText;
+        private set
+        {
+            if (_sourcePortDragGhostText == value)
+            {
+                return;
+            }
+
+            _sourcePortDragGhostText = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public double SourcePortDragGhostLeft
+    {
+        get => _sourcePortDragGhostLeft;
+        private set
+        {
+            if (_sourcePortDragGhostLeft == value)
+            {
+                return;
+            }
+
+            _sourcePortDragGhostLeft = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public double SourcePortDragGhostTop
+    {
+        get => _sourcePortDragGhostTop;
+        private set
+        {
+            if (_sourcePortDragGhostTop == value)
+            {
+                return;
+            }
+
+            _sourcePortDragGhostTop = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool IsSourcePortDropIndicatorVisible
+    {
+        get => _isSourcePortDropIndicatorVisible;
+        private set
+        {
+            if (_isSourcePortDropIndicatorVisible == value)
+            {
+                return;
+            }
+
+            _isSourcePortDropIndicatorVisible = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public double SourcePortDropIndicatorLeft
+    {
+        get => _sourcePortDropIndicatorLeft;
+        private set
+        {
+            if (_sourcePortDropIndicatorLeft == value)
+            {
+                return;
+            }
+
+            _sourcePortDropIndicatorLeft = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public double SourcePortDropIndicatorTop
+    {
+        get => _sourcePortDropIndicatorTop;
+        private set
+        {
+            if (_sourcePortDropIndicatorTop == value)
+            {
+                return;
+            }
+
+            _sourcePortDropIndicatorTop = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public double SourcePortDropIndicatorWidth
+    {
+        get => _sourcePortDropIndicatorWidth;
+        private set
+        {
+            if (_sourcePortDropIndicatorWidth == value)
+            {
+                return;
+            }
+
+            _sourcePortDropIndicatorWidth = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool IsIwadDragGhostVisible
+    {
+        get => _isIwadDragGhostVisible;
+        private set
+        {
+            if (_isIwadDragGhostVisible == value)
+            {
+                return;
+            }
+
+            _isIwadDragGhostVisible = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public string IwadDragGhostText
+    {
+        get => _iwadDragGhostText;
+        private set
+        {
+            if (_iwadDragGhostText == value)
+            {
+                return;
+            }
+
+            _iwadDragGhostText = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public double IwadDragGhostLeft
+    {
+        get => _iwadDragGhostLeft;
+        private set
+        {
+            if (_iwadDragGhostLeft == value)
+            {
+                return;
+            }
+
+            _iwadDragGhostLeft = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public double IwadDragGhostTop
+    {
+        get => _iwadDragGhostTop;
+        private set
+        {
+            if (_iwadDragGhostTop == value)
+            {
+                return;
+            }
+
+            _iwadDragGhostTop = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool IsIwadDropIndicatorVisible
+    {
+        get => _isIwadDropIndicatorVisible;
+        private set
+        {
+            if (_isIwadDropIndicatorVisible == value)
+            {
+                return;
+            }
+
+            _isIwadDropIndicatorVisible = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public double IwadDropIndicatorLeft
+    {
+        get => _iwadDropIndicatorLeft;
+        private set
+        {
+            if (_iwadDropIndicatorLeft == value)
+            {
+                return;
+            }
+
+            _iwadDropIndicatorLeft = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public double IwadDropIndicatorTop
+    {
+        get => _iwadDropIndicatorTop;
+        private set
+        {
+            if (_iwadDropIndicatorTop == value)
+            {
+                return;
+            }
+
+            _iwadDropIndicatorTop = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public double IwadDropIndicatorWidth
+    {
+        get => _iwadDropIndicatorWidth;
+        private set
+        {
+            if (_iwadDropIndicatorWidth == value)
+            {
+                return;
+            }
+
+            _iwadDropIndicatorWidth = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool IsModDragGhostVisible
+    {
+        get => _isModDragGhostVisible;
+        private set
+        {
+            if (_isModDragGhostVisible == value)
+            {
+                return;
+            }
+
+            _isModDragGhostVisible = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public string ModDragGhostText
+    {
+        get => _modDragGhostText;
+        private set
+        {
+            if (_modDragGhostText == value)
+            {
+                return;
+            }
+
+            _modDragGhostText = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public double ModDragGhostLeft
+    {
+        get => _modDragGhostLeft;
+        private set
+        {
+            if (_modDragGhostLeft == value)
+            {
+                return;
+            }
+
+            _modDragGhostLeft = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public double ModDragGhostTop
+    {
+        get => _modDragGhostTop;
+        private set
+        {
+            if (_modDragGhostTop == value)
+            {
+                return;
+            }
+
+            _modDragGhostTop = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool IsModDropIndicatorVisible
+    {
+        get => _isModDropIndicatorVisible;
+        private set
+        {
+            if (_isModDropIndicatorVisible == value)
+            {
+                return;
+            }
+
+            _isModDropIndicatorVisible = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public double ModDropIndicatorLeft
+    {
+        get => _modDropIndicatorLeft;
+        private set
+        {
+            if (_modDropIndicatorLeft == value)
+            {
+                return;
+            }
+
+            _modDropIndicatorLeft = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public double ModDropIndicatorTop
+    {
+        get => _modDropIndicatorTop;
+        private set
+        {
+            if (_modDropIndicatorTop == value)
+            {
+                return;
+            }
+
+            _modDropIndicatorTop = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public double ModDropIndicatorWidth
+    {
+        get => _modDropIndicatorWidth;
+        private set
+        {
+            if (_modDropIndicatorWidth == value)
+            {
+                return;
+            }
+
+            _modDropIndicatorWidth = value;
+            OnPropertyChanged();
+        }
+    }
+
     public string CommandPreviewArguments => BuildCommandPreviewArguments();
 
     public bool AreProfileCommandPreviewsVisible => IsProfilesViewActive && _windowWidth > ProfileCommandPreviewHideWidthThreshold;
+
+    public bool IsProfilesViewSubtitleVisible => IsProfilesViewActive && _windowWidth > ProfileCommandPreviewHideWidthThreshold;
+
+    public bool IsFileLibraryViewSubtitleVisible => IsFileLibraryViewActive && _windowWidth > ProfileCommandPreviewHideWidthThreshold;
 
     public bool IsSourcePortDropZoneDragActive
     {
@@ -591,6 +981,9 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         }
 
         _windowWidth = normalizedWidth;
+        OnPropertyChanged(nameof(AreProfileCommandPreviewsVisible));
+        OnPropertyChanged(nameof(IsProfilesViewSubtitleVisible));
+        OnPropertyChanged(nameof(IsFileLibraryViewSubtitleVisible));
         RefreshProfileRows();
     }
 
@@ -891,6 +1284,132 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         HideProfileDropIndicator();
     }
 
+    public bool BeginSourcePortDrag(string path, double ghostLeft, double ghostTop)
+    {
+        var row = SourcePortRows.FirstOrDefault(candidate => string.Equals(candidate.Path, path, StringComparison.OrdinalIgnoreCase));
+        if (row is null)
+        {
+            return false;
+        }
+
+        SourcePortDragGhostText = row.Path;
+        SourcePortDragGhostLeft = ghostLeft;
+        SourcePortDragGhostTop = ghostTop;
+        IsSourcePortDragGhostVisible = true;
+        HideSourcePortDropIndicator();
+        return true;
+    }
+
+    public void UpdateSourcePortDragGhostPosition(double ghostLeft, double ghostTop)
+    {
+        SourcePortDragGhostLeft = ghostLeft;
+        SourcePortDragGhostTop = ghostTop;
+    }
+
+    public void ShowSourcePortDropIndicator(double left, double top, double width)
+    {
+        SourcePortDropIndicatorLeft = left;
+        SourcePortDropIndicatorTop = top;
+        SourcePortDropIndicatorWidth = width;
+        IsSourcePortDropIndicatorVisible = true;
+    }
+
+    public void HideSourcePortDropIndicator()
+    {
+        IsSourcePortDropIndicatorVisible = false;
+    }
+
+    public void HideSourcePortDragFeedback()
+    {
+        IsSourcePortDragGhostVisible = false;
+        SourcePortDragGhostText = string.Empty;
+        HideSourcePortDropIndicator();
+    }
+
+    public bool BeginIwadDrag(string path, double ghostLeft, double ghostTop)
+    {
+        var row = IwadRows.FirstOrDefault(candidate => string.Equals(candidate.Path, path, StringComparison.OrdinalIgnoreCase));
+        if (row is null)
+        {
+            return false;
+        }
+
+        IwadDragGhostText = row.Path;
+        IwadDragGhostLeft = ghostLeft;
+        IwadDragGhostTop = ghostTop;
+        IsIwadDragGhostVisible = true;
+        HideIwadDropIndicator();
+        return true;
+    }
+
+    public void UpdateIwadDragGhostPosition(double ghostLeft, double ghostTop)
+    {
+        IwadDragGhostLeft = ghostLeft;
+        IwadDragGhostTop = ghostTop;
+    }
+
+    public void ShowIwadDropIndicator(double left, double top, double width)
+    {
+        IwadDropIndicatorLeft = left;
+        IwadDropIndicatorTop = top;
+        IwadDropIndicatorWidth = width;
+        IsIwadDropIndicatorVisible = true;
+    }
+
+    public void HideIwadDropIndicator()
+    {
+        IsIwadDropIndicatorVisible = false;
+    }
+
+    public void HideIwadDragFeedback()
+    {
+        IsIwadDragGhostVisible = false;
+        IwadDragGhostText = string.Empty;
+        HideIwadDropIndicator();
+    }
+
+    public bool BeginModDrag(string path, double ghostLeft, double ghostTop)
+    {
+        var row = ModRows.FirstOrDefault(candidate => string.Equals(candidate.Path, path, StringComparison.OrdinalIgnoreCase));
+        if (row is null)
+        {
+            return false;
+        }
+
+        ModDragGhostText = row.Path;
+        ModDragGhostLeft = ghostLeft;
+        ModDragGhostTop = ghostTop;
+        IsModDragGhostVisible = true;
+        HideModDropIndicator();
+        return true;
+    }
+
+    public void UpdateModDragGhostPosition(double ghostLeft, double ghostTop)
+    {
+        ModDragGhostLeft = ghostLeft;
+        ModDragGhostTop = ghostTop;
+    }
+
+    public void ShowModDropIndicator(double left, double top, double width)
+    {
+        ModDropIndicatorLeft = left;
+        ModDropIndicatorTop = top;
+        ModDropIndicatorWidth = width;
+        IsModDropIndicatorVisible = true;
+    }
+
+    public void HideModDropIndicator()
+    {
+        IsModDropIndicatorVisible = false;
+    }
+
+    public void HideModDragFeedback()
+    {
+        IsModDragGhostVisible = false;
+        ModDragGhostText = string.Empty;
+        HideModDropIndicator();
+    }
+
     public void BeginRenameSelectedProfile()
     {
         var selectedProfileId = SelectedProfileId;
@@ -1169,6 +1688,51 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         return true;
     }
 
+    public bool ReorderMod(string path, int targetIndex)
+    {
+        CancelRename();
+
+        if (!_store.ReorderMod(path, targetIndex))
+        {
+            return false;
+        }
+
+        ClearPendingDeleteConfirmation();
+        RefreshFromStore();
+        PersistState();
+        return true;
+    }
+
+    public bool ReorderSourcePort(string path, int targetIndex)
+    {
+        CancelRename();
+
+        if (!_store.ReorderSourcePort(path, targetIndex))
+        {
+            return false;
+        }
+
+        ClearPendingDeleteConfirmation();
+        RefreshFromStore();
+        PersistState();
+        return true;
+    }
+
+    public bool ReorderIwad(string path, int targetIndex)
+    {
+        CancelRename();
+
+        if (!_store.ReorderIwad(path, targetIndex))
+        {
+            return false;
+        }
+
+        ClearPendingDeleteConfirmation();
+        RefreshFromStore();
+        PersistState();
+        return true;
+    }
+
     public void LaunchSourcePort()
     {
         var selectedProfile = GetSelectedProfile();
@@ -1250,7 +1814,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             isLibrarySelectionEnabled);
 
         CopyRows(
-            GetOrderedModPaths(),
+            Mods,
             ModRows,
             path => FindPathIndex(SelectedModPaths, path) >= 0,
             isLibrarySelectionEnabled);
@@ -1544,42 +2108,6 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         return reasons.Count == 0
             ? new ProfileValidity(true, "Selected profile is ready to launch.")
             : new ProfileValidity(false, string.Join(" ", reasons));
-    }
-
-    private IReadOnlyList<string> GetOrderedModPaths()
-    {
-        if (!HasSelectedProfile)
-        {
-            return
-            [
-                .. Mods
-                    .OrderBy(path => Path.GetFileName(path), StringComparer.OrdinalIgnoreCase)
-                    .ThenBy(path => path, StringComparer.OrdinalIgnoreCase)
-            ];
-        }
-
-        var orderedSelectedPaths = new List<string>();
-        var selectedPathSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var selectedModPath in SelectedModPaths)
-        {
-            if (!ContainsPath(Mods, selectedModPath))
-            {
-                continue;
-            }
-
-            if (selectedPathSet.Add(selectedModPath))
-            {
-                orderedSelectedPaths.Add(selectedModPath);
-            }
-        }
-
-        var orderedUnselectedPaths = Mods
-            .Where(path => !selectedPathSet.Contains(path))
-            .OrderBy(path => Path.GetFileName(path), StringComparer.OrdinalIgnoreCase)
-            .ThenBy(path => path, StringComparer.OrdinalIgnoreCase);
-
-        return [.. orderedSelectedPaths, .. orderedUnselectedPaths];
     }
 
     private static bool ContainsPath(IEnumerable<string> candidates, string? path)
